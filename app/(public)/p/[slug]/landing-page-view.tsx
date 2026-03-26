@@ -8,6 +8,7 @@ import type { LandingPageSection } from '@/domain/entities'
 import { Container } from '@/components/ui/container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { BRAND } from '@/lib/brand'
 import { cn } from '@/lib/utils'
 
 interface LandingPageConfig {
@@ -147,7 +148,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                 )}
 
                 <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-                    <p>Powered by <span className="font-semibold text-foreground">Antigravity</span></p>
+                    <p>Powered by <span className="font-semibold text-foreground">{BRAND.poweredBy}</span></p>
                 </footer>
             </div>
 

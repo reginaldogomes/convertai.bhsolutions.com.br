@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Bot, Sparkles, UserCheck, MessageSquare, PenTool, Zap } from 'lucide-react'
+import { BRAND } from '@/lib/brand'
 
 const AGENTS = [
     {
@@ -35,7 +36,7 @@ const AGENTS = [
 export default function AgentsPage() {
     return (
         <div className="p-8 space-y-8">
-            <PageHeader category="Antigravity Kit" title="Agentes Inteligentes" icon={Bot} />
+            <PageHeader category={`${BRAND.name} Kit`} title="Agentes Inteligentes" icon={Bot} />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {AGENTS.map((agent) => {

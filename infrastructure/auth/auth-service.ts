@@ -9,19 +9,23 @@ export interface AuthenticatedContext {
     userId: string
     orgId: string
     profile: UserProfile
+    isSuperAdmin: boolean
 }
 
 /**
  * Resolves the current authenticated user and their organization.
  * Centralizes the auth + org lookup that was repeated across every page and action.
+ * isSuperAdmin is read from app_metadata in the JWT (set via service role only).
  */
 export async function getAuthContext(): Promise<AuthenticatedContext> {
     const supabase = await createClient()
 
     let userId: string | undefined
+    let isSuperAdmin = false
     try {
         const { data } = await supabase.auth.getUser()
         userId = data.user?.id
+        isSuperAdmin = data.user?.app_metadata?.is_super_admin === true
     } catch {
         throw new NotAuthenticatedError()
     }
@@ -35,6 +39,7 @@ export async function getAuthContext(): Promise<AuthenticatedContext> {
         userId,
         orgId: profile.organizationId,
         profile,
+        isSuperAdmin,
     }
 }
 

@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ChatBubble } from './ChatBubble'
+import { BRAND } from '@/lib/brand'
 
 interface ChatWidgetProps {
     pageId: string
@@ -247,7 +248,7 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                         </button>
                     </form>
                     <p className="mt-2 select-none text-center text-[10px] text-muted-foreground">
-                        Powered by Antigravity
+                        Powered by {BRAND.poweredBy}
                     </p>
                 </div>
             </Card>

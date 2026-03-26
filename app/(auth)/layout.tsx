@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { BRAND } from '@/lib/brand'
 
 // Auth route group — does not use the dashboard layout
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -8,9 +8,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 border-r border-border bg-[hsl(var(--background-secondary))]">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-[var(--radius)]">
-                        <span className="text-primary-foreground font-black text-sm tracking-tighter">AG</span>
+                        <span className="text-primary-foreground font-black text-sm tracking-tighter">{BRAND.abbr}</span>
                     </div>
-                    <span className="text-foreground font-bold text-lg tracking-tight">Antigravity</span>
+                    <span className="text-foreground font-bold text-lg tracking-tight">{BRAND.name}</span>
                 </div>
 
                 <div className="space-y-6">

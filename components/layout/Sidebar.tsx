@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/auth'
 import {
     LayoutDashboard, Users, TrendingUp, MessageSquare, Mail,
-    Zap, Bot, Settings, LogOut, Globe,
+    Zap, Bot, Settings, LogOut, Globe, ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './ThemeToggle'
+import { BRAND } from '@/lib/brand'
 
 const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,7 +22,7 @@ const navItems = [
     { href: '/agents', label: 'Agentes IA', icon: Bot },
 ]
 
-export function Sidebar() {
+export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
     const pathname = usePathname()
 
     return (
@@ -30,9 +31,9 @@ export function Sidebar() {
             <div className="px-4 py-4 border-b border-[hsl(var(--sidebar-border))]">
                 <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 bg-primary flex items-center justify-center rounded-(--radius) shrink-0 shadow-sm">
-                        <span className="text-white font-black text-xs tracking-tighter">AG</span>
+                        <span className="text-white font-black text-xs tracking-tighter">{BRAND.abbr}</span>
                     </div>
-                    <span className="text-white font-bold text-sm tracking-tight">Antigravity</span>
+                    <span className="text-white font-bold text-sm tracking-tight">{BRAND.name}</span>
                 </div>
             </div>
 
@@ -65,6 +66,20 @@ export function Sidebar() {
             {/* Footer actions */}
             <div className="px-3 py-3 border-t border-[hsl(var(--sidebar-border))] space-y-0.5">
                 <ThemeToggle />
+                {isSuperAdmin && (
+                    <Link
+                        href="/admin"
+                        className={cn(
+                            'flex items-center gap-3 px-3 py-2 text-xs font-medium transition-all duration-150 rounded-(--radius) group',
+                            pathname.startsWith('/admin')
+                                ? 'bg-destructive/80 text-white shadow-sm'
+                                : 'text-white/50 hover:text-white/90 hover:bg-destructive/20'
+                        )}
+                    >
+                        <ShieldCheck className="w-4 h-4 shrink-0" />
+                        Super Admin
+                    </Link>
+                )}
                 <Link
                     href="/settings"
                     className={cn(

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import { BRAND } from '@/lib/brand'
 
 const initialState = { error: '' }
 
@@ -17,9 +18,9 @@ export default function RegisterPage() {
             <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-6 lg:hidden">
                     <div className="w-7 h-7 bg-primary flex items-center justify-center rounded-[var(--radius)]">
-                        <span className="text-primary-foreground font-black text-xs">AG</span>
+                        <span className="text-primary-foreground font-black text-xs">{BRAND.abbr}</span>
                     </div>
-                    <span className="text-foreground font-bold">Antigravity</span>
+                    <span className="text-foreground font-bold">{BRAND.name}</span>
                 </div>
                 <h2 className="text-foreground text-2xl font-black tracking-tight">Criar conta</h2>
                 <p className="text-muted-foreground text-sm">Comece a usar a plataforma</p>
