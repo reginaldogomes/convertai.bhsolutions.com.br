@@ -3,6 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { ChatBubble } from './ChatBubble'
 
 interface ChatWidgetProps {
     pageId: string
@@ -135,9 +139,9 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
             <button
                 onClick={() => setIsOpen(true)}
                 className={cn(
-                    'fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full',
-                    'shadow-xl ring-1 ring-black/10',
-                    'transition-all duration-200 hover:scale-110 hover:shadow-2xl',
+                    'fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-2xl',
+                    'surface-overlay',
+                    'transition-all duration-200 hover:scale-105 hover:shadow-2xl',
                     'focus-visible:outline-none',
                     isOpen ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100'
                 )}
@@ -152,15 +156,11 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
             </button>
 
             {/* Chat Window */}
-            <div
+            <Card
                 className={cn(
-                    'fixed bottom-6 right-6 z-50 flex flex-col',
-                    'w-[calc(100vw-3rem)] max-w-95 h-140 max-h-[85dvh]',
-                    'rounded-2xl overflow-hidden',
-                    'border border-gray-200 dark:border-gray-700/60',
-                    'bg-white dark:bg-gray-900',
-                    'shadow-2xl shadow-black/15',
-                    'transition-all duration-300 origin-bottom-right',
+                    'fixed bottom-6 right-6 z-50 flex h-[min(720px,85dvh)] w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden p-0',
+                    'origin-bottom-right rounded-2xl border-border',
+                    'transition-all duration-300',
                     isOpen
                         ? 'opacity-100 scale-100 animate-widget-open pointer-events-auto'
                         : 'opacity-0 scale-90 pointer-events-none'
@@ -168,24 +168,25 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
             >
                 {/* Header */}
                 <div
-                    className="flex items-center justify-between px-4 py-3.5 shrink-0"
+                    className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3.5"
                     style={{ backgroundColor: primaryColor }}
                 >
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="relative shrink-0">
-                            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
                                 <MessageSquare className="w-4 h-4 text-white" />
                             </div>
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-white leading-tight truncate">{chatbotName}</p>
-                            <p className="text-[11px] text-white/70 leading-tight mt-0.5">Online · resposta imediata</p>
+                            <div className="mt-1">
+                                <Badge className="border-white/30 bg-white/15 text-[10px] text-white hover:bg-white/20">Online agora</Badge>
+                            </div>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 active:bg-white/30 transition-colors shrink-0 ml-2"
+                        className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/20 active:bg-white/30"
                         aria-label="Fechar chat"
                     >
                         <X className="w-4 h-4 text-white" />
@@ -193,51 +194,36 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/80 dark:bg-gray-800/40 scroll-smooth">
+                <div className="gradient-mesh bg-background flex-1 space-y-3 overflow-y-auto p-4 scroll-smooth">
                     {messages.map((msg) => (
-                        <div
+                        <ChatBubble
                             key={msg.id}
-                            className={cn(
-                                'flex animate-message-in',
-                                msg.role === 'user' ? 'justify-end' : 'justify-start'
-                            )}
+                            role={msg.role}
+                            content={msg.content}
+                            primaryColor={primaryColor}
                         >
-                            <div
-                                className={cn(
-                                    'max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-                                    msg.role === 'user'
-                                        ? 'text-white rounded-tr-sm shadow-sm'
-                                        : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-600/50 rounded-tl-sm shadow-sm'
-                                )}
-                                style={msg.role === 'user' ? { backgroundColor: primaryColor } : undefined}
-                            >
-                                {msg.content ? msg.content : <TypingDots />}
-                            </div>
-                        </div>
+                            <TypingDots />
+                        </ChatBubble>
                     ))}
+
                     <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input */}
-                <div className="px-3 pt-2.5 pb-3 border-t border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-900 shrink-0">
+                <div className="bg-card shrink-0 border-t border-border px-3 pb-3 pt-2.5">
                     <form
                         onSubmit={(e) => { e.preventDefault(); sendMessage() }}
                         className="flex items-center gap-2"
                     >
-                        <input
+                        <Input
                             ref={inputRef}
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Digite sua mensagem..."
                             className={cn(
-                                'flex-1 px-3.5 py-2.5 text-sm rounded-xl',
-                                'border border-gray-200 dark:border-gray-600/80',
-                                'bg-gray-50 dark:bg-gray-800',
-                                'text-gray-900 dark:text-gray-100',
-                                'placeholder:text-gray-400 dark:placeholder:text-gray-500',
-                                'focus:outline-none focus:border-gray-300 dark:focus:border-gray-500',
-                                'transition-colors duration-150 disabled:opacity-60'
+                                'h-10 flex-1 rounded-xl bg-background',
+                                'border-border focus-visible:ring-ring/30'
                             )}
                             disabled={isLoading}
                         />
@@ -245,7 +231,7 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                             type="submit"
                             disabled={isLoading || !input.trim()}
                             className={cn(
-                                'w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0',
+                                'h-10 w-10 shrink-0 rounded-xl text-white flex items-center justify-center',
                                 'transition-all duration-150 shadow-sm',
                                 'hover:opacity-90 hover:scale-105 active:scale-95',
                                 'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100'
@@ -260,11 +246,11 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                             )}
                         </button>
                     </form>
-                    <p className="text-center text-[10px] text-gray-400 dark:text-gray-600 mt-2 select-none">
+                    <p className="mt-2 select-none text-center text-[10px] text-muted-foreground">
                         Powered by Antigravity
                     </p>
                 </div>
-            </div>
+            </Card>
         </>
     )
 }

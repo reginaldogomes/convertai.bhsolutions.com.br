@@ -1,9 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
+import Image from 'next/image'
 import { ChatWidget } from '@/components/crm/ChatWidget'
 import { SectionRenderer } from '@/components/landing-sections'
 import type { LandingPageSection } from '@/domain/entities'
+import { Container } from '@/components/ui/container'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 interface LandingPageConfig {
     theme: 'light' | 'dark'
@@ -65,106 +70,86 @@ export function LandingPageView({ page }: LandingPageViewProps) {
     }
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-gray-950 text-white' : 'bg-white text-gray-900'}`}>
-            {hasSections ? (
-                <SectionRenderer
-                    sections={config.sections}
-                    primaryColor={config.primaryColor}
-                    isDark={isDark}
-                    landingPageId={page.id}
-                    onCtaClick={handleCtaClick}
-                />
-            ) : (
-                /* Fallback: layout clássico para páginas sem seções configuradas */
-                <>
-                    {/* Hero */}
-                    <header className={`relative overflow-hidden ${isDark ? 'bg-gray-950' : 'bg-white'}`}>
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                background: `radial-gradient(ellipse 90% 60% at 50% -5%, ${config.primaryColor}18 0%, transparent 65%)`,
-                            }}
-                        />
-                        <div className={`absolute inset-0 bg-dot-grid ${isDark ? 'opacity-[0.04]' : 'opacity-[0.035]'}`} />
-                        <div className="relative max-w-5xl mx-auto px-6 py-28 md:py-36 text-center">
-                            {config.logoUrl && (
-                                <img
-                                    src={config.logoUrl}
-                                    alt={page.name}
-                                    className="h-12 mx-auto mb-10 object-contain"
-                                />
-                            )}
-                            <h1 className={`text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] mb-6 text-balance ${
-                                isDark ? 'text-white' : 'text-gray-950'
-                            }`}>
-                                {page.headline}
-                            </h1>
-                            {page.subheadline && (
-                                <p className={`text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed text-pretty ${
-                                    isDark ? 'text-gray-400' : 'text-gray-500'
-                                }`}>
-                                    {page.subheadline}
-                                </p>
-                            )}
-                            <button
-                                onClick={handleCtaClick}
-                                className="group inline-flex items-center gap-2.5 px-7 py-3.5 text-base font-semibold rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+        <div className={cn('min-h-screen bg-background text-foreground', isDark && 'dark')}>
+            <div className="min-h-screen bg-background text-foreground">
+                {hasSections ? (
+                    <SectionRenderer
+                        sections={config.sections}
+                        primaryColor={config.primaryColor}
+                        isDark={isDark}
+                        landingPageId={page.id}
+                        onCtaClick={handleCtaClick}
+                    />
+                ) : (
+                    <>
+                        <header className="gradient-mesh relative overflow-hidden border-b border-border/60 bg-background">
+                            <div
+                                className="absolute inset-0"
                                 style={{
-                                    backgroundColor: config.primaryColor,
-                                    boxShadow: `0 8px 24px -4px ${config.primaryColor}55`,
+                                    background: `radial-gradient(ellipse 90% 60% at 50% -5%, ${config.primaryColor}18 0%, transparent 65%)`,
                                 }}
-                            >
-                                {page.ctaText}
-                                <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                            </button>
-                        </div>
-                    </header>
+                            />
+                            <div className="bg-dot-grid absolute inset-0 opacity-[0.03]" />
+                            <Container className="relative py-24 text-center md:py-32">
+                                {config.logoUrl && (
+                                    <Image
+                                        src={config.logoUrl}
+                                        alt={page.name}
+                                        width={160}
+                                        height={48}
+                                        className="mx-auto mb-10 h-12 object-contain"
+                                    />
+                                )}
+                                <h1 className="text-balance mb-6 text-4xl font-black leading-[1.05] tracking-tight text-foreground md:text-6xl lg:text-7xl">
+                                    {page.headline}
+                                </h1>
+                                {page.subheadline && (
+                                    <p className="text-pretty mx-auto mb-10 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-xl">
+                                        {page.subheadline}
+                                    </p>
+                                )}
+                                <Button
+                                    onClick={handleCtaClick}
+                                    size="lg"
+                                    className="rounded-xl px-7"
+                                    style={{ backgroundColor: config.primaryColor, borderColor: config.primaryColor }}
+                                >
+                                    {page.ctaText}
+                                </Button>
+                            </Container>
+                        </header>
 
-                    {/* Features strip */}
-                    <section className={`py-20 ${isDark ? 'bg-gray-900/60' : 'bg-gray-50/80'}`}>
-                        <div className="max-w-5xl mx-auto px-6 text-center">
-                            <h2 className={`text-2xl md:text-3xl font-black tracking-tight mb-3 ${
-                                isDark ? 'text-white' : 'text-gray-950'
-                            }`}>
-                                Como podemos ajudar?
-                            </h2>
-                            <p className={`text-base mb-12 max-w-lg mx-auto ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Converse com nosso assistente para saber mais sobre nossos produtos e serviços.
-                            </p>
-                            <div className="grid md:grid-cols-3 gap-5">
-                                {[
-                                    { title: 'Atendimento Instantâneo', desc: 'Respostas imediatas 24/7 pelo chat' },
-                                    { title: 'Informações Precisas', desc: 'Base de conhecimento completa sobre nossos serviços' },
-                                    { title: 'Contato Direto', desc: 'Fale conosco e receba uma proposta personalizada' },
-                                ].map((item) => (
-                                    <div
-                                        key={item.title}
-                                        className={`p-6 rounded-2xl border transition-all duration-200 hover:-translate-y-1 ${
-                                            isDark
-                                                ? 'bg-gray-800/70 border-gray-700/60 hover:border-gray-600'
-                                                : 'bg-white border-gray-200/80 hover:border-gray-300 hover:shadow-md'
-                                        }`}
-                                    >
-                                        <h3 className={`font-semibold text-base mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                            {item.title}
-                                        </h3>
-                                        <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            {item.desc}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-                </>
-            )}
+                        <section className="bg-background-secondary py-20">
+                            <Container>
+                                <h2 className="mb-3 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+                                    Como podemos ajudar?
+                                </h2>
+                                <p className="mx-auto mb-12 max-w-lg text-center text-base text-muted-foreground">
+                                    Converse com nosso assistente para saber mais sobre nossos produtos e servicos.
+                                </p>
+                                <div className="grid gap-5 md:grid-cols-3">
+                                    {[
+                                        { title: 'Atendimento Instantaneo', desc: 'Respostas imediatas 24/7 pelo chat' },
+                                        { title: 'Informacoes Precisas', desc: 'Base de conhecimento completa sobre nossos servicos' },
+                                        { title: 'Contato Direto', desc: 'Fale conosco e receba uma proposta personalizada' },
+                                    ].map((item) => (
+                                        <Card key={item.title} className="rounded-2xl border-border/70 py-0 transition-all duration-200 hover:-translate-y-1">
+                                            <CardContent className="p-6">
+                                                <h3 className="mb-2 text-base font-semibold text-foreground">{item.title}</h3>
+                                                <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </Container>
+                        </section>
+                    </>
+                )}
 
-            {/* Footer */}
-            <footer className={`py-8 text-center text-sm border-t ${
-                isDark ? 'text-gray-600 border-gray-800' : 'text-gray-400 border-gray-100'
-            }`}>
-                <p>Powered by <span className="font-semibold">Antigravity</span></p>
-            </footer>
+                <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
+                    <p>Powered by <span className="font-semibold text-foreground">Antigravity</span></p>
+                </footer>
+            </div>
 
             {/* Chat Widget */}
             <ChatWidget

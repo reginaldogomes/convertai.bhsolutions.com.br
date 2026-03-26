@@ -3,6 +3,8 @@
 import type { FeaturesContent } from '@/domain/entities'
 import { Zap, Shield, Headphones, Star, Target, Clock, CheckCircle, Globe, Heart, Lightbulb, Rocket, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Container } from '@/components/ui/container'
+import { Card, CardContent } from '@/components/ui/card'
 
 const ICON_MAP: Record<string, LucideIcon> = {
     Zap, Shield, Headphones: Headphones, HeadphonesIcon: Headphones,
@@ -16,25 +18,23 @@ interface FeaturesSectionProps {
 }
 
 export function FeaturesSection({ content, primaryColor, isDark }: FeaturesSectionProps) {
+    void isDark
+
     const colsClass =
         content.columns === 2 ? 'md:grid-cols-2' :
         content.columns === 4 ? 'md:grid-cols-4' :
         'md:grid-cols-3'
 
     return (
-        <section className={`py-20 ${isDark ? 'bg-gray-900/60' : 'bg-gray-50/80'}`}>
-            <div className="max-w-5xl mx-auto px-6">
+        <section className="bg-background-secondary py-20">
+            <Container>
                 {content.title && (
-                    <h2 className={`text-2xl md:text-3xl font-black tracking-tight text-center mb-3 text-balance ${
-                        isDark ? 'text-white' : 'text-gray-950'
-                    }`}>
+                    <h2 className="text-balance mb-3 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
                         {content.title}
                     </h2>
                 )}
                 {content.subtitle && (
-                    <p className={`text-center text-base mb-12 max-w-xl mx-auto ${
-                        isDark ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <p className="mx-auto mb-12 max-w-xl text-center text-base text-muted-foreground">
                         {content.subtitle}
                     </p>
                 )}
@@ -42,35 +42,25 @@ export function FeaturesSection({ content, primaryColor, isDark }: FeaturesSecti
                     {content.items.map((item, idx) => {
                         const Icon = ICON_MAP[item.icon] ?? Zap
                         return (
-                            <div
+                            <Card
                                 key={idx}
-                                className={`group p-6 rounded-2xl border transition-all duration-200 hover:-translate-y-1 ${
-                                    isDark
-                                        ? 'bg-gray-800/70 border-gray-700/60 hover:border-gray-600 hover:bg-gray-800'
-                                        : 'bg-white border-gray-200/80 hover:border-gray-300 hover:shadow-md'
-                                }`}
+                                className="group rounded-2xl border-border/70 bg-card py-0 transition-all duration-200 hover:-translate-y-1"
                             >
-                                <div
-                                    className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-transform duration-200 group-hover:scale-110"
-                                    style={{ backgroundColor: `${primaryColor}18` }}
-                                >
-                                    <Icon className="w-5 h-5" style={{ color: primaryColor }} />
-                                </div>
-                                <h3 className={`font-semibold text-base mb-2 ${
-                                    isDark ? 'text-white' : 'text-gray-900'
-                                }`}>
-                                    {item.title}
-                                </h3>
-                                <p className={`text-sm leading-relaxed ${
-                                    isDark ? 'text-gray-400' : 'text-gray-500'
-                                }`}>
-                                    {item.description}
-                                </p>
-                            </div>
+                                <CardContent className="p-6">
+                                    <div
+                                        className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110"
+                                        style={{ backgroundColor: `${primaryColor}1F` }}
+                                    >
+                                        <Icon className="h-5 w-5" style={{ color: primaryColor }} />
+                                    </div>
+                                    <h3 className="mb-2 text-base font-semibold text-foreground">{item.title}</h3>
+                                    <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                                </CardContent>
+                            </Card>
                         )
                     })}
                 </div>
-            </div>
+            </Container>
         </section>
     )
 }
