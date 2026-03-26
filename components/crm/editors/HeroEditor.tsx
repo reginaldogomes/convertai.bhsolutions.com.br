@@ -1,0 +1,55 @@
+'use client'
+
+import type { HeroContent } from '@/domain/entities'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+
+interface HeroEditorProps {
+    content: HeroContent
+    onChange: (content: HeroContent) => void
+}
+
+export function HeroEditor({ content, onChange }: HeroEditorProps) {
+    const update = (field: keyof HeroContent, value: string) => {
+        onChange({ ...content, [field]: value })
+    }
+
+    return (
+        <div className="space-y-3">
+            <div className="space-y-1.5">
+                <Label className="text-xs">Título</Label>
+                <Input value={content.headline} onChange={e => update('headline', e.target.value)} className="bg-background" />
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Subtítulo</Label>
+                <Textarea value={content.subheadline} onChange={e => update('subheadline', e.target.value)} rows={2} className="bg-background" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <Label className="text-xs">Texto do CTA</Label>
+                    <Input value={content.ctaText} onChange={e => update('ctaText', e.target.value)} className="bg-background" />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs">URL do CTA</Label>
+                    <Input value={content.ctaUrl} onChange={e => update('ctaUrl', e.target.value)} placeholder="#" className="bg-background" />
+                </div>
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Imagem de Fundo (URL)</Label>
+                <Input value={content.backgroundImageUrl ?? ''} onChange={e => update('backgroundImageUrl', e.target.value || '')} placeholder="https://..." className="bg-background" />
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Alinhamento</Label>
+                <select
+                    value={content.alignment}
+                    onChange={e => update('alignment', e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                    <option value="center">Centralizado</option>
+                    <option value="left">Esquerda</option>
+                </select>
+            </div>
+        </div>
+    )
+}
