@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Campaign } from '@/domain/entities'
 import type { ICampaignRepository, CampaignRow, CreateCampaignInput, UpdateCampaignInput } from '@/domain/interfaces'
-import type { IAutomationRepository, AutomationRow } from '@/domain/interfaces'
+import type { IAutomationRepository, AutomationRow, CreateAutomationInput, UpdateAutomationInput } from '@/domain/interfaces'
 import type { CampaignStatus } from '@/types/database'
 
 export class SupabaseCampaignRepository implements ICampaignRepository {
@@ -93,5 +93,70 @@ export class SupabaseAutomationRepository implements IAutomationRepository {
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
         return (data ?? []) as AutomationRow[]
+    }
+
+    async findById(id: string, orgId: string): Promise<AutomationRow | null> {
+        const supabase = createAdminClient()
+        const { data } = await supabase
+            .from('automations')
+            .select('*')
+            .eq('id', id)
+            .eq('organization_id', orgId)
+            .single()
+        return data as AutomationRow | null
+    }
+
+    async create(input: CreateAutomationInput): Promise<AutomationRow | null> {
+        const supabase = createAdminClient()
+        const { data } = await supabase
+            .from('automations')
+            .insert({
+                organization_id: input.organizationId,
+                name: input.name,
+                trigger_event: input.triggerEvent,
+                workflow_json: input.workflowJson as never,
+                active: false,
+            })
+            .select()
+            .single()
+        return data as AutomationRow | null
+    }
+
+    async update(id: string, orgId: string, input: UpdateAutomationInput): Promise<AutomationRow | null> {
+        const supabase = createAdminClient()
+        const updateData: Record<string, unknown> = {}
+        if (input.name !== undefined) updateData.name = input.name
+        if (input.triggerEvent !== undefined) updateData.trigger_event = input.triggerEvent
+        if (input.workflowJson !== undefined) updateData.workflow_json = input.workflowJson
+        if (input.active !== undefined) updateData.active = input.active
+
+        const { data } = await supabase
+            .from('automations')
+            .update(updateData as never)
+            .eq('id', id)
+            .eq('organization_id', orgId)
+            .select()
+            .single()
+        return data as AutomationRow | null
+    }
+
+    async delete(id: string, orgId: string): Promise<boolean> {
+        const supabase = createAdminClient()
+        const { error } = await supabase
+            .from('automations')
+            .delete()
+            .eq('id', id)
+            .eq('organization_id', orgId)
+        return !error
+    }
+
+    async toggleActive(id: string, orgId: string, active: boolean): Promise<boolean> {
+        const supabase = createAdminClient()
+        const { error } = await supabase
+            .from('automations')
+            .update({ active } as never)
+            .eq('id', id)
+            .eq('organization_id', orgId)
+        return !error
     }
 }

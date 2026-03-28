@@ -49,6 +49,17 @@ export async function sendCampaign(campaignId: string) {
     try {
         const { orgId } = await getAuthContext()
 
+        // Count recipients (contacts with email) to check monthly email limit
+        const recipients = await useCases.listRecipients().execute(orgId)
+        const limitCheck = await useCases.checkLimit().execute(orgId, 'emails_monthly', recipients.length)
+        if (!limitCheck.allowed) {
+            return {
+                error: `Limite de ${limitCheck.label} atingido (${limitCheck.current}/${limitCheck.limit} emails este mês). Faça upgrade do seu plano para continuar enviando campanhas.`,
+                sent: 0,
+                failed: 0,
+            }
+        }
+
         const result = await useCases.sendCampaign().execute(orgId, campaignId)
 
         if (!result.ok) return { error: result.error.message, sent: 0, failed: 0 }

@@ -57,7 +57,7 @@ export function HtmlPreview({ html }: HtmlPreviewProps) {
     }, [html])
 
     return (
-        <div className="border border-border rounded-[var(--radius)] overflow-hidden bg-white">
+        <div className="border border-border rounded-(--radius) overflow-hidden bg-white">
             {/* Email envelope header */}
             <div className="bg-[hsl(222,10%,96%)] border-b border-border px-4 py-3 space-y-1.5">
                 <div className="flex items-center gap-3">

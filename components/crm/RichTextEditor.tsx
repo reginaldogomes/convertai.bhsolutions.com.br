@@ -127,7 +127,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     if (!editor) return null
 
     return (
-        <div className="border border-border rounded-[var(--radius)] overflow-hidden bg-card">
+        <div className="border border-border rounded-(--radius) overflow-hidden bg-card">
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-secondary/50">
                 {/* Undo/Redo */}

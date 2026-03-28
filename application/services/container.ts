@@ -9,6 +9,7 @@ import {
     SupabaseKnowledgeBaseRepository,
     SupabaseChatSessionRepository,
     SupabaseAnalyticsRepository,
+    SupabasePlanRepository,
 } from '@/infrastructure/repositories'
 import { TwilioWhatsAppService } from '@/infrastructure/services/twilio-whatsapp-service'
 import { ResendEmailService } from '@/infrastructure/services/resend-email-service'
@@ -19,7 +20,15 @@ import { CreateDealUseCase, MoveDealUseCase, ListDealsUseCase } from '@/applicat
 import { SendMessageUseCase, ListThreadsUseCase } from '@/application/use-cases/messages'
 import { GetDashboardStatsUseCase } from '@/application/use-cases/dashboard'
 import { CreateCampaignUseCase, UpdateCampaignUseCase, SendCampaignUseCase, GetCampaignUseCase, GetCrmContextUseCase } from '@/application/use-cases/campaigns'
-import { ListCampaignsUseCase, ListAutomationsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase } from '@/application/use-cases/queries'
+import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase } from '@/application/use-cases/queries'
+import {
+    ListAutomationsUseCase,
+    GetAutomationUseCase,
+    CreateAutomationUseCase,
+    UpdateAutomationUseCase,
+    ToggleAutomationUseCase,
+    DeleteAutomationUseCase,
+} from '@/application/use-cases/automations'
 import {
     CreateLandingPageUseCase,
     UpdateLandingPageUseCase,
@@ -30,6 +39,15 @@ import {
     ListKnowledgeBaseUseCase,
     GetLandingPageAnalyticsUseCase,
 } from '@/application/use-cases/landing-pages'
+import {
+    CheckLimitUseCase,
+    GetOrgLimitsAndUsageUseCase,
+    GetAllPlansUseCase,
+    UpdatePlanLimitsUseCase,
+    GetOrgOverrideUseCase,
+    SetOrgOverrideUseCase,
+    ClearOrgOverrideUseCase,
+} from '@/application/use-cases/plans'
 
 // Repository singletons (stateless, safe to reuse)
 const contactRepo = new SupabaseContactRepository()
@@ -42,6 +60,7 @@ const landingPageRepo = new SupabaseLandingPageRepository()
 const knowledgeBaseRepo = new SupabaseKnowledgeBaseRepository()
 const chatSessionRepo = new SupabaseChatSessionRepository()
 const analyticsRepo = new SupabaseAnalyticsRepository()
+const planRepo = new SupabasePlanRepository()
 
 // Service singletons
 const whatsAppService = new TwilioWhatsAppService()
@@ -76,10 +95,17 @@ export const useCases = {
 
     // Queries (simple read-only use cases)
     listCampaigns: () => new ListCampaignsUseCase(campaignRepo),
-    listAutomations: () => new ListAutomationsUseCase(automationRepo),
     listContactSelects: () => new ListContactSelectsUseCase(contactRepo),
     getUserSettings: () => new GetUserSettingsUseCase(userRepo),
     listRecipients: () => new ListRecipientsUseCase(contactRepo),
+
+    // Automations
+    listAutomations: () => new ListAutomationsUseCase(automationRepo),
+    getAutomation: () => new GetAutomationUseCase(automationRepo),
+    createAutomation: () => new CreateAutomationUseCase(automationRepo),
+    updateAutomation: () => new UpdateAutomationUseCase(automationRepo),
+    toggleAutomation: () => new ToggleAutomationUseCase(automationRepo),
+    deleteAutomation: () => new DeleteAutomationUseCase(automationRepo),
 
     // Landing Pages
     createLandingPage: () => new CreateLandingPageUseCase(landingPageRepo),
@@ -94,7 +120,16 @@ export const useCases = {
 
     // Analytics
     getLandingPageAnalytics: () => new GetLandingPageAnalyticsUseCase(analyticsRepo),
+
+    // Plans
+    checkLimit: () => new CheckLimitUseCase(planRepo),
+    getOrgLimitsAndUsage: () => new GetOrgLimitsAndUsageUseCase(planRepo),
+    getAllPlans: () => new GetAllPlansUseCase(planRepo),
+    updatePlanLimits: () => new UpdatePlanLimitsUseCase(planRepo),
+    getOrgOverride: () => new GetOrgOverrideUseCase(planRepo),
+    setOrgOverride: () => new SetOrgOverrideUseCase(planRepo),
+    clearOrgOverride: () => new ClearOrgOverrideUseCase(planRepo),
 } as const
 
-// Export singletons needed by API routes
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo as contactRepoSingleton, analyticsRepo, ragService }
+// Export singletons needed by API routes and server actions
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, contactRepo as contactRepoSingleton, analyticsRepo, ragService }

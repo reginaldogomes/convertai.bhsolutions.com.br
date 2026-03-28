@@ -1,74 +1,69 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { landingPageRepo, analyticsRepo } from '@/application/services/container'
+import { z } from 'zod'
+import { landingPageRepo, analyticsRepo, contactRepo } from '@/application/services/container'
+
+const leadSchema = z.object({
+    landingPageId: z.string().uuid('Landing page inválida'),
+    name: z.string().min(2, 'Nome obrigatório'),
+    email: z.string().email('Email inválido'),
+    phone: z.string().optional().or(z.literal('')),
+    company: z.string().optional().or(z.literal('')),
+    message: z.string().optional().or(z.literal('')),
+    consent: z.literal(true, { errorMap: () => ({ message: 'Consentimento obrigatório' }) }),
+})
 
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { landingPageId, name, email, phone, company, message } = body as {
-            landingPageId?: string
-            name?: string
-            email?: string
-            phone?: string
-            company?: string
-            message?: string
+        const parsed = leadSchema.safeParse(body)
+
+        if (!parsed.success) {
+            const message = parsed.error.issues[0]?.message ?? 'Dados inválidos'
+            return NextResponse.json({ error: message }, { status: 400 })
         }
 
-        if (!landingPageId || !email) {
-            return NextResponse.json({ error: 'landingPageId and email are required' }, { status: 400 })
-        }
+        const { landingPageId, name, email, phone, company, message } = parsed.data
 
-        // Save lead as contact in the CRM
         const page = await landingPageRepo.findById(landingPageId)
         if (!page) {
-            return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
+            return NextResponse.json({ error: 'Landing page não encontrada' }, { status: 404 })
         }
 
-        const supabase = createAdminClient()
-
-        // Check if contact already exists for this org
-        const { data: existing } = await supabase
-            .from('contacts')
-            .select('id')
-            .eq('organization_id', page.organizationId)
-            .eq('email', email)
-            .single()
+        // Deduplicate by email within the org
+        const existing = await contactRepo.findByEmail(email, page.organizationId)
 
         let contactId: string
 
         if (existing) {
             contactId = existing.id
-            // Update existing contact with any new info
-            const updateData: Record<string, string> = {}
-            if (name) updateData.name = name
-            if (phone) updateData.phone = phone
-            if (company) updateData.company = company
-            if (Object.keys(updateData).length > 0) {
-                await supabase
-                    .from('contacts')
-                    .update(updateData)
-                    .eq('id', contactId)
-            }
+            // Update with any new info provided
+            await contactRepo.update(contactId, {
+                name: name || existing.name,
+                phone: phone || existing.phone || null,
+                company: company || existing.company || null,
+                // Merge tags preserving existing ones + add landing_page tag
+                tags: Array.from(new Set([...existing.tags, 'landing_page'])),
+                // Append new message as note if provided
+                notes: message
+                    ? `${existing.notes ? existing.notes + '\n\n' : ''}[Landing Page: ${page.name}]\n${message}`
+                    : existing.notes,
+            })
         } else {
-            // Create new contact
-            const { data: newContact } = await supabase
-                .from('contacts')
-                .insert({
-                    organization_id: page.organizationId,
-                    name: name || email.split('@')[0],
-                    email,
-                    phone: phone || null,
-                    company: company || null,
-                    source: 'landing_page',
-                    notes: message ? `[Landing Page: ${page.name}]\n${message}` : `Via Landing Page: ${page.name}`,
-                })
-                .select('id')
-                .single()
-
-            contactId = newContact?.id ?? ''
+            const newContact = await contactRepo.create({
+                organizationId: page.organizationId,
+                name,
+                email,
+                phone: phone || null,
+                company: company || null,
+                tags: ['landing_page'],
+                notes: message ? `[Landing Page: ${page.name}]\n${message}` : `Via Landing Page: ${page.name}`,
+            })
+            if (!newContact) {
+                return NextResponse.json({ error: 'Erro ao registrar contato' }, { status: 500 })
+            }
+            contactId = newContact.id
         }
 
-        // Track lead capture event
         await analyticsRepo.track({
             landingPageId,
             eventType: 'lead_captured',
@@ -78,6 +73,6 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, contactId })
     } catch {
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Erro interno no servidor' }, { status: 500 })
     }
 }

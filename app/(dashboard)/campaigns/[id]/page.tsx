@@ -39,7 +39,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
                         {campaign.name}
                     </h1>
                     <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-[var(--radius)] ${campaign.isSent() ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20' : 'bg-secondary text-foreground-secondary border-border'}`}>
+                        <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${campaign.isSent() ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20' : 'bg-secondary text-foreground-secondary border-border'}`}>
                             {campaign.status}
                         </span>
                         <span className="text-muted-foreground text-xs">
@@ -69,7 +69,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
 
             {/* Draft: editor */}
             {campaign.isDraft() && (
-                <div className="bg-card border border-border p-6 rounded-[var(--radius)]">
+                <div className="bg-card border border-border p-6 rounded-(--radius)">
                     <CampaignEditor
                         campaignId={campaign.id}
                         name={campaign.name}
@@ -92,7 +92,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
                     </div>
 
                     {/* Sent info */}
-                    <div className="bg-card border border-border p-6 space-y-4 rounded-[var(--radius)]">
+                    <div className="bg-card border border-border p-6 space-y-4 rounded-(--radius)">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="space-y-1">
                                 <p className="text-muted-foreground text-xs uppercase tracking-wider">Assunto</p>
@@ -119,7 +119,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
 
 function MetricCard({ label, value, variant = 'default' }: { label: string; value: string | number; variant?: 'default' | 'danger' }) {
     return (
-        <div className="bg-card border border-border p-4 rounded-[var(--radius)]">
+        <div className="bg-card border border-border p-4 rounded-(--radius)">
             <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">{label}</p>
             <p className={`text-xl font-black tracking-tight ${variant === 'danger' ? 'text-destructive' : 'text-foreground'}`}>
                 {value}

@@ -1,4 +1,4 @@
-import type { IContactRepository, ICampaignRepository, IDealRepository, IAutomationRepository, IUserRepository, AutomationRow, CampaignRow } from '@/domain/interfaces'
+import type { IContactRepository, ICampaignRepository, IDealRepository, IUserRepository, CampaignRow } from '@/domain/interfaces'
 import type { Contact, Deal, Campaign } from '@/domain/entities'
 import type { UserProfile } from '@/domain/interfaces'
 
@@ -9,16 +9,6 @@ export class ListCampaignsUseCase {
 
     async execute(orgId: string): Promise<CampaignRow[]> {
         return this.campaignRepo.findByOrgId(orgId)
-    }
-}
-
-// --- List Automations (for page) ---
-
-export class ListAutomationsUseCase {
-    constructor(private readonly automationRepo: IAutomationRepository) {}
-
-    async execute(orgId: string): Promise<AutomationRow[]> {
-        return this.automationRepo.findByOrgId(orgId)
     }
 }
 

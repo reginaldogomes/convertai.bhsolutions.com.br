@@ -1,13 +1,23 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
+import { contactRepo } from '@/application/services/container'
 import { getErrorMessage } from './utils'
 
 export async function createContact(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
         const { orgId } = await getAuthContext()
+
+        const limitCheck = await useCases.checkLimit().execute(orgId, 'contacts')
+        if (!limitCheck.allowed) {
+            return {
+                error: `Limite de ${limitCheck.label} atingido (${limitCheck.current}/${limitCheck.limit}). Faça upgrade do seu plano para adicionar mais contatos.`,
+                success: false,
+            }
+        }
 
         const result = await useCases.createContact().execute(orgId, {
             name: formData.get('name') as string,
@@ -25,4 +35,11 @@ export async function createContact(prevState: { error: string; success: boolean
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
     }
+}
+
+export async function deleteContact(contactId: string) {
+    const { orgId } = await getAuthContext()
+    await contactRepo.delete(contactId, orgId)
+    revalidatePath('/contacts')
+    redirect('/contacts')
 }

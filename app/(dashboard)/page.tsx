@@ -43,7 +43,7 @@ export default async function DashboardPage() {
             {/* KPI Grid */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 {kpiCards.map(({ key, label, icon: Icon, color, suffix }) => (
-                    <div key={key} className="bg-card border border-border p-5 space-y-3 hover:border-primary/30 transition-colors rounded-[var(--radius)]">
+                    <div key={key} className="bg-card border border-border p-5 space-y-3 hover:border-primary/30 transition-colors rounded-(--radius)">
                         <div className="flex items-center justify-between">
                             <p className="text-muted-foreground text-xs uppercase tracking-wider">{label}</p>
                             <Icon className={`w-4 h-4 ${color}`} />
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
 
             {/* Section: Recent Activity placeholder */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="bg-card border border-border p-6 rounded-[var(--radius)]">
+                <div className="bg-card border border-border p-6 rounded-(--radius)">
                     <h2 className="text-foreground font-bold text-sm mb-4 uppercase tracking-wider">Atividade Recente</h2>
                     <div className="space-y-3">
                         {[1, 2, 3].map(i => (
@@ -70,7 +70,7 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="bg-card border border-border p-6 rounded-[var(--radius)]">
+                <div className="bg-card border border-border p-6 rounded-(--radius)">
                     <h2 className="text-foreground font-bold text-sm mb-4 uppercase tracking-wider">Pipeline por Estágio</h2>
                     <div className="space-y-2">
                         {['Novo Lead', 'Contato', 'Proposta', 'Negociação', 'Fechado'].map((stage, i) => (

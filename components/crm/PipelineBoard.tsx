@@ -100,14 +100,14 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
                             onDragOver={handleDragOver}
                         >
                             {/* Column Header */}
-                            <div className="bg-card border border-border p-3 mb-3 flex items-center justify-between rounded-[var(--radius)]">
+                            <div className="bg-card border border-border p-3 mb-3 flex items-center justify-between rounded-(--radius)">
                                 <div>
                                     <h3 className="text-foreground text-sm font-bold tracking-wider uppercase">{stage.label}</h3>
                                     <p className="text-primary text-xs font-mono-data mt-1">
                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
                                     </p>
                                 </div>
-                                <div className="text-muted-foreground text-xs font-mono-data bg-secondary px-1.5 py-0.5 rounded-[var(--radius)]">{stageDeals.length}</div>
+                                <div className="text-muted-foreground text-xs font-mono-data bg-secondary px-1.5 py-0.5 rounded-(--radius)">{stageDeals.length}</div>
                             </div>
 
                             {/* Cards List */}
@@ -117,7 +117,7 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
                                         key={deal.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, deal.id)}
-                                        className="bg-[hsl(var(--background-tertiary))] border border-border p-4 cursor-grab active:cursor-grabbing hover:border-foreground-secondary transition-colors rounded-[var(--radius)]"
+                                        className="bg-[hsl(var(--background-tertiary))] border border-border p-4 cursor-grab active:cursor-grabbing hover:border-foreground-secondary transition-colors rounded-(--radius)"
                                     >
                                         <p className="text-foreground text-sm font-bold mb-1">{deal.title}</p>
                                         <p className="text-muted-foreground text-xs truncate mb-3">{deal.contacts?.name}</p>
@@ -132,7 +132,7 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
                                 {stage.id === 'novo_lead' && (
                                     <button
                                         onClick={() => setDealModalOpen(true)}
-                                        className="w-full py-3 border border-dashed border-border text-muted-foreground text-xs uppercase font-medium hover:border-foreground-secondary hover:text-foreground-secondary transition-colors flex items-center justify-center gap-1 rounded-[var(--radius)]"
+                                        className="w-full py-3 border border-dashed border-border text-muted-foreground text-xs uppercase font-medium hover:border-foreground-secondary hover:text-foreground-secondary transition-colors flex items-center justify-center gap-1 rounded-(--radius)"
                                     >
                                         <Plus className="w-3 h-3" />
                                         Novo Deal
@@ -146,7 +146,7 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
 
             {/* New Deal Modal */}
             <Dialog open={dealModalOpen} onOpenChange={setDealModalOpen}>
-                <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-[var(--radius)]">
+                <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-(--radius)">
                     <DialogHeader>
                         <DialogTitle className="text-foreground text-lg font-black tracking-tight">Nova Oportunidade</DialogTitle>
                     </DialogHeader>
@@ -155,18 +155,18 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
 
                         <div className="space-y-1.5">
                             <Label htmlFor="title" className="text-foreground-secondary text-xs uppercase tracking-wider">Título do Deal</Label>
-                            <Input required id="title" name="title" className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm focus:border-primary" />
+                            <Input required id="title" name="title" className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary" />
                         </div>
 
                         <div className="space-y-1.5">
                             <Label htmlFor="contact_id" className="text-foreground-secondary text-xs uppercase tracking-wider">Contato</Label>
                             <Select name="contact_id" required>
-                                <SelectTrigger className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm focus:border-primary">
+                                <SelectTrigger className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary">
                                     <SelectValue placeholder="Selecione o contato" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-card border-border text-foreground rounded-[var(--radius)]">
+                                <SelectContent className="bg-card border-border text-foreground rounded-(--radius)">
                                     {contacts.map(c => (
-                                        <SelectItem key={c.id} value={c.id} className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">
+                                        <SelectItem key={c.id} value={c.id} className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">
                                             {c.name}
                                         </SelectItem>
                                     ))}
@@ -176,10 +176,10 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
 
                         <div className="space-y-1.5">
                             <Label htmlFor="value" className="text-foreground-secondary text-xs uppercase tracking-wider">Valor (R$)</Label>
-                            <Input type="number" required min="0" step="0.01" id="value" name="value" className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm focus:border-primary" />
+                            <Input type="number" required min="0" step="0.01" id="value" name="value" className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary" />
                         </div>
 
-                        <Button type="submit" className="w-full bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-[var(--radius)] h-9 font-bold uppercase tracking-wider text-xs">
+                        <Button type="submit" className="w-full bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs">
                             Adicionar Deal
                         </Button>
                     </form>

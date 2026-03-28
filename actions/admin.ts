@@ -3,6 +3,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getAuthContext } from '@/infrastructure/auth'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+import { useCases } from '@/application/services/container'
+import type { PlanConfig, PlanLimits } from '@/domain/entities/plan'
 
 const PLATFORM_ORG_ID = '00000000-0000-0000-0000-000000000001'
 
@@ -173,4 +176,49 @@ export async function updateOrgPlan(orgId: string, plan: string) {
     await requireSuperAdmin()
     const admin = createAdminClient()
     await admin.from('organizations').update({ plan: plan as 'free' | 'starter' | 'pro' | 'enterprise' }).eq('id', orgId)
+    revalidatePath('/admin/organizations')
+    revalidatePath(`/admin/organizations/${orgId}`)
+}
+
+// ─── Plan Configuration ────────────────────────────────────────────────────────
+
+export async function adminGetAllPlans(): Promise<PlanConfig[]> {
+    await requireSuperAdmin()
+    return useCases.getAllPlans().execute()
+}
+
+export async function adminUpdatePlanLimits(
+    planId: string,
+    updates: Partial<PlanLimits> & { name?: string; priceBrl?: number },
+) {
+    await requireSuperAdmin()
+    await useCases.updatePlanLimits().execute(planId, updates)
+    revalidatePath('/admin/plans')
+}
+
+// ─── Per-Org Overrides ─────────────────────────────────────────────────────────
+
+export async function adminGetOrgOverride(orgId: string) {
+    await requireSuperAdmin()
+    return useCases.getOrgOverride().execute(orgId)
+}
+
+export async function adminSetOrgOverride(
+    orgId: string,
+    overrides: Partial<PlanLimits> & { notes?: string },
+) {
+    await requireSuperAdmin()
+    await useCases.setOrgOverride().execute(orgId, overrides)
+    revalidatePath(`/admin/organizations/${orgId}`)
+}
+
+export async function adminClearOrgOverride(orgId: string) {
+    await requireSuperAdmin()
+    await useCases.clearOrgOverride().execute(orgId)
+    revalidatePath(`/admin/organizations/${orgId}`)
+}
+
+export async function adminGetOrgLimitsAndUsage(orgId: string) {
+    await requireSuperAdmin()
+    return useCases.getOrgLimitsAndUsage().execute(orgId)
 }

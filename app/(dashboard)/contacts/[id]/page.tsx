@@ -3,6 +3,7 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { notFound } from 'next/navigation'
 import { Users, Building, Phone, Mail, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { DeleteContactButton } from '@/components/crm/DeleteContactButton'
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -25,12 +26,13 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                     </div>
                     <h1 className="text-foreground text-3xl font-black tracking-tight">{contact.name}</h1>
                 </div>
+                <DeleteContactButton contactId={contact.id} contactName={contact.name} />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Left Col: Info */}
                 <div className="space-y-6">
-                    <div className="bg-card border border-border p-6 rounded-[var(--radius)]">
+                    <div className="bg-card border border-border p-6 rounded-(--radius)">
                         <h2 className="text-foreground font-bold text-sm mb-4 uppercase tracking-wider">Detalhes do Contato</h2>
                         <div className="space-y-4">
                             {contact.email && (
@@ -55,7 +57,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                                 <p className="text-muted-foreground text-xs uppercase mb-2">Tags</p>
                                 <div className="flex flex-wrap gap-2">
                                     {contact.tags.map((tag) => (
-                                        <span key={tag} className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold border border-primary/40 rounded-[var(--radius)]">
+                                        <span key={tag} className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold border border-primary/40 rounded-(--radius)">
                                             {tag}
                                         </span>
                                     ))}
@@ -67,14 +69,14 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border p-6 rounded-[var(--radius)]">
+                    <div className="bg-card border border-border p-6 rounded-(--radius)">
                         <h2 className="text-foreground font-bold text-sm mb-4 uppercase tracking-wider">Deals (Oportunidades)</h2>
                         <div className="space-y-3">
                             {deals.length === 0 && (
                                 <p className="text-muted-foreground text-xs">Nenhum negócio em andamento.</p>
                             )}
                             {deals.map(deal => (
-                                <div key={deal.id} className="p-3 border border-border-subtle bg-[hsl(var(--background-tertiary))] rounded-[var(--radius)]">
+                                <div key={deal.id} className="p-3 border border-border-subtle bg-[hsl(var(--background-tertiary))] rounded-(--radius)">
                                     <p className="text-foreground text-sm font-medium">{deal.title}</p>
                                     <div className="flex items-center justify-between mt-2">
                                         <span className="text-primary text-xs uppercase font-bold">{deal.pipelineStage.replace(/_/g, ' ')}</span>
@@ -90,7 +92,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
                 {/* Right Col: Timeline */}
                 <div className="xl:col-span-2 space-y-6">
-                    <div className="bg-card border border-border p-6 h-full min-h-125 rounded-[var(--radius)]">
+                    <div className="bg-card border border-border p-6 h-full min-h-125 rounded-(--radius)">
                         <h2 className="text-foreground font-bold text-sm mb-6 uppercase tracking-wider">Histórico de Interações</h2>
 
                         <div className="space-y-6 relative before:absolute before:inset-0 before:left-3 before:-translate-x-px before:w-px before:bg-border">
@@ -100,7 +102,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                             {messages.map(msg => (
                                 <div key={msg.id} className="relative pl-8">
                                     <div className={`absolute left-2.5 -translate-x-1/2 w-2 h-2 rounded-full ring-4 ring-card ${msg.isInbound() ? 'bg-primary' : 'bg-muted-foreground'}`} />
-                                    <div className="bg-[hsl(var(--background-tertiary))] border border-border-subtle p-4 rounded-[var(--radius)]">
+                                    <div className="bg-[hsl(var(--background-tertiary))] border border-border-subtle p-4 rounded-(--radius)">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-foreground text-xs font-bold uppercase tracking-wider">
                                                 {msg.channel === 'whatsapp' ? 'WhatsApp' : 'Email'}

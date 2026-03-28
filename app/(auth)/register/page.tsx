@@ -17,7 +17,7 @@ export default function RegisterPage() {
         <div className="space-y-8">
             <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-6 lg:hidden">
-                    <div className="w-7 h-7 bg-primary flex items-center justify-center rounded-[var(--radius)]">
+                    <div className="w-7 h-7 bg-primary flex items-center justify-center rounded-(--radius)">
                         <span className="text-primary-foreground font-black text-xs">{BRAND.abbr}</span>
                     </div>
                     <span className="text-foreground font-bold">{BRAND.name}</span>
@@ -52,7 +52,7 @@ export default function RegisterPage() {
                 </div>
 
                 {state?.error && (
-                    <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-[var(--radius)]">{state.error}</p>
+                    <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-(--radius)">{state.error}</p>
                 )}
 
                 <Button type="submit"

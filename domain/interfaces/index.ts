@@ -2,7 +2,7 @@ export type { IContactRepository, CreateContactInput } from './contact-repositor
 export type { IDealRepository, CreateDealInput } from './deal-repository'
 export type { IMessageRepository, CreateMessageInput, RawMessageWithContact } from './message-repository'
 export type { ICampaignRepository, CreateCampaignInput, UpdateCampaignInput, CampaignRow } from './campaign-repository'
-export type { IAutomationRepository, AutomationRow } from './automation-repository'
+export type { IAutomationRepository, AutomationRow, AutomationStep, AutomationWorkflow, CreateAutomationInput, UpdateAutomationInput } from './automation-repository'
 export type { IUserRepository, UserProfile } from './user-repository'
 export type { IWhatsAppService, SendWhatsAppInput, SendWhatsAppResult } from './whatsapp-service'
 export type { IEmailService, SendEmailInput, SendBatchEmailInput, SendEmailResult } from './email-service'
@@ -10,3 +10,4 @@ export type { ILandingPageRepository, CreateLandingPageInput, UpdateLandingPageI
 export type { IKnowledgeBaseRepository, CreateKnowledgeBaseInput, KnowledgeBaseMatch } from './knowledge-base-repository'
 export type { IChatSessionRepository, CreateChatSessionInput, CreateChatMessageInput } from './chat-session-repository'
 export type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from './analytics-repository'
+export type { IPlanRepository, OrgLimitsAndUsage } from './plan-repository'

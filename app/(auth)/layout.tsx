@@ -7,7 +7,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             {/* Left: Brand Panel */}
             <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 border-r border-border bg-[hsl(var(--background-secondary))]">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-[var(--radius)]">
+                    <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-(--radius)">
                         <span className="text-primary-foreground font-black text-sm tracking-tighter">{BRAND.abbr}</span>
                     </div>
                     <span className="text-foreground font-bold text-lg tracking-tight">{BRAND.name}</span>

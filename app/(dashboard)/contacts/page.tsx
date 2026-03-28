@@ -27,7 +27,7 @@ export default async function ContactsPage() {
             />
 
             {/* Table */}
-            <div className="bg-card border border-border rounded-[var(--radius)]">
+            <div className="bg-card border border-border rounded-(--radius)">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
@@ -60,7 +60,7 @@ export default async function ContactsPage() {
                                     <td className="px-5 py-3">
                                         <div className="flex flex-wrap gap-1">
                                             {contact.tags.map((tag) => (
-                                                <span key={tag} className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold border border-primary/40 rounded-[var(--radius)]">
+                                                <span key={tag} className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold border border-primary/40 rounded-(--radius)">
                                                     {tag}
                                                 </span>
                                             ))}

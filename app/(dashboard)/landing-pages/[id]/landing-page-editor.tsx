@@ -82,7 +82,7 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                 <div className="space-y-2">
                     <Label htmlFor="theme">Tema</Label>
                     <select id="theme" name="theme" defaultValue={page.theme}
-                        className="flex h-9 w-full rounded-[var(--radius)] border border-input bg-transparent px-3 py-1 text-sm">
+                        className="flex h-9 w-full rounded-(--radius) border border-input bg-transparent px-3 py-1 text-sm">
                         <option value="light">Claro</option>
                         <option value="dark">Escuro</option>
                     </select>

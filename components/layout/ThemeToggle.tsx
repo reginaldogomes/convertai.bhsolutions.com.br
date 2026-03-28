@@ -19,7 +19,7 @@ export function ThemeToggle() {
     return (
         <button
             onClick={() => setTheme(next)}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors w-full rounded-[var(--radius)]"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors w-full rounded-(--radius)"
             title={`Tema: ${label}`}
         >
             <Icon className="w-4 h-4 shrink-0" />

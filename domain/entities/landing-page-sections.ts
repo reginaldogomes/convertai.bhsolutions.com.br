@@ -195,7 +195,7 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
     contact_form: {
         title: 'Entre em contato',
         subtitle: 'Preencha o formulário e retornaremos em breve.',
-        fields: ['name', 'email', 'phone', 'message'],
+        fields: ['name', 'email', 'phone', 'company', 'message'],
         submitText: 'Enviar',
         successMessage: 'Mensagem enviada com sucesso!',
     },

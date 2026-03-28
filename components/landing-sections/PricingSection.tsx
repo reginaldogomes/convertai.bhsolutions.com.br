@@ -1,7 +1,8 @@
 'use client'
 
 import type { PricingContent } from '@/domain/entities'
-import { Check } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
+import { Container } from '@/components/ui/container'
 
 interface PricingSectionProps {
     content: PricingContent
@@ -9,64 +10,76 @@ interface PricingSectionProps {
     isDark: boolean
 }
 
-export function PricingSection({ content, primaryColor, isDark }: PricingSectionProps) {
+export function PricingSection({ content, primaryColor }: PricingSectionProps) {
     return (
-        <section className={`py-20 ${isDark ? 'bg-gray-950' : 'bg-white'}`}>
-            <div className="max-w-5xl mx-auto px-6">
+        <section className="bg-background-secondary py-20">
+            <Container>
                 {content.title && (
-                    <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">{content.title}</h2>
+                    <h2 className="text-balance mb-3 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+                        {content.title}
+                    </h2>
                 )}
                 {content.subtitle && (
-                    <p className={`text-center text-base mb-12 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <p className="mx-auto mb-12 max-w-xl text-center text-base text-muted-foreground">
                         {content.subtitle}
                     </p>
                 )}
-                <div className={`grid gap-6 ${
-                    content.tiers.length === 1 ? 'max-w-sm mx-auto' :
-                    content.tiers.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' :
-                    'md:grid-cols-3'
-                }`}>
+                <div
+                    className={`grid gap-6 ${
+                        content.tiers.length === 1
+                            ? 'max-w-sm mx-auto'
+                            : content.tiers.length === 2
+                                ? 'md:grid-cols-2 max-w-2xl mx-auto'
+                                : 'md:grid-cols-3'
+                    }`}
+                >
                     {content.tiers.map((tier, idx) => (
                         <div
                             key={idx}
-                            className={`p-6 rounded-xl flex flex-col ${
+                            className={`relative flex flex-col rounded-2xl border p-6 transition-all duration-200 ${
                                 tier.highlighted
-                                    ? 'ring-2 scale-[1.02]'
-                                    : isDark ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
+                                    ? 'border-primary/50 bg-card shadow-lg shadow-primary/10 scale-[1.03]'
+                                    : 'border-border/70 bg-card hover:-translate-y-0.5 hover:border-border'
                             }`}
-                            style={tier.highlighted ? {
-                                borderColor: primaryColor,
-                                border: `2px solid ${primaryColor}`,
-                                backgroundColor: isDark ? '#1f2937' : '#ffffff',
-                            } : undefined}
                         >
                             {tier.highlighted && (
                                 <div
-                                    className="text-xs font-semibold text-white px-3 py-1 rounded-full self-start mb-4"
+                                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-sm"
                                     style={{ backgroundColor: primaryColor }}
                                 >
+                                    <Sparkles className="w-3 h-3" aria-hidden />
                                     Mais Popular
                                 </div>
                             )}
-                            <h3 className="text-lg font-bold">{tier.name}</h3>
-                            <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{tier.description}</p>
-                            <div className="mt-4 mb-6">
-                                <span className="text-3xl font-bold">{tier.price}</span>
-                                {tier.period && <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{tier.period}</span>}
+
+                            <div className="mb-5">
+                                <h3 className="text-base font-black text-foreground">{tier.name}</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">{tier.description}</p>
                             </div>
-                            <ul className="space-y-2 mb-6 flex-1">
+
+                            <div className="mb-6 flex items-end gap-1">
+                                <span className="text-4xl font-black tracking-tight text-foreground">{tier.price}</span>
+                                {tier.period && (
+                                    <span className="mb-1 text-sm text-muted-foreground">{tier.period}</span>
+                                )}
+                            </div>
+
+                            <ul className="mb-7 flex-1 space-y-2.5">
                                 {tier.features.map((feature, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-sm">
-                                        <Check className="w-4 h-4 shrink-0" style={{ color: primaryColor }} />
-                                        <span>{feature}</span>
+                                    <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                                        <Check
+                                            className="mt-0.5 h-4 w-4 shrink-0"
+                                            style={{ color: primaryColor }}
+                                            aria-hidden
+                                        />
+                                        {feature}
                                     </li>
                                 ))}
                             </ul>
+
                             <button
-                                className={`w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 ${
-                                    tier.highlighted
-                                        ? 'text-white'
-                                        : isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-900'
+                                className={`w-full rounded-xl py-2.5 text-sm font-bold transition-opacity hover:opacity-90 ${
+                                    tier.highlighted ? 'text-white' : 'bg-accent text-foreground hover:bg-muted'
                                 }`}
                                 style={tier.highlighted ? { backgroundColor: primaryColor } : undefined}
                             >
@@ -75,7 +88,7 @@ export function PricingSection({ content, primaryColor, isDark }: PricingSection
                         </div>
                     ))}
                 </div>
-            </div>
+            </Container>
         </section>
     )
 }

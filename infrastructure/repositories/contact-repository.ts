@@ -25,6 +25,18 @@ export class SupabaseContactRepository implements IContactRepository {
         return data ? Contact.fromRow(data) : null
     }
 
+    async findByEmail(email: string, orgId: string): Promise<Contact | null> {
+        const supabase = createAdminClient()
+        const { data } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('organization_id', orgId)
+            .eq('email', email)
+            .limit(1)
+            .maybeSingle()
+        return data ? Contact.fromRow(data) : null
+    }
+
     async findByOrgId(orgId: string): Promise<Contact[]> {
         const supabase = createAdminClient()
         const { data } = await supabase
@@ -77,6 +89,29 @@ export class SupabaseContactRepository implements IContactRepository {
             .select()
             .single()
         return data ? Contact.fromRow(data) : null
+    }
+
+    async update(id: string, input: Partial<Omit<import('@/domain/interfaces').CreateContactInput, 'organizationId'>>): Promise<void> {
+        const supabase = createAdminClient()
+        const patch: Record<string, unknown> = {}
+        if (input.name !== undefined) patch.name = input.name
+        if (input.email !== undefined) patch.email = input.email
+        if (input.phone !== undefined) patch.phone = input.phone
+        if (input.company !== undefined) patch.company = input.company
+        if (input.tags !== undefined) patch.tags = input.tags
+        if (input.notes !== undefined) patch.notes = input.notes
+        if (Object.keys(patch).length > 0) {
+            await supabase.from('contacts').update(patch).eq('id', id)
+        }
+    }
+
+    async delete(id: string, orgId: string): Promise<void> {
+        const supabase = createAdminClient()
+        await supabase
+            .from('contacts')
+            .delete()
+            .eq('id', id)
+            .eq('organization_id', orgId)
     }
 
     async countRecentByOrgId(orgId: string, since: string): Promise<number> {

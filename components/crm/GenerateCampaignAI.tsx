@@ -117,14 +117,14 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
             <Button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white border-0 rounded-[var(--radius)] h-9 font-bold uppercase tracking-wider text-xs flex items-center gap-2 shadow-sm"
+                className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white border-0 rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs flex items-center gap-2 shadow-sm"
             >
                 <Sparkles className="w-3.5 h-3.5" />
                 Gerar com IA
             </Button>
 
             <Dialog open={open} onOpenChange={handleClose}>
-                <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-[var(--radius)] sm:max-w-lg">
+                <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-(--radius) sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="text-foreground text-lg font-black tracking-tight flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-primary" />
@@ -139,7 +139,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                 <p className="text-sm font-bold">Gerando HTML da campanha...</p>
                             </div>
 
-                            <div className="bg-secondary border border-border rounded-[var(--radius)] p-4 max-h-64 overflow-auto">
+                            <div className="bg-secondary border border-border rounded-(--radius) p-4 max-h-64 overflow-auto">
                                 <pre className="text-foreground-secondary text-xs font-mono whitespace-pre-wrap break-words">
                                     {completion || 'Aguardando resposta do Gemini...'}
                                 </pre>
@@ -150,7 +150,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     type="button"
                                     variant="ghost"
                                     onClick={() => { stop(); setOpen(false) }}
-                                    className="text-foreground-secondary rounded-[var(--radius)] h-9 flex items-center gap-2"
+                                    className="text-foreground-secondary rounded-(--radius) h-9 flex items-center gap-2"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                     Cancelar
@@ -165,12 +165,12 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                         Objetivo *
                                     </Label>
                                     <Select value={objective} onValueChange={setObjective}>
-                                        <SelectTrigger className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm">
+                                        <SelectTrigger className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm">
                                             <SelectValue placeholder="Selecione" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-card border-border text-foreground rounded-[var(--radius)]">
+                                        <SelectContent className="bg-card border-border text-foreground rounded-(--radius)">
                                             {OBJECTIVES.map(o => (
-                                                <SelectItem key={o.value} value={o.value} className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">
+                                                <SelectItem key={o.value} value={o.value} className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">
                                                     {o.label}
                                                 </SelectItem>
                                             ))}
@@ -183,12 +183,12 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                         Tom de Voz *
                                     </Label>
                                     <Select value={tone} onValueChange={setTone}>
-                                        <SelectTrigger className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm">
+                                        <SelectTrigger className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm">
                                             <SelectValue placeholder="Selecione" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-card border-border text-foreground rounded-[var(--radius)]">
+                                        <SelectContent className="bg-card border-border text-foreground rounded-(--radius)">
                                             {TONES.map(t => (
-                                                <SelectItem key={t.value} value={t.value} className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">
+                                                <SelectItem key={t.value} value={t.value} className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">
                                                     {t.label}
                                                 </SelectItem>
                                             ))}
@@ -202,15 +202,15 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     Público-Alvo
                                 </Label>
                                 <Select value={audience} onValueChange={setAudience}>
-                                    <SelectTrigger className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm">
+                                    <SelectTrigger className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm">
                                         <SelectValue placeholder="Todos os contatos" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-card border-border text-foreground rounded-[var(--radius)]">
-                                        <SelectItem value="todos" className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">Todos os contatos</SelectItem>
-                                        <SelectItem value="leads" className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">Novos leads</SelectItem>
-                                        <SelectItem value="clientes" className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">Clientes ativos</SelectItem>
-                                        <SelectItem value="inativos" className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">Contatos inativos</SelectItem>
-                                        <SelectItem value="b2b" className="rounded-[var(--radius)] focus:bg-primary focus:text-white cursor-pointer">Empresas (B2B)</SelectItem>
+                                    <SelectContent className="bg-card border-border text-foreground rounded-(--radius)">
+                                        <SelectItem value="todos" className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">Todos os contatos</SelectItem>
+                                        <SelectItem value="leads" className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">Novos leads</SelectItem>
+                                        <SelectItem value="clientes" className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">Clientes ativos</SelectItem>
+                                        <SelectItem value="inativos" className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">Contatos inativos</SelectItem>
+                                        <SelectItem value="b2b" className="rounded-(--radius) focus:bg-primary focus:text-white cursor-pointer">Empresas (B2B)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -224,11 +224,11 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     onChange={(e) => setDetails(e.target.value)}
                                     placeholder="Ex: Promoção de 20% em todos os planos, válido até sexta-feira. Incluir depoimento de cliente..."
                                     rows={3}
-                                    className="bg-secondary border-border text-foreground rounded-[var(--radius)] text-sm resize-none placeholder:text-muted-foreground/50"
+                                    className="bg-secondary border-border text-foreground rounded-(--radius) text-sm resize-none placeholder:text-muted-foreground/50"
                                 />
                             </div>
 
-                            <div className="bg-primary/20 border border-primary/40 p-3 rounded-[var(--radius)]">
+                            <div className="bg-primary/20 border border-primary/40 p-3 rounded-(--radius)">
                                 <p className="text-primary text-xs font-bold uppercase tracking-wider mb-1">Contexto automático</p>
                                 <p className="text-foreground-secondary text-xs leading-relaxed">
                                     A IA usará dados do seu CRM (contatos, tags, pipeline, campanhas anteriores) para gerar um email personalizado e relevante.
@@ -241,7 +241,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setOpen(false)}
-                                    className="text-foreground-secondary rounded-[var(--radius)] h-9"
+                                    className="text-foreground-secondary rounded-(--radius) h-9"
                                 >
                                     Cancelar
                                 </Button>
@@ -249,7 +249,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     type="button"
                                     onClick={handleGenerate}
                                     disabled={!objective || !tone}
-                                    className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-[var(--radius)] h-9 font-bold uppercase tracking-wider text-xs flex items-center gap-2 disabled:opacity-40"
+                                    className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs flex items-center gap-2 disabled:opacity-40"
                                 >
                                     <Sparkles className="w-3.5 h-3.5" />
                                     Gerar HTML

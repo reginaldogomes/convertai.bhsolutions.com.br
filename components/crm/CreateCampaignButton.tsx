@@ -40,14 +40,14 @@ export function CreateCampaignButton() {
         <>
             <button
                 onClick={() => setOpen(true)}
-                className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white h-8 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors rounded-[var(--radius)]"
+                className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white h-8 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors rounded-(--radius)"
             >
                 <Plus className="w-3.5 h-3.5" />
                 Nova Campanha
             </button>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-[var(--radius)] sm:max-w-lg">
+                <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-(--radius) sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="text-foreground text-lg font-black tracking-tight">Nova Campanha</DialogTitle>
                     </DialogHeader>
@@ -59,7 +59,7 @@ export function CreateCampaignButton() {
                                 id="name"
                                 name="name"
                                 placeholder="Ex: Newsletter Março 2026"
-                                className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm focus:border-primary"
+                                className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary"
                             />
                         </div>
 
@@ -69,7 +69,7 @@ export function CreateCampaignButton() {
                                 id="subject"
                                 name="subject"
                                 placeholder="Ex: Novidades que vão transformar seu negócio"
-                                className="bg-secondary border-border text-foreground rounded-[var(--radius)] h-9 text-sm focus:border-primary"
+                                className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary"
                             />
                         </div>
 
@@ -80,7 +80,7 @@ export function CreateCampaignButton() {
                                 name="body"
                                 rows={6}
                                 placeholder={"<h1>Olá {{nome}}</h1>\n<p>Seu conteúdo aqui...</p>"}
-                                className="bg-secondary border-border text-foreground rounded-[var(--radius)] text-sm focus:border-primary resize-none font-mono text-xs"
+                                className="bg-secondary border-border text-foreground rounded-(--radius) text-sm focus:border-primary resize-none font-mono text-xs"
                             />
                             <p className="text-muted-foreground text-[10px]">
                                 Use {"{{nome}}"} e {"{{email}}"} para personalização. HTML é suportado.
@@ -88,7 +88,7 @@ export function CreateCampaignButton() {
                         </div>
 
                         {state?.error && (
-                            <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-[var(--radius)]">{state.error}</p>
+                            <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-(--radius)">{state.error}</p>
                         )}
 
                         <div className="flex justify-end gap-3 pt-2">
@@ -96,11 +96,11 @@ export function CreateCampaignButton() {
                                 type="button"
                                 variant="ghost"
                                 onClick={() => setOpen(false)}
-                                className="text-foreground-secondary rounded-[var(--radius)] h-9"
+                                className="text-foreground-secondary rounded-(--radius) h-9"
                             >
                                 Cancelar
                             </Button>
-                            <Button type="submit" className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-[var(--radius)] h-9 font-bold uppercase tracking-wider text-xs">
+                            <Button type="submit" className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs">
                                 Criar Campanha
                             </Button>
                         </div>

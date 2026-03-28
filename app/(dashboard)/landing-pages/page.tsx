@@ -20,7 +20,7 @@ export default async function LandingPagesPage() {
                 actions={<CreateLandingPageButton />}
             />
 
-            <div className="bg-card border border-border rounded-[var(--radius)]">
+            <div className="bg-card border border-border rounded-(--radius)">
                 {pages.length === 0 && (
                     <div className="p-12 text-center flex flex-col items-center justify-center">
                         <Globe className="w-8 h-8 text-muted-foreground/30 mb-3" />
@@ -39,7 +39,7 @@ export default async function LandingPagesPage() {
                                     <Link href={`/landing-pages/${page.id}`} className="text-foreground font-bold hover:text-primary transition-colors">
                                         {page.name}
                                     </Link>
-                                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-[var(--radius)] ${
+                                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${
                                         page.isPublished()
                                             ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20'
                                             : page.isArchived()

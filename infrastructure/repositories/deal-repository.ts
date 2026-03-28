@@ -57,12 +57,10 @@ export class SupabaseDealRepository implements IDealRepository {
 
     async getStatsForOrg(orgId: string): Promise<{ total: number; won: number }> {
         const supabase = createAdminClient()
-        const { data } = await supabase
-            .from('deals')
-            .select('id, status')
-            .eq('organization_id', orgId)
-        const total = data?.length ?? 0
-        const won = data?.filter(d => d.status === 'won').length ?? 0
-        return { total, won }
+        const [{ count: total }, { count: won }] = await Promise.all([
+            supabase.from('deals').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
+            supabase.from('deals').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'won'),
+        ])
+        return { total: total ?? 0, won: won ?? 0 }
     }
 }

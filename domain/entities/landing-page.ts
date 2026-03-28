@@ -83,7 +83,21 @@ export class LandingPage {
                 theme: (rawConfig?.theme as 'light' | 'dark') ?? DEFAULT_CONFIG.theme,
                 primaryColor: (rawConfig?.primaryColor as string) ?? DEFAULT_CONFIG.primaryColor,
                 logoUrl: (rawConfig?.logoUrl as string | null) ?? DEFAULT_CONFIG.logoUrl,
-                sections: (Array.isArray(rawConfig?.sections) ? rawConfig.sections : []) as LandingPageSection[],
+                sections: (Array.isArray(rawConfig?.sections) ? rawConfig.sections : []).map((s: unknown) => {
+                    const section = s as Record<string, unknown>
+                    if (section.type === 'contact_form') {
+                        const content = (section.content ?? {}) as Record<string, unknown>
+                        const fields: string[] = Array.isArray(content.fields) ? content.fields as string[] : []
+                        // Ensure 'company' is present after 'phone' (or after 'email' if no phone)
+                        if (!fields.includes('company')) {
+                            const insertAfter = fields.includes('phone') ? 'phone' : fields.includes('email') ? 'email' : null
+                            const idx = insertAfter ? fields.indexOf(insertAfter) : fields.length - 1
+                            fields.splice(idx + 1, 0, 'company')
+                        }
+                        return { ...section, content: { ...content, fields } }
+                    }
+                    return section
+                }) as LandingPageSection[],
             },
             chatbotName: row.chatbot_name,
             chatbotWelcomeMessage: row.chatbot_welcome_message,

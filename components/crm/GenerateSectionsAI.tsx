@@ -19,10 +19,11 @@ interface GenerateSectionsAIProps {
 }
 
 const EXAMPLES = [
-    'Clínica odontológica premium em São Paulo, especializada em implantes e ortodontia, com 3 planos de tratamento',
-    'SaaS de gestão financeira para pequenas empresas, plano básico R$49/mês e Pro R$149/mês',
-    'Escritório de advocacia trabalhista, atendimento personalizado, 15 anos de experiência',
-    'Loja de roupas femininas online, moda sustentável, frete grátis acima de R$200',
+    'Clínica odontológica premium em São Paulo, especializada em implantes e ortodontia, com 3 planos de tratamento a partir de R$800',
+    'SaaS de gestão financeira para pequenas empresas — plano Starter R$49/mês, Pro R$149/mês, Enterprise R$399/mês',
+    'Escritório de advocacia trabalhista em BH, atendimento personalizado, 15 anos de experiência, honorários sem custo inicial',
+    'Curso online de marketing digital para empreendedores, 8 semanas, certificado, R$997 ou 12x R$97',
+    'Imobiliária especializada em alto padrão no Leblon, RJ — apartamentos de R$2M a R$8M',
 ]
 
 export function GenerateSectionsAI({ onGenerated }: GenerateSectionsAIProps) {
@@ -85,13 +86,13 @@ export function GenerateSectionsAI({ onGenerated }: GenerateSectionsAIProps) {
                         <Textarea
                             value={prompt}
                             onChange={e => setPrompt(e.target.value)}
-                            placeholder="Ex: Clínica odontológica premium em SP, 3 planos, foco em implantes..."
+                            placeholder="Ex: Clínica odontológica premium em SP, especializada em implantes, 3 planos a partir de R$800, público 35-60 anos..."
                             rows={4}
                             className="bg-background border-input"
                             disabled={loading}
                         />
                         <p className="text-xs text-muted-foreground">
-                            Inclua o nicho, diferenciais, serviços e preços para um resultado mais preciso.
+                            Quanto mais detalhes você incluir — nicho, público-alvo, diferenciais, preços e localização — mais preciso e persuasivo será o resultado.
                         </p>
                     </div>
 

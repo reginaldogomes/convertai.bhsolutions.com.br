@@ -58,7 +58,7 @@ export default async function InboxPage() {
                                 <h3 className="text-foreground font-bold">{threads[0].contact.name}</h3>
                                 <span className="text-muted-foreground text-xs font-mono-data">{threads[0].contact.phone}</span>
                             </div>
-                            <button className="text-xs uppercase font-bold tracking-wider text-white hover:bg-[hsl(var(--primary-hover))] transition-colors border-0 px-4 py-1.5 bg-primary rounded-[var(--radius)]">
+                            <button className="text-xs uppercase font-bold tracking-wider text-white hover:bg-[hsl(var(--primary-hover))] transition-colors border-0 px-4 py-1.5 bg-primary rounded-(--radius)">
                                 Assistente IA
                             </button>
                         </div>
@@ -66,7 +66,7 @@ export default async function InboxPage() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col-reverse">
                             {threads[0].messages.map((msg) => (
                                 <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[70%] p-4 rounded-[var(--radius)] ${msg.direction === 'outbound' ? 'bg-primary/20 border border-primary/40' : 'bg-secondary border border-border'}`}>
+                                    <div className={`max-w-[70%] p-4 rounded-(--radius) ${msg.direction === 'outbound' ? 'bg-primary/20 border border-primary/40' : 'bg-secondary border border-border'}`}>
                                         <p className="text-foreground/90 text-sm whitespace-pre-wrap">{msg.content}</p>
                                         <div className="mt-2 text-right">
                                             <span className={`text-[10px] font-mono-data ${msg.direction === 'outbound' ? 'text-primary/60' : 'text-muted-foreground'}`}>

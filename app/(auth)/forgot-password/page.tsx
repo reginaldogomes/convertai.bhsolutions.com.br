@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
     if (state?.success) {
         return (
             <div className="space-y-4">
-                <div className="border border-primary/30 bg-primary/10 px-4 py-3 rounded-[var(--radius)]">
+                <div className="border border-primary/30 bg-primary/10 px-4 py-3 rounded-(--radius)">
                     <p className="text-primary text-sm font-medium">Email enviado</p>
                     <p className="text-muted-foreground text-xs mt-1">Verifique sua caixa de entrada.</p>
                 </div>
@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {state?.error && (
-                    <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-[var(--radius)]">{state.error}</p>
+                    <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-(--radius)">{state.error}</p>
                 )}
 
                 <Button type="submit"

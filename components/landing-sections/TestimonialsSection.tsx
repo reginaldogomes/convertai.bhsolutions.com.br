@@ -1,7 +1,8 @@
 'use client'
 
 import type { TestimonialsContent } from '@/domain/entities'
-import { Star } from 'lucide-react'
+import { Star, Quote } from 'lucide-react'
+import { Container } from '@/components/ui/container'
 
 interface TestimonialsSectionProps {
     content: TestimonialsContent
@@ -9,46 +10,67 @@ interface TestimonialsSectionProps {
     isDark: boolean
 }
 
-export function TestimonialsSection({ content, primaryColor, isDark }: TestimonialsSectionProps) {
+export function TestimonialsSection({ content, primaryColor }: TestimonialsSectionProps) {
     return (
-        <section className={`py-20 ${isDark ? 'bg-gray-950' : 'bg-white'}`}>
-            <div className="max-w-5xl mx-auto px-6">
+        <section className="bg-background py-20">
+            <Container>
                 {content.title && (
-                    <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">{content.title}</h2>
+                    <h2 className="text-balance mb-12 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+                        {content.title}
+                    </h2>
                 )}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                     {content.items.map((item, idx) => (
                         <div
                             key={idx}
-                            className={`p-6 rounded-xl ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}
+                            className="group flex flex-col rounded-2xl border border-border/70 bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
                         >
-                            <div className="flex items-center gap-1 mb-4">
+                            {/* Stars */}
+                            <div className="mb-4 flex items-center gap-1">
                                 {Array.from({ length: 5 }).map((_, i) => (
                                     <Star
                                         key={i}
                                         className="w-4 h-4"
-                                        fill={i < item.rating ? primaryColor : 'transparent'}
-                                        style={{ color: i < item.rating ? primaryColor : isDark ? '#4b5563' : '#d1d5db' }}
+                                        fill={i < item.rating ? primaryColor : 'none'}
+                                        style={{
+                                            color: i < item.rating ? primaryColor : 'hsl(var(--border))',
+                                        }}
                                     />
                                 ))}
                             </div>
-                            <p className={`text-sm mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                &ldquo;{item.quote}&rdquo;
-                            </p>
-                            <div className="flex items-center gap-3">
+
+                            {/* Quote */}
+                            <div className="relative flex-1 mb-5">
+                                <Quote
+                                    className="absolute -top-1 -left-1 w-6 h-6 opacity-10"
+                                    style={{ color: primaryColor }}
+                                    aria-hidden
+                                />
+                                <p className="pl-5 text-sm leading-relaxed text-muted-foreground italic">
+                                    {item.quote}
+                                </p>
+                            </div>
+
+                            {/* Author */}
+                            <div className="flex items-center gap-3 border-t border-border/60 pt-4">
                                 {item.avatarUrl ? (
-                                    <img src={item.avatarUrl} alt={item.name} className="w-10 h-10 rounded-full object-cover" />
+                                    <img
+                                        src={item.avatarUrl}
+                                        alt={item.name}
+                                        className="h-10 w-10 shrink-0 rounded-full object-cover"
+                                    />
                                 ) : (
                                     <div
-                                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
                                         style={{ backgroundColor: primaryColor }}
+                                        aria-hidden
                                     >
                                         {item.name.charAt(0).toUpperCase()}
                                     </div>
                                 )}
                                 <div>
-                                    <p className="text-sm font-semibold">{item.name}</p>
-                                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                    <p className="text-sm font-bold text-foreground">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">
                                         {item.role}{item.company ? `, ${item.company}` : ''}
                                     </p>
                                 </div>
@@ -56,7 +78,7 @@ export function TestimonialsSection({ content, primaryColor, isDark }: Testimoni
                         </div>
                     ))}
                 </div>
-            </div>
+            </Container>
         </section>
     )
 }

@@ -23,7 +23,7 @@ export default async function CampaignsPage() {
             />
 
             {/* List */}
-            <div className="bg-card border border-border rounded-[var(--radius)]">
+            <div className="bg-card border border-border rounded-(--radius)">
                 {campaigns.length === 0 && (
                     <div className="p-12 text-center flex flex-col items-center justify-center">
                         <Mail className="w-8 h-8 text-muted-foreground/30 mb-3" />
@@ -39,7 +39,7 @@ export default async function CampaignsPage() {
                                     <Link href={`/campaigns/${campaign.id}`} className="text-foreground font-bold hover:text-primary transition-colors">
                                         {campaign.name}
                                     </Link>
-                                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-[var(--radius)] ${campaign.isSent() ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20' : 'bg-secondary text-foreground-secondary border-border'}`}>
+                                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${campaign.isSent() ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20' : 'bg-secondary text-foreground-secondary border-border'}`}>
                                         {campaign.status}
                                     </span>
                                 </div>
@@ -65,7 +65,7 @@ export default async function CampaignsPage() {
                                 ) : (
                                     <Link
                                         href={`/campaigns/${campaign.id}`}
-                                        className="h-8 px-4 border-2 border-primary/60 bg-primary/20 hover:bg-primary/30 text-primary text-xs uppercase tracking-wider font-bold transition-colors inline-flex items-center rounded-[var(--radius)]"
+                                        className="h-8 px-4 border-2 border-primary/60 bg-primary/20 hover:bg-primary/30 text-primary text-xs uppercase tracking-wider font-bold transition-colors inline-flex items-center rounded-(--radius)"
                                     >
                                         Editar
                                     </Link>
