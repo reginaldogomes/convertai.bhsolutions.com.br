@@ -13,14 +13,6 @@ export async function createAutomation(
     try {
         const { orgId } = await getAuthContext()
 
-        const limitCheck = await useCases.checkLimit().execute(orgId, 'automations')
-        if (!limitCheck.allowed) {
-            return {
-                error: `Limite de ${limitCheck.label} atingido (${limitCheck.current}/${limitCheck.limit}). Faça upgrade do seu plano para criar mais automações.`,
-                success: false,
-            }
-        }
-
         const workflowRaw = formData.get('workflow_json') as string
         const workflowJson: AutomationWorkflow = workflowRaw
             ? (JSON.parse(workflowRaw) as AutomationWorkflow)

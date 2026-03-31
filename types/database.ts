@@ -22,7 +22,6 @@ export type ChatSessionStatus = 'active' | 'lead_captured' | 'closed'
 export type ChatMessageRole = 'user' | 'assistant' | 'system'
 export type AnalyticsEventType = 'view' | 'chat_start' | 'lead_captured' | 'cta_click'
 export type UserRole = 'owner' | 'admin' | 'agent' | 'viewer'
-export type OrgPlan = 'free' | 'starter' | 'pro' | 'enterprise'
 
 export interface Database {
     public: {
@@ -31,13 +30,11 @@ export interface Database {
                 Row: {
                     id: string
                     name: string
-                    plan: OrgPlan
                     created_at: string
                 }
                 Insert: {
                     id?: string
                     name: string
-                    plan?: OrgPlan
                     created_at?: string
                 }
                 Update: Partial<Database['public']['Tables']['organizations']['Insert']>
@@ -339,62 +336,7 @@ export interface Database {
                     { foreignKeyName: 'page_analytics_session_id_fkey'; columns: ['session_id']; referencedRelation: 'chat_sessions'; referencedColumns: ['id'] }
                 ]
             }
-            plans: {
-                Row: {
-                    id: OrgPlan
-                    name: string
-                    landing_pages_limit: number
-                    contacts_limit: number
-                    emails_monthly_limit: number
-                    whatsapp_monthly_limit: number
-                    automations_limit: number
-                    knowledge_base_limit: number
-                    price_brl: number
-                    updated_at: string
-                }
-                Insert: {
-                    id: OrgPlan
-                    name: string
-                    landing_pages_limit?: number
-                    contacts_limit?: number
-                    emails_monthly_limit?: number
-                    whatsapp_monthly_limit?: number
-                    automations_limit?: number
-                    knowledge_base_limit?: number
-                    price_brl?: number
-                    updated_at?: string
-                }
-                Update: Partial<Omit<Database['public']['Tables']['plans']['Insert'], 'id'>>
-                Relationships: []
-            }
-            organization_plan_overrides: {
-                Row: {
-                    organization_id: string
-                    landing_pages_limit: number | null
-                    contacts_limit: number | null
-                    emails_monthly_limit: number | null
-                    whatsapp_monthly_limit: number | null
-                    automations_limit: number | null
-                    knowledge_base_limit: number | null
-                    notes: string | null
-                    updated_at: string
-                }
-                Insert: {
-                    organization_id: string
-                    landing_pages_limit?: number | null
-                    contacts_limit?: number | null
-                    emails_monthly_limit?: number | null
-                    whatsapp_monthly_limit?: number | null
-                    automations_limit?: number | null
-                    knowledge_base_limit?: number | null
-                    notes?: string | null
-                    updated_at?: string
-                }
-                Update: Partial<Omit<Database['public']['Tables']['organization_plan_overrides']['Insert'], 'organization_id'>>
-                Relationships: [
-                    { foreignKeyName: 'organization_plan_overrides_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
-                ]
-            }
+
         }
         Views: {
             [_ in never]: never

@@ -1,7 +1,7 @@
 # PRD --- Antigravity (AI Native CRM)
 
 **Produto:** Antigravity\
-**Categoria:** SaaS B2B\
+**Categoria:** Plataforma B2B\
 **Tipo:** CRM + Automação + Comunicação + Agentes de IA
 
 **Stack principal:**
@@ -11,7 +11,7 @@
 -   Twilio
 -   Antigravity Kit
 
-Antigravity é uma plataforma SaaS de relacionamento com clientes
+Antigravity é uma plataforma de relacionamento com clientes
 orientada por **agentes de IA**, integrando CRM, comunicação e automação
 em uma única ferramenta.
 
@@ -294,7 +294,6 @@ Banco baseado em Supabase.
 
     id
     name
-    plan
     created_at
 
 ## users
@@ -383,8 +382,7 @@ Indicadores principais:
 
 # 16. Segurança
 
--   arquitetura multi-tenant
--   isolamento de dados
+-   isolamento de dados por organização
 -   Row Level Security (RLS) no Supabase
 -   criptografia de dados
 -   logs de auditoria

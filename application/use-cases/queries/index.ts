@@ -27,7 +27,7 @@ export class ListContactSelectsUseCase {
 export class GetUserSettingsUseCase {
     constructor(private readonly userRepo: IUserRepository) {}
 
-    async execute(userId: string): Promise<(UserProfile & { orgName: string; orgPlan: string; orgId: string }) | null> {
+    async execute(userId: string): Promise<(UserProfile & { orgName: string; orgId: string }) | null> {
         return this.userRepo.findProfileWithOrgByUserId(userId)
     }
 }

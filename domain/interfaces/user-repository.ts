@@ -8,5 +8,5 @@ export interface UserProfile {
 
 export interface IUserRepository {
     findProfileByUserId(userId: string): Promise<UserProfile | null>
-    findProfileWithOrgByUserId(userId: string): Promise<(UserProfile & { orgName: string; orgPlan: string; orgId: string }) | null>
+    findProfileWithOrgByUserId(userId: string): Promise<(UserProfile & { orgName: string; orgId: string }) | null>
 }

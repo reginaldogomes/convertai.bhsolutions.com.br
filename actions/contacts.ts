@@ -11,14 +11,6 @@ export async function createContact(prevState: { error: string; success: boolean
     try {
         const { orgId } = await getAuthContext()
 
-        const limitCheck = await useCases.checkLimit().execute(orgId, 'contacts')
-        if (!limitCheck.allowed) {
-            return {
-                error: `Limite de ${limitCheck.label} atingido (${limitCheck.current}/${limitCheck.limit}). Faça upgrade do seu plano para adicionar mais contatos.`,
-                success: false,
-            }
-        }
-
         const result = await useCases.createContact().execute(orgId, {
             name: formData.get('name') as string,
             email: (formData.get('email') as string) || '',

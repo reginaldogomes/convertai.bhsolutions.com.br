@@ -7,8 +7,8 @@
 -- 1. PLATFORM ADMIN ORGANIZATION
 -- Fixed UUID so it can be referenced in INSERT statements below.
 -- ============================================================
-INSERT INTO organizations (id, name, plan)
-VALUES ('00000000-0000-0000-0000-000000000001', 'Platform Admin', 'enterprise')
+INSERT INTO organizations (id, name)
+VALUES ('00000000-0000-0000-0000-000000000001', 'Platform Admin')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================

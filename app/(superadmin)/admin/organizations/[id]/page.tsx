@@ -1,15 +1,8 @@
-import { getOrganizationDetail, updateOrgPlan } from '@/actions/admin'
+import { getOrganizationDetail } from '@/actions/admin'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Building2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-
-const planColors: Record<string, string> = {
-    free: 'bg-secondary text-muted-foreground border-border',
-    starter: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    pro: 'bg-primary/10 text-primary border-primary/30',
-    enterprise: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-}
 
 const roleColors: Record<string, string> = {
     owner: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
@@ -23,8 +16,6 @@ const statusColors: Record<string, string> = {
     published: 'bg-green-500/10 text-green-400 border-green-500/30',
     archived: 'bg-secondary text-muted-foreground/50 border-border',
 }
-
-const PLANS = ['free', 'starter', 'pro', 'enterprise']
 
 export default async function OrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -46,50 +37,17 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ id: 
                 }
             />
 
-            {/* Org info + plan editor */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-card border border-border rounded-(--radius) p-5 space-y-3">
-                    <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Informações</p>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">ID</span>
-                            <span className="text-foreground font-mono-data text-xs">{org.id}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Criada em</span>
-                            <span className="text-foreground text-xs">{new Date(org.created_at).toLocaleDateString('pt-BR')}</span>
-                        </div>
-                        <div className="flex justify-between text-sm items-center">
-                            <span className="text-muted-foreground">Plano atual</span>
-                            <span className={`px-2 py-0.5 text-xs font-semibold border rounded-(--radius) ${planColors[org.plan] ?? planColors.free}`}>
-                                {org.plan}
-                            </span>
-                        </div>
+            {/* Org info */}
+            <div className="bg-card border border-border rounded-(--radius) p-5 space-y-3 max-w-md">
+                <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Informações</p>
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">ID</span>
+                        <span className="text-foreground font-mono-data text-xs">{org.id}</span>
                     </div>
-                </div>
-
-                {/* Plan changer */}
-                <div className="bg-card border border-border rounded-(--radius) p-5 space-y-3">
-                    <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Alterar plano</p>
-                    <div className="flex flex-wrap gap-2">
-                        {PLANS.map(plan => (
-                            <form key={plan} action={async () => {
-                                'use server'
-                                await updateOrgPlan(id, plan)
-                            }}>
-                                <button
-                                    type="submit"
-                                    className={`px-3 py-1.5 text-xs font-semibold border rounded-(--radius) transition-all ${
-                                        org.plan === plan
-                                            ? (planColors[plan] ?? planColors.free) + ' opacity-50 cursor-default'
-                                            : 'bg-secondary text-muted-foreground border-border hover:border-primary hover:text-primary'
-                                    }`}
-                                    disabled={org.plan === plan}
-                                >
-                                    {plan}
-                                </button>
-                            </form>
-                        ))}
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Criada em</span>
+                        <span className="text-foreground text-xs">{new Date(org.created_at).toLocaleDateString('pt-BR')}</span>
                     </div>
                 </div>
             </div>

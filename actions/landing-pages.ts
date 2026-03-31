@@ -10,14 +10,6 @@ export async function createLandingPage(prevState: { error: string; success: boo
     try {
         const { orgId } = await getAuthContext()
 
-        const limitCheck = await useCases.checkLimit().execute(orgId, 'landing_pages')
-        if (!limitCheck.allowed) {
-            return {
-                error: `Limite de ${limitCheck.label} atingido (${limitCheck.current}/${limitCheck.limit}). Faça upgrade do seu plano para criar mais landing pages.`,
-                success: false,
-            }
-        }
-
         const result = await useCases.createLandingPage().execute(orgId, {
             name: formData.get('name') as string,
             slug: formData.get('slug') as string,
@@ -84,14 +76,6 @@ export async function publishLandingPage(pageId: string, publish: boolean) {
 export async function addKnowledgeBaseEntry(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
         const { orgId } = await getAuthContext()
-
-        const limitCheck = await useCases.checkLimit().execute(orgId, 'knowledge_base')
-        if (!limitCheck.allowed) {
-            return {
-                error: `Limite de ${limitCheck.label} atingido (${limitCheck.current}/${limitCheck.limit}). Faça upgrade do seu plano para adicionar mais documentos à base de conhecimento.`,
-                success: false,
-            }
-        }
 
         const result = await useCases.addKnowledgeBase().execute(orgId, {
             landingPageId: (formData.get('landingPageId') as string) || null,

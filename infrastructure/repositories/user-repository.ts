@@ -23,11 +23,11 @@ export class SupabaseUserRepository implements IUserRepository {
         const supabase = createAdminClient()
         const { data } = await supabase
             .from('users')
-            .select('id, organization_id, name, email, role, organizations(id, name, plan)')
+            .select('id, organization_id, name, email, role, organizations(id, name)')
             .eq('id', userId)
             .single()
         if (!data) return null
-        const org = data.organizations as unknown as { id: string; name: string; plan: string }
+        const org = data.organizations as unknown as { id: string; name: string }
         return {
             id: data.id,
             organizationId: data.organization_id,
@@ -36,7 +36,6 @@ export class SupabaseUserRepository implements IUserRepository {
             role: data.role,
             orgId: org?.id ?? data.organization_id,
             orgName: org?.name ?? '',
-            orgPlan: org?.plan ?? 'free',
         }
     }
 }

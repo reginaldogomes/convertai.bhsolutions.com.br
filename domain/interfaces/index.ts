@@ -10,4 +10,3 @@ export type { ILandingPageRepository, CreateLandingPageInput, UpdateLandingPageI
 export type { IKnowledgeBaseRepository, CreateKnowledgeBaseInput, KnowledgeBaseMatch } from './knowledge-base-repository'
 export type { IChatSessionRepository, CreateChatSessionInput, CreateChatMessageInput } from './chat-session-repository'
 export type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from './analytics-repository'
-export type { IPlanRepository, OrgLimitsAndUsage } from './plan-repository'

@@ -9,7 +9,6 @@ import {
     SupabaseKnowledgeBaseRepository,
     SupabaseChatSessionRepository,
     SupabaseAnalyticsRepository,
-    SupabasePlanRepository,
 } from '@/infrastructure/repositories'
 import { TwilioWhatsAppService } from '@/infrastructure/services/twilio-whatsapp-service'
 import { ResendEmailService } from '@/infrastructure/services/resend-email-service'
@@ -39,15 +38,6 @@ import {
     ListKnowledgeBaseUseCase,
     GetLandingPageAnalyticsUseCase,
 } from '@/application/use-cases/landing-pages'
-import {
-    CheckLimitUseCase,
-    GetOrgLimitsAndUsageUseCase,
-    GetAllPlansUseCase,
-    UpdatePlanLimitsUseCase,
-    GetOrgOverrideUseCase,
-    SetOrgOverrideUseCase,
-    ClearOrgOverrideUseCase,
-} from '@/application/use-cases/plans'
 
 // Repository singletons (stateless, safe to reuse)
 const contactRepo = new SupabaseContactRepository()
@@ -60,7 +50,6 @@ const landingPageRepo = new SupabaseLandingPageRepository()
 const knowledgeBaseRepo = new SupabaseKnowledgeBaseRepository()
 const chatSessionRepo = new SupabaseChatSessionRepository()
 const analyticsRepo = new SupabaseAnalyticsRepository()
-const planRepo = new SupabasePlanRepository()
 
 // Service singletons
 const whatsAppService = new TwilioWhatsAppService()
@@ -120,15 +109,6 @@ export const useCases = {
 
     // Analytics
     getLandingPageAnalytics: () => new GetLandingPageAnalyticsUseCase(analyticsRepo),
-
-    // Plans
-    checkLimit: () => new CheckLimitUseCase(planRepo),
-    getOrgLimitsAndUsage: () => new GetOrgLimitsAndUsageUseCase(planRepo),
-    getAllPlans: () => new GetAllPlansUseCase(planRepo),
-    updatePlanLimits: () => new UpdatePlanLimitsUseCase(planRepo),
-    getOrgOverride: () => new GetOrgOverrideUseCase(planRepo),
-    setOrgOverride: () => new SetOrgOverrideUseCase(planRepo),
-    clearOrgOverride: () => new ClearOrgOverrideUseCase(planRepo),
 } as const
 
 // Export singletons needed by API routes and server actions

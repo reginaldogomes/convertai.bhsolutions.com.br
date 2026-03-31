@@ -1,18 +1,13 @@
 import { tryGetAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Settings as SettingsIcon, Building, CreditCard, Puzzle } from 'lucide-react'
+import { Settings as SettingsIcon, Building, Puzzle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getMyUsageAndLimits } from '@/actions/billing'
-import { PlanUsageCard } from '@/components/crm/PlanUsageCard'
 
 export default async function SettingsPage() {
     const auth = await tryGetAuthContext()
-    const [profileWithOrg, usageData] = await Promise.all([
-        auth ? useCases.getUserSettings().execute(auth.userId) : null,
-        auth ? getMyUsageAndLimits() : null,
-    ])
+    const profileWithOrg = auth ? await useCases.getUserSettings().execute(auth.userId) : null
 
     return (
         <div className="p-8 space-y-8 max-w-4xl">
@@ -26,9 +21,6 @@ export default async function SettingsPage() {
                     </button>
                     <button className="w-full text-left px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/70 text-sm font-medium border-l-2 border-transparent transition-colors flex items-center gap-3 rounded-(--radius)">
                         <Puzzle className="w-4 h-4" /> Integrações
-                    </button>
-                    <button className="w-full text-left px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/70 text-sm font-medium border-l-2 border-transparent transition-colors flex items-center gap-3 rounded-(--radius)">
-                        <CreditCard className="w-4 h-4" /> Assinatura
                     </button>
                 </div>
 
@@ -78,13 +70,6 @@ export default async function SettingsPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Plan Usage */}
-            {usageData && (
-                <div className="max-w-4xl">
-                    <PlanUsageCard data={usageData} />
-                </div>
-            )}
         </div>
     )
 }

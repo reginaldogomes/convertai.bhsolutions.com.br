@@ -3,13 +3,6 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Building2 } from 'lucide-react'
 import Link from 'next/link'
 
-const planColors: Record<string, string> = {
-    free: 'bg-secondary text-muted-foreground border-border',
-    starter: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    pro: 'bg-primary/10 text-primary border-primary/30',
-    enterprise: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-}
-
 export default async function AdminOrganizationsPage() {
     const orgs = await listAllOrganizations()
 
@@ -30,7 +23,6 @@ export default async function AdminOrganizationsPage() {
                         <thead>
                             <tr className="border-b border-border">
                                 <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Organização</th>
-                                <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Plano</th>
                                 <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Usuários</th>
                                 <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Landing Pages</th>
                                 <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Criada em</th>
@@ -40,7 +32,7 @@ export default async function AdminOrganizationsPage() {
                         <tbody>
                             {orgs.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground/50 text-sm">
+                                    <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground/50 text-sm">
                                         Nenhuma organização cadastrada
                                     </td>
                                 </tr>
@@ -53,11 +45,7 @@ export default async function AdminOrganizationsPage() {
                                         </Link>
                                         <p className="text-muted-foreground/50 text-[10px] font-mono-data">{org.id}</p>
                                     </td>
-                                    <td className="px-5 py-3">
-                                        <span className={`px-2 py-0.5 text-xs font-semibold border rounded-(--radius) ${planColors[org.plan] ?? planColors.free}`}>
-                                            {org.plan}
-                                        </span>
-                                    </td>
+
                                     <td className="px-5 py-3 text-muted-foreground text-xs font-mono-data">{org.user_count}</td>
                                     <td className="px-5 py-3 text-muted-foreground text-xs font-mono-data">{org.landing_page_count}</td>
                                     <td className="px-5 py-3 text-muted-foreground text-xs font-mono-data">
