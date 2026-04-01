@@ -1,6 +1,6 @@
 import type { IContactRepository, ICampaignRepository, IDealRepository, IUserRepository, CampaignRow } from '@/domain/interfaces'
 import type { Contact, Deal, Campaign } from '@/domain/entities'
-import type { UserProfile } from '@/domain/interfaces'
+import type { UserProfile, OrganizationDetails } from '@/domain/interfaces'
 
 // --- List Campaigns (for page) ---
 
@@ -27,7 +27,7 @@ export class ListContactSelectsUseCase {
 export class GetUserSettingsUseCase {
     constructor(private readonly userRepo: IUserRepository) {}
 
-    async execute(userId: string): Promise<(UserProfile & { orgName: string; orgId: string }) | null> {
+    async execute(userId: string): Promise<(UserProfile & OrganizationDetails) | null> {
         return this.userRepo.findProfileWithOrgByUserId(userId)
     }
 }

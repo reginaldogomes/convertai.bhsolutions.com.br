@@ -33,7 +33,7 @@ export default async function LandingPagesPage() {
 
                 <div className="divide-y divide-border-subtle">
                     {pages.map((page) => (
-                        <div key={page.id} className="p-5 flex items-center justify-between hover:bg-secondary/70 transition-colors">
+                        <div key={page.id} className="p-5 flex items-center justify-between hover:bg-accent transition-colors">
                             <div className="space-y-1">
                                 <div className="flex items-center gap-3">
                                     <Link href={`/landing-pages/${page.id}`} className="text-foreground font-bold hover:text-primary transition-colors">
@@ -41,9 +41,9 @@ export default async function LandingPagesPage() {
                                     </Link>
                                     <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${
                                         page.isPublished()
-                                            ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20'
+                                            ? 'bg-[hsl(var(--success-subtle))] text-[hsl(var(--success))] border-[hsl(var(--success))]'
                                             : page.isArchived()
-                                                ? 'bg-destructive/10 text-destructive border-destructive/20'
+                                                ? 'bg-[hsl(var(--destructive-subtle))] text-destructive border-destructive'
                                                 : 'bg-secondary text-foreground-secondary border-border'
                                     }`}>
                                         {page.status}

@@ -245,7 +245,7 @@ export function CreateAutomationButton() {
 
                             {/* Add Step */}
                             <div className="border border-dashed border-border rounded-(--radius) p-3">
-                                <p className="text-muted-foreground/60 text-xs uppercase tracking-wider mb-2 font-bold">Adicionar passo</p>
+                                <p className="text-muted-foreground text-xs uppercase tracking-wider mb-2 font-bold">Adicionar passo</p>
                                 <div className="flex flex-wrap gap-2">
                                     {STEP_TYPES.map(t => (
                                         <button
@@ -253,7 +253,7 @@ export function CreateAutomationButton() {
                                             type="button"
                                             onClick={() => addStep(t.value)}
                                             title={t.description}
-                                            className="text-xs bg-secondary/80 border border-border text-foreground-secondary hover:text-primary hover:border-primary/50 px-3 h-7 rounded-(--radius) transition-colors font-medium"
+                                            className="text-xs bg-secondary border border-border text-foreground-secondary hover:text-primary hover:border-primary px-3 h-7 rounded-(--radius) transition-colors font-medium"
                                         >
                                             + {t.label}
                                         </button>

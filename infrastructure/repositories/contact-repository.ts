@@ -73,6 +73,22 @@ export class SupabaseContactRepository implements IContactRepository {
         return (data ?? []).filter((c): c is { id: string; name: string; email: string } => c.email !== null)
     }
 
+    async findWithPhoneByOrgId(orgId: string, tags?: string[]): Promise<{ id: string; name: string; phone: string }[]> {
+        const supabase = createAdminClient()
+        let query = supabase
+            .from('contacts')
+            .select('id, name, phone')
+            .eq('organization_id', orgId)
+            .not('phone', 'is', null)
+
+        if (tags && tags.length > 0) {
+            query = query.overlaps('tags', tags)
+        }
+
+        const { data } = await query.order('name')
+        return (data ?? []).filter((c): c is { id: string; name: string; phone: string } => c.phone !== null)
+    }
+
     async create(input: CreateContactInput): Promise<Contact | null> {
         const supabase = createAdminClient()
         const { data } = await supabase

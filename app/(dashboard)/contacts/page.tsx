@@ -48,7 +48,7 @@ export default async function ContactsPage() {
                                 </tr>
                             )}
                             {contacts.map(contact => (
-                                <tr key={contact.id} className="border-b border-border-subtle hover:bg-secondary/70 transition-colors">
+                                <tr key={contact.id} className="border-b border-border-subtle hover:bg-accent transition-colors">
                                     <td className="px-5 py-3">
                                         <Link href={`/contacts/${contact.id}`} className="text-foreground font-medium hover:text-primary transition-colors text-sm">
                                             {contact.name}
@@ -60,7 +60,7 @@ export default async function ContactsPage() {
                                     <td className="px-5 py-3">
                                         <div className="flex flex-wrap gap-1">
                                             {contact.tags.map((tag) => (
-                                                <span key={tag} className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold border border-primary/40 rounded-(--radius)">
+                                                <span key={tag} className="px-2 py-0.5 bg-[hsl(var(--primary-subtle))] text-primary text-xs font-semibold border border-primary rounded-(--radius)">
                                                     {tag}
                                                 </span>
                                             ))}

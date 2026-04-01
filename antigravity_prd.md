@@ -7,8 +7,8 @@
 **Stack principal:**
 
 -   Supabase
--   Resend
--   Twilio
+-   Twilio (WhatsApp + SMS)
+-   Twilio SendGrid (Email)
 -   Antigravity Kit
 
 Antigravity é uma plataforma de relacionamento com clientes
@@ -102,8 +102,8 @@ Usuários principais:
     ↓
 
     Integrações
-    Resend (Email)
-    Twilio (WhatsApp)
+    Twilio SendGrid (Email)
+    Twilio (WhatsApp + SMS)
 
     ↓
 
@@ -135,9 +135,13 @@ Usuários principais:
 
 ### Email
 
-Resend
+Twilio SendGrid
 
 ### WhatsApp
+
+Twilio
+
+### SMS
 
 Twilio
 
@@ -223,7 +227,7 @@ Pipeline padrão:
 
 # 9. Email Marketing
 
-Envio de campanhas utilizando **Resend**.
+Envio de campanhas multi-canal utilizando **Twilio SendGrid** (email), **Twilio SMS** e **Twilio WhatsApp**.
 
 Recursos:
 

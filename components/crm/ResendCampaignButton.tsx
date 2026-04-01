@@ -43,7 +43,7 @@ export function ResendCampaignButton({ campaignId, campaignName, recipientCount,
         <>
             <button
                 onClick={() => setOpen(true)}
-                className="bg-primary/20 hover:bg-primary/30 border-2 border-primary/50 hover:border-primary/70 text-primary h-9 px-6 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors rounded-(--radius)"
+                className="bg-[hsl(var(--primary-subtle))] hover:bg-[hsl(var(--primary-soft))] border-2 border-primary hover:border-primary text-primary h-9 px-6 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors rounded-(--radius)"
             >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Reenviar Campanha
@@ -63,11 +63,11 @@ export function ResendCampaignButton({ campaignId, campaignName, recipientCount,
                         </div>
 
                         {failedCount > 0 && (
-                            <div className="bg-destructive/5 border border-destructive/20 p-3 flex items-start gap-2 rounded-(--radius)">
+                            <div className="bg-[hsl(var(--destructive-subtle))] border border-destructive p-3 flex items-start gap-2 rounded-(--radius)">
                                 <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                                 <div>
                                     <p className="text-destructive text-xs font-bold uppercase tracking-wider mb-1">Falhas no envio anterior</p>
-                                    <p className="text-destructive/80 text-xs">
+                                    <p className="text-destructive text-xs">
                                         {failedCount} emails falharam no envio anterior. O reenvio tentará enviar novamente para todos os contatos.
                                     </p>
                                 </div>

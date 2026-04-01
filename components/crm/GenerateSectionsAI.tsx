@@ -104,7 +104,7 @@ export function GenerateSectionsAI({ onGenerated }: GenerateSectionsAIProps) {
                                 <button
                                     key={i}
                                     onClick={() => setPrompt(ex)}
-                                    className="text-left text-xs px-3 py-2 rounded-md bg-secondary/40 hover:bg-secondary/70 transition-colors text-muted-foreground hover:text-foreground truncate"
+                                    className="text-left text-xs px-3 py-2 rounded-md bg-[hsl(var(--secondary-subtle))] hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground truncate"
                                     disabled={loading}
                                 >
                                     {ex}

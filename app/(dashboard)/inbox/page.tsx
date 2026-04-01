@@ -29,10 +29,10 @@ export default async function InboxPage() {
                         <p className="p-5 text-muted-foreground text-xs text-center">Nenhuma conversa encontrada.</p>
                     )}
                     {threads.map((thread, idx) => (
-                        <div key={thread.contact.id} className={`p-4 border-b border-border cursor-pointer hover:bg-secondary/70 transition-colors ${idx === 0 ? 'bg-secondary' : ''}`}>
+                        <div key={thread.contact.id} className={`p-4 border-b border-border cursor-pointer hover:bg-accent transition-colors ${idx === 0 ? 'bg-secondary' : ''}`}>
                             <div className="flex items-center justify-between mb-1">
                                 <span className="text-foreground font-bold text-sm truncate pr-2">{thread.contact.name}</span>
-                                <span className="text-muted-foreground/60 text-[10px] font-mono-data shrink-0">
+                                <span className="text-muted-foreground text-[10px] font-mono-data shrink-0">
                                     {new Date(thread.lastActivity).toLocaleDateString()}
                                 </span>
                             </div>
@@ -66,10 +66,10 @@ export default async function InboxPage() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col-reverse">
                             {threads[0].messages.map((msg) => (
                                 <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[70%] p-4 rounded-(--radius) ${msg.direction === 'outbound' ? 'bg-primary/20 border border-primary/40' : 'bg-secondary border border-border'}`}>
-                                        <p className="text-foreground/90 text-sm whitespace-pre-wrap">{msg.content}</p>
+                                    <div className={`max-w-[70%] p-4 rounded-(--radius) ${msg.direction === 'outbound' ? 'bg-[hsl(var(--primary-subtle))] border border-primary' : 'bg-secondary border border-border'}`}>
+                                        <p className="text-foreground text-sm whitespace-pre-wrap">{msg.content}</p>
                                         <div className="mt-2 text-right">
-                                            <span className={`text-[10px] font-mono-data ${msg.direction === 'outbound' ? 'text-primary/60' : 'text-muted-foreground'}`}>
+                                            <span className={`text-[10px] font-mono-data ${msg.direction === 'outbound' ? 'text-primary' : 'text-muted-foreground'}`}>
                                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>

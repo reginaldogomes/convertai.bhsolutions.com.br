@@ -16,7 +16,7 @@ export function PageHeader({ category, title, icon: Icon, actions }: PageHeaderP
                     {category}
                 </p>
                 <h1 className="text-foreground text-xl font-black tracking-tight flex items-center gap-2.5">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[hsl(var(--primary-subtle))]">
                         <Icon className="w-4 h-4 text-primary" />
                     </span>
                     {title}

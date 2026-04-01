@@ -47,7 +47,7 @@ export function ContactFormEditor({ content, onChange }: ContactFormEditorProps)
                 <Label className="text-xs font-semibold">Campos do Formulário</Label>
                 <div className="flex flex-wrap gap-2">
                     {ALL_FIELDS.map(({ key, label }) => (
-                        <label key={key} className="flex items-center gap-1.5 text-xs bg-secondary/30 px-2.5 py-1.5 rounded-md cursor-pointer">
+                        <label key={key} className="flex items-center gap-1.5 text-xs bg-[hsl(var(--secondary-subtle))] px-2.5 py-1.5 rounded-md cursor-pointer">
                             <input
                                 type="checkbox"
                                 checked={content.fields.includes(key)}

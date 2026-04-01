@@ -5,8 +5,11 @@ import { CampaignEditor } from '@/components/crm/CampaignEditor'
 import { HtmlPreview } from '@/components/crm/HtmlPreview'
 import { SendCampaignButton } from '@/components/crm/SendCampaignButton'
 import { ResendCampaignButton } from '@/components/crm/ResendCampaignButton'
-import { Mail, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
+import { Mail, ArrowLeft, CheckCircle2, XCircle, MessageSquare, Phone } from 'lucide-react'
 import Link from 'next/link'
+
+const channelIcons = { email: Mail, sms: Phone, whatsapp: MessageSquare } as const
+const channelLabels = { email: 'Email', sms: 'SMS', whatsapp: 'WhatsApp' } as const
 
 interface CampaignDetailPageProps {
     params: Promise<{ id: string }>
@@ -20,6 +23,9 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
     if (!result.ok) redirect('/campaigns')
 
     const campaign = result.value
+    const channel = campaign.channel || 'email'
+    const ChannelIcon = channelIcons[channel as keyof typeof channelIcons] || Mail
+    const channelLabel = channelLabels[channel as keyof typeof channelLabels] || 'Email'
     const recipients = await useCases.listRecipients().execute(orgId)
 
     return (
@@ -35,15 +41,18 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
                         Campanhas
                     </Link>
                     <h1 className="text-foreground text-2xl font-black tracking-tight flex items-center gap-3">
-                        <Mail className="w-6 h-6 text-primary" />
+                        <ChannelIcon className="w-6 h-6 text-primary" />
                         {campaign.name}
                     </h1>
                     <div className="flex items-center gap-3">
                         <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${campaign.isSent() ? 'bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border-[hsl(var(--success))]/20' : 'bg-secondary text-foreground-secondary border-border'}`}>
                             {campaign.status}
                         </span>
+                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-secondary text-foreground-secondary border border-border rounded-(--radius)">
+                            {channelLabel}
+                        </span>
                         <span className="text-muted-foreground text-xs">
-                            {recipients.length} contatos com email
+                            {recipients.length} contatos
                         </span>
                     </div>
                 </div>
@@ -75,6 +84,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
                         name={campaign.name}
                         subject={campaign.subject}
                         body={campaign.body}
+                        channel={campaign.channel}
                     />
                 </div>
             )}

@@ -34,7 +34,7 @@ export function SendCampaignButton({ campaignId, campaignName, recipientCount, d
         if (result.error) {
             toast.error(result.error)
         } else {
-            toast.success(`Campanha enviada! ${result.sent} emails enviados.`)
+            toast.success(`Campanha enviada! ${result.sent} mensagens enviadas.`)
             router.refresh()
         }
     }

@@ -13,6 +13,7 @@ export async function createCampaign(prevState: { error: string; success: boolea
             name: formData.get('name') as string,
             subject: formData.get('subject') as string || '',
             body: formData.get('body') as string || '',
+            channel: formData.get('channel') as string || 'email',
         })
 
         if (!result.ok) return { error: result.error.message, success: false }
@@ -33,6 +34,7 @@ export async function updateCampaign(prevState: { error: string; success: boolea
             name: formData.get('name') as string | undefined,
             subject: formData.get('subject') as string | undefined,
             body: formData.get('body') as string | undefined,
+            channel: formData.get('channel') as string | undefined,
         })
 
         if (!result.ok) return { error: result.error.message, success: false }

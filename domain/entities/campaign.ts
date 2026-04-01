@@ -6,6 +6,7 @@ export interface CampaignProps {
     name: string
     subject: string
     body: string
+    channel: string
     status: CampaignStatus
     sentAt: string | null
     metrics: CampaignMetrics
@@ -36,6 +37,7 @@ export class Campaign {
     get name() { return this.props.name }
     get subject() { return this.props.subject }
     get body() { return this.props.body }
+    get channel() { return this.props.channel }
     get status() { return this.props.status }
     get sentAt() { return this.props.sentAt }
     get metrics() { return this.props.metrics }
@@ -50,11 +52,17 @@ export class Campaign {
     }
 
     canSend(): boolean {
-        return this.isDraft() && this.subject.length > 0 && this.body.length > 0
+        if (this.channel === 'email') {
+            return this.isDraft() && this.subject.length > 0 && this.body.length > 0
+        }
+        return this.isDraft() && this.body.length > 0
     }
 
     canResend(): boolean {
-        return this.isSent() && this.subject.length > 0 && this.body.length > 0
+        if (this.channel === 'email') {
+            return this.isSent() && this.subject.length > 0 && this.body.length > 0
+        }
+        return this.isSent() && this.body.length > 0
     }
 
     static fromRow(row: {
@@ -63,6 +71,7 @@ export class Campaign {
         name: string
         subject: string
         body: string
+        channel?: string
         status: string
         sent_at: string | null
         metrics: unknown
@@ -75,6 +84,7 @@ export class Campaign {
             name: row.name,
             subject: row.subject,
             body: row.body,
+            channel: row.channel || 'email',
             status: row.status as CampaignStatus,
             sentAt: row.sent_at,
             metrics: {

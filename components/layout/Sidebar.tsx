@@ -48,13 +48,13 @@ export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
                             className={cn(
                                 'flex items-center gap-3 px-3 py-2 text-xs font-medium transition-all duration-150 rounded-(--radius) group',
                                 active
-                                    ? 'bg-primary/90 text-white shadow-sm'
-                                    : 'text-white/50 hover:text-white/90 hover:bg-white/8'
+                                    ? 'bg-primary text-white shadow-sm'
+                                    : 'text-white/50 hover:text-white hover:bg-white/8'
                             )}
                         >
                             <Icon className={cn(
                                 'w-4 h-4 shrink-0 transition-transform duration-150',
-                                active ? 'text-white' : 'text-white/50 group-hover:text-white/80',
+                                active ? 'text-white' : 'text-white/50 group-hover:text-white',
                                 'group-hover:scale-110'
                             )} />
                             {label}
@@ -72,8 +72,8 @@ export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
                         className={cn(
                             'flex items-center gap-3 px-3 py-2 text-xs font-medium transition-all duration-150 rounded-(--radius) group',
                             pathname.startsWith('/admin')
-                                ? 'bg-destructive/80 text-white shadow-sm'
-                                : 'text-white/50 hover:text-white/90 hover:bg-destructive/20'
+                                ? 'bg-destructive text-white shadow-sm'
+                                : 'text-white/50 hover:text-white hover:bg-destructive/20'
                         )}
                     >
                         <ShieldCheck className="w-4 h-4 shrink-0" />
@@ -85,8 +85,8 @@ export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
                     className={cn(
                         'flex items-center gap-3 px-3 py-2 text-xs font-medium transition-all duration-150 rounded-(--radius) group',
                         pathname === '/settings'
-                            ? 'bg-primary/90 text-white shadow-sm'
-                            : 'text-white/50 hover:text-white/90 hover:bg-white/8'
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'text-white/50 hover:text-white hover:bg-white/8'
                     )}
                 >
                     <Settings className="w-4 h-4 shrink-0 group-hover:rotate-45 transition-transform duration-300" />
@@ -95,7 +95,7 @@ export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
                 <form action={logout}>
                     <button
                         type="submit"
-                        className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-white/35 hover:text-white/70 hover:bg-white/8 transition-all duration-150 rounded-(--radius) group"
+                        className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-white/40 hover:text-white/70 hover:bg-white/8 transition-all duration-150 rounded-(--radius) group"
                     >
                         <LogOut className="w-4 h-4 shrink-0" />
                         Sair

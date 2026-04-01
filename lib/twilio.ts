@@ -6,3 +6,4 @@ export const twilio = Twilio(
 )
 
 export const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER!
+export const TWILIO_SMS_NUMBER = process.env.TWILIO_SMS_NUMBER!

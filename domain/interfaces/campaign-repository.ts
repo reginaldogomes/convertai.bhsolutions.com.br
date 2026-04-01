@@ -7,6 +7,7 @@ export interface CampaignRow {
     name: string
     subject: string
     body: string
+    channel: string
     status: string
     sent_at: string | null
     metrics: unknown
@@ -18,12 +19,14 @@ export interface CreateCampaignInput {
     name: string
     subject: string
     body: string
+    channel?: string
 }
 
 export interface UpdateCampaignInput {
     name?: string
     subject?: string
     body?: string
+    channel?: string
 }
 
 export interface ICampaignRepository {

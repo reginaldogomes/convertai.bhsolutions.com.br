@@ -9,7 +9,7 @@ const leadSchema = z.object({
     phone: z.string().optional().or(z.literal('')),
     company: z.string().optional().or(z.literal('')),
     message: z.string().optional().or(z.literal('')),
-    consent: z.literal(true, { errorMap: () => ({ message: 'Consentimento obrigatório' }) }),
+    consent: z.literal(true, { error: 'Consentimento obrigatório' }),
 })
 
 export async function POST(request: Request) {

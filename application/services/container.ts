@@ -11,7 +11,9 @@ import {
     SupabaseAnalyticsRepository,
 } from '@/infrastructure/repositories'
 import { TwilioWhatsAppService } from '@/infrastructure/services/twilio-whatsapp-service'
+import { SendGridEmailService } from '@/infrastructure/services/sendgrid-email-service'
 import { ResendEmailService } from '@/infrastructure/services/resend-email-service'
+import { TwilioSmsService } from '@/infrastructure/services/twilio-sms-service'
 import { RagService } from '@/infrastructure/services/rag-service'
 
 import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase } from '@/application/use-cases/contacts'
@@ -53,7 +55,10 @@ const analyticsRepo = new SupabaseAnalyticsRepository()
 
 // Service singletons
 const whatsAppService = new TwilioWhatsAppService()
-const emailService = new ResendEmailService()
+const emailService = process.env.EMAIL_PROVIDER === 'sendgrid'
+    ? new SendGridEmailService()
+    : new ResendEmailService()
+const smsService = new TwilioSmsService()
 const ragService = new RagService(knowledgeBaseRepo)
 
 // Use case factory — creates use cases with injected dependencies
@@ -69,7 +74,7 @@ export const useCases = {
     listDeals: () => new ListDealsUseCase(dealRepo),
 
     // Messages
-    sendMessage: () => new SendMessageUseCase(messageRepo, contactRepo, whatsAppService),
+    sendMessage: () => new SendMessageUseCase(messageRepo, contactRepo, whatsAppService, emailService, smsService),
     listThreads: () => new ListThreadsUseCase(messageRepo),
 
     // Dashboard
@@ -78,7 +83,7 @@ export const useCases = {
     // Campaigns
     createCampaign: () => new CreateCampaignUseCase(campaignRepo),
     updateCampaign: () => new UpdateCampaignUseCase(campaignRepo),
-    sendCampaign: () => new SendCampaignUseCase(campaignRepo, contactRepo, emailService),
+    sendCampaign: () => new SendCampaignUseCase(campaignRepo, contactRepo, emailService, whatsAppService, smsService),
     getCampaign: () => new GetCampaignUseCase(campaignRepo),
     getCrmContext: () => new GetCrmContextUseCase(contactRepo, dealRepo, campaignRepo, userRepo),
 
@@ -112,4 +117,4 @@ export const useCases = {
 } as const
 
 // Export singletons needed by API routes and server actions
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, contactRepo as contactRepoSingleton, analyticsRepo, ragService }
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, contactRepo as contactRepoSingleton, analyticsRepo, ragService, userRepo }

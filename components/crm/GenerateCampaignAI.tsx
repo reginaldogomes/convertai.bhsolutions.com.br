@@ -224,11 +224,11 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     onChange={(e) => setDetails(e.target.value)}
                                     placeholder="Ex: Promoção de 20% em todos os planos, válido até sexta-feira. Incluir depoimento de cliente..."
                                     rows={3}
-                                    className="bg-secondary border-border text-foreground rounded-(--radius) text-sm resize-none placeholder:text-muted-foreground/50"
+                                    className="bg-secondary border-border text-foreground rounded-(--radius) text-sm resize-none placeholder:text-muted-foreground"
                                 />
                             </div>
 
-                            <div className="bg-primary/20 border border-primary/40 p-3 rounded-(--radius)">
+                            <div className="bg-[hsl(var(--primary-subtle))] border border-primary p-3 rounded-(--radius)">
                                 <p className="text-primary text-xs font-bold uppercase tracking-wider mb-1">Contexto automático</p>
                                 <p className="text-foreground-secondary text-xs leading-relaxed">
                                     A IA usará dados do seu CRM (contatos, tags, pipeline, campanhas anteriores) para gerar um email personalizado e relevante.

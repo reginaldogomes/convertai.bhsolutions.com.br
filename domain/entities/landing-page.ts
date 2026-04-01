@@ -97,7 +97,7 @@ export class LandingPage {
                         return { ...section, content: { ...content, fields } }
                     }
                     return section
-                }) as LandingPageSection[],
+                }) as unknown as LandingPageSection[],
             },
             chatbotName: row.chatbot_name,
             chatbotWelcomeMessage: row.chatbot_welcome_message,

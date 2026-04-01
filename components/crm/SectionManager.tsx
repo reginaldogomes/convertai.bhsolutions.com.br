@@ -129,9 +129,9 @@ export function SectionManager({ pageId, initialSections }: SectionManagerProps)
             </div>
 
             {sections.length === 0 && (
-                <div className="text-center py-12 bg-secondary/30 rounded-lg border border-dashed border-border">
+                <div className="text-center py-12 bg-[hsl(var(--secondary-subtle))] rounded-lg border border-dashed border-border">
                     <p className="text-muted-foreground text-sm mb-2">Nenhuma seção adicionada.</p>
-                    <p className="text-xs text-muted-foreground/60">Adicione seções para personalizar sua landing page.</p>
+                    <p className="text-xs text-muted-foreground">Adicione seções para personalizar sua landing page.</p>
                 </div>
             )}
 
@@ -140,7 +140,7 @@ export function SectionManager({ pageId, initialSections }: SectionManagerProps)
                     <div
                         key={section.id}
                         className={`border rounded-lg ${
-                            expandedId === section.id ? 'border-primary/50 bg-card' : 'border-border bg-card'
+                            expandedId === section.id ? 'border-primary bg-card' : 'border-border bg-card'
                         } ${!section.visible ? 'opacity-60' : ''}`}
                     >
                         {/* Section Header */}
@@ -163,7 +163,7 @@ export function SectionManager({ pageId, initialSections }: SectionManagerProps)
                                 <button onClick={() => moveSection(section.id, 'down')} disabled={idx === sections.length - 1} className="p-1 rounded hover:bg-secondary disabled:opacity-30">
                                     <ChevronDown className="w-3.5 h-3.5" />
                                 </button>
-                                <button onClick={() => removeSection(section.id)} className="p-1 rounded hover:bg-destructive/10 text-destructive">
+                                <button onClick={() => removeSection(section.id)} className="p-1 rounded hover:bg-[hsl(var(--destructive-subtle))] text-destructive">
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                             </div>

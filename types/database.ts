@@ -14,7 +14,7 @@ export type PipelineStage =
     | 'fechado_ganho'
     | 'fechado_perdido'
 
-export type MessageChannel = 'whatsapp' | 'email'
+export type MessageChannel = 'whatsapp' | 'email' | 'sms'
 export type MessageDirection = 'inbound' | 'outbound'
 export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent'
 export type LandingPageStatus = 'draft' | 'published' | 'archived'
@@ -30,11 +30,31 @@ export interface Database {
                 Row: {
                     id: string
                     name: string
+                    email: string | null
+                    phone: string | null
+                    website: string | null
+                    address: string | null
+                    city: string | null
+                    state: string | null
+                    zip_code: string | null
+                    country: string | null
+                    logo_url: string | null
+                    description: string | null
                     created_at: string
                 }
                 Insert: {
                     id?: string
                     name: string
+                    email?: string | null
+                    phone?: string | null
+                    website?: string | null
+                    address?: string | null
+                    city?: string | null
+                    state?: string | null
+                    zip_code?: string | null
+                    country?: string | null
+                    logo_url?: string | null
+                    description?: string | null
                     created_at?: string
                 }
                 Update: Partial<Database['public']['Tables']['organizations']['Insert']>
@@ -156,6 +176,7 @@ export interface Database {
                     name: string
                     subject: string
                     body: string
+                    channel: string
                     status: CampaignStatus
                     sent_at: string | null
                     metrics: Json
@@ -167,6 +188,7 @@ export interface Database {
                     name: string
                     subject: string
                     body: string
+                    channel?: string
                     status?: CampaignStatus
                     sent_at?: string | null
                     metrics?: Json

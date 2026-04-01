@@ -46,12 +46,12 @@ export default function AgentsPage() {
                     return (
                         <div key={agent.id} className="relative group bg-card border border-border p-6 hover:border-primary/30 transition-colors rounded-(--radius)">
                             <div className="absolute top-6 right-6 flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-[hsl(var(--success))] shadow-[0_0_8px_hsl(var(--success)/0.5)]' : 'bg-muted-foreground/40'}`} />
+                                <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-[hsl(var(--success))] shadow-[0_0_8px_hsl(var(--success)/0.5)]' : 'bg-muted-foreground'}`} />
                                 <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest">{isActive ? 'Ativo' : 'Desativado'}</span>
                             </div>
 
                             <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 bg-primary/20 border border-primary/40 flex items-center justify-center shrink-0 group-hover:bg-primary/30 transition-colors rounded-(--radius)">
+                                <div className="w-12 h-12 bg-[hsl(var(--primary-subtle))] border border-primary flex items-center justify-center shrink-0 group-hover:bg-[hsl(var(--primary-soft))] transition-colors rounded-(--radius)">
                                     <Icon className="w-5 h-5 text-foreground-secondary group-hover:text-primary transition-colors" />
                                 </div>
                                 <div>
@@ -62,12 +62,12 @@ export default function AgentsPage() {
 
                             <div className="flex items-center gap-3 pt-6 border-t border-border">
                                 <button className={`h-9 px-6 text-xs font-bold uppercase tracking-wider transition-colors rounded-(--radius) ${isActive
-                                        ? 'bg-primary/20 border-2 border-primary/60 text-primary hover:bg-primary/30'
+                                        ? 'bg-[hsl(var(--primary-subtle))] border-2 border-primary text-primary hover:bg-[hsl(var(--primary-soft))]'
                                         : 'bg-primary text-white hover:bg-[hsl(var(--primary-hover))]'
                                     }`}>
                                     {isActive ? 'Configurar Agent' : 'Ativar Agent'}
                                 </button>
-                                <button className="h-9 px-4 text-primary border-2 border-primary/50 hover:border-primary/70 bg-primary/15 hover:bg-primary/25 flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors rounded-(--radius)">
+                                <button className="h-9 px-4 text-primary border-2 border-primary hover:border-primary bg-[hsl(var(--primary-subtle))] hover:bg-[hsl(var(--primary-soft))] flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors rounded-(--radius)">
                                     <Sparkles className="w-4 h-4" />
                                     Testar Prompt
                                 </button>

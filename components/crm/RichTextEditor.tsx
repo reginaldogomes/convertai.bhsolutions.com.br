@@ -43,7 +43,7 @@ const ToolbarButton = memo(function ToolbarButton({
             title={title}
             className={`p-1.5 rounded transition-colors ${
                 active
-                    ? 'bg-primary/20 text-primary border border-primary/40'
+                    ? 'bg-[hsl(var(--primary-subtle))] text-primary border border-primary'
                     : 'text-foreground-secondary hover:bg-secondary hover:text-foreground border border-transparent'
             } ${disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
         >
@@ -129,7 +129,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     return (
         <div className="border border-border rounded-(--radius) overflow-hidden bg-card">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-secondary/50">
+            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-[hsl(var(--secondary-subtle))]">
                 {/* Undo/Redo */}
                 <ToolbarButton
                     onClick={() => editor.chain().focus().undo().run()}

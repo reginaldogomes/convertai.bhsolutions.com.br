@@ -1,20 +1,22 @@
 import { z } from 'zod'
 import { type Result, success, failure, ValidationError, EntityNotFoundError } from '@/domain/errors'
-import type { ICampaignRepository, IContactRepository, IEmailService } from '@/domain/interfaces'
+import type { ICampaignRepository, IContactRepository, IEmailService, IWhatsAppService, ISmsService } from '@/domain/interfaces'
 import { Campaign } from '@/domain/entities'
 
 // --- Schemas ---
 
 const createCampaignSchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório').max(200),
-    subject: z.string().max(998),  // RFC 2822: max 998 chars per header line
+    subject: z.string().max(998).optional(),  // RFC 2822: max 998 chars per header line
     body: z.string(),
+    channel: z.enum(['email', 'sms', 'whatsapp']).default('email'),
 })
 
 const updateCampaignSchema = z.object({
     name: z.string().min(1).max(200).optional(),
     subject: z.string().max(998).optional(),
     body: z.string().optional(),
+    channel: z.enum(['email', 'sms', 'whatsapp']).optional(),
 })
 
 // --- Create Campaign ---
@@ -26,6 +28,7 @@ export class CreateCampaignUseCase {
         name: string
         subject?: string
         body?: string
+        channel?: string
     }): Promise<Result<Campaign>> {
         const parsed = createCampaignSchema.safeParse(input)
         if (!parsed.success) {
@@ -37,6 +40,7 @@ export class CreateCampaignUseCase {
             name: parsed.data.name,
             subject: parsed.data.subject || '',
             body: parsed.data.body || '',
+            channel: parsed.data.channel,
         })
 
         if (!campaign) return failure(new ValidationError('Erro ao criar campanha'))
@@ -53,6 +57,7 @@ export class UpdateCampaignUseCase {
         name?: string
         subject?: string
         body?: string
+        channel?: string
     }): Promise<Result<Campaign>> {
         const parsed = updateCampaignSchema.safeParse(input)
         if (!parsed.success) {
@@ -72,6 +77,8 @@ export class SendCampaignUseCase {
         private readonly campaignRepo: ICampaignRepository,
         private readonly contactRepo: IContactRepository,
         private readonly emailService: IEmailService,
+        private readonly whatsAppService: IWhatsAppService,
+        private readonly smsService: ISmsService,
     ) {}
 
     async execute(orgId: string, campaignId: string, options?: { resend?: boolean; tags?: string[] }): Promise<Result<{ sent: number; failed: number }>> {
@@ -92,42 +99,76 @@ export class SendCampaignUseCase {
             if (!campaign.canSend()) {
                 return failure(new ValidationError(
                     campaign.isDraft()
-                        ? 'Campanha precisa de assunto e conteúdo antes de enviar'
+                        ? 'Campanha precisa de conteúdo antes de enviar'
                         : 'Campanha já foi enviada',
                 ))
             }
         }
 
-        // 2. Get recipients (contacts with email)
-        const recipients = await this.contactRepo.findWithEmailByOrgId(orgId, tags)
-        if (recipients.length === 0) {
-            return failure(new ValidationError('Nenhum contato com email encontrado'))
+        // 2. Determine channel (from campaign row or default to email)
+        const channel = (campaign as unknown as { channel?: string }).channel || 'email'
+
+        // 3. Get recipients based on channel
+        let result: { sent: number; failed: number }
+
+        if (channel === 'email') {
+            const recipients = await this.contactRepo.findWithEmailByOrgId(orgId, tags)
+            if (recipients.length === 0) {
+                return failure(new ValidationError('Nenhum contato com email encontrado'))
+            }
+
+            await this.campaignRepo.updateStatus(campaignId, orgId, 'sending')
+
+            const emails = recipients.map(contact => ({
+                to: contact.email,
+                subject: campaign.subject,
+                html: this.personalizeBody(campaign.body, contact),
+                tags: [campaignId],
+            }))
+
+            result = await this.emailService.sendBatch(emails)
+        } else if (channel === 'sms' || channel === 'whatsapp') {
+            const recipients = await this.contactRepo.findWithPhoneByOrgId(orgId, tags)
+            if (recipients.length === 0) {
+                return failure(new ValidationError('Nenhum contato com telefone encontrado'))
+            }
+
+            await this.campaignRepo.updateStatus(campaignId, orgId, 'sending')
+
+            const messages = recipients.map(contact => ({
+                to: contact.phone,
+                body: this.personalizeBodyPhone(campaign.body, contact),
+            }))
+
+            if (channel === 'sms') {
+                result = await this.smsService.sendBatch(messages)
+            } else {
+                // WhatsApp — send one by one
+                let sent = 0
+                let failed = 0
+                for (const msg of messages) {
+                    try {
+                        await this.whatsAppService.send(msg)
+                        sent++
+                    } catch (error) {
+                        console.error('[SendCampaign] WhatsApp send failed:', error)
+                        failed++
+                    }
+                }
+                result = { sent, failed }
+            }
+        } else {
+            return failure(new ValidationError(`Canal inválido: ${channel}`))
         }
 
-        // 3. Mark as sending
-        await this.campaignRepo.updateStatus(campaignId, orgId, 'sending')
-
-        // 4. Prepare personalized emails
-        const emails = recipients.map(contact => ({
-            to: contact.email,
-            subject: campaign.subject,
-            html: this.personalizeBody(campaign.body, contact),
-            tags: [campaignId],
-        }))
-
-        // 5. Send batch via Resend
-        const result = await this.emailService.sendBatch(emails)
-
-        // 6. Update campaign status and metrics
+        // Update campaign status and metrics
         const previousMetrics = resend ? campaign.metrics : null
         const metrics = {
             total_sent: (previousMetrics?.total_sent ?? 0) + result.sent,
             total_failed: result.failed,
             open_rate: previousMetrics?.open_rate ?? 0,
             click_rate: previousMetrics?.click_rate ?? 0,
-            bounce_rate: recipients.length > 0
-                ? Math.round((result.failed / recipients.length) * 100)
-                : 0,
+            bounce_rate: 0,
         }
 
         await this.campaignRepo.updateStatus(campaignId, orgId, 'sent', metrics)
@@ -142,6 +183,15 @@ export class SendCampaignUseCase {
         return body
             .replaceAll('{{nome}}', contact.name)
             .replaceAll('{{email}}', contact.email)
+    }
+
+    private personalizeBodyPhone(
+        body: string,
+        contact: { name: string; phone: string },
+    ): string {
+        return body
+            .replaceAll('{{nome}}', contact.name)
+            .replaceAll('{{telefone}}', contact.phone)
     }
 }
 

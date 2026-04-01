@@ -48,10 +48,10 @@ export function PricingEditor({ content, onChange }: PricingEditorProps) {
             <div className="space-y-2 mt-3">
                 <Label className="text-xs font-semibold">Planos ({content.tiers.length})</Label>
                 {content.tiers.map((tier, idx) => (
-                    <div key={idx} className="p-3 border border-border rounded-md bg-secondary/20 space-y-2">
+                    <div key={idx} className="p-3 border border-border rounded-md bg-[hsl(var(--secondary-subtle))] space-y-2">
                         <div className="flex items-center gap-2">
                             <Input value={tier.name} onChange={e => updateTier(idx, 'name', e.target.value)} placeholder="Nome do Plano" className="bg-background h-8 text-xs" />
-                            <button onClick={() => removeTier(idx)} className="p-1 text-destructive hover:bg-destructive/10 rounded shrink-0">
+                            <button onClick={() => removeTier(idx)} className="p-1 text-destructive hover:bg-[hsl(var(--destructive-subtle))] rounded shrink-0">
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>

@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCampaign } from '@/actions/campaigns'
 import { toast } from 'sonner'
-import { Plus } from 'lucide-react'
+import { Plus, Mail, MessageSquare, MessageCircle } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -19,8 +19,17 @@ import { Textarea } from '@/components/ui/textarea'
 
 const initialState = { error: '', success: false }
 
+const CHANNELS = [
+    { value: 'email', label: 'Email', icon: Mail },
+    { value: 'sms', label: 'SMS', icon: MessageSquare },
+    { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+] as const
+
+type Channel = typeof CHANNELS[number]['value']
+
 export function CreateCampaignButton() {
     const [open, setOpen] = useState(false)
+    const [channel, setChannel] = useState<Channel>('email')
     const [state, action] = useActionState(createCampaign, initialState)
     const router = useRouter()
 
@@ -29,12 +38,15 @@ export function CreateCampaignButton() {
             toast.success('Campanha criada com sucesso!')
             queueMicrotask(() => {
                 setOpen(false)
+                setChannel('email')
                 router.refresh()
             })
         } else if (state?.error) {
             toast.error(state.error)
         }
     }, [state, router])
+
+    const isEmail = channel === 'email'
 
     return (
         <>
@@ -52,6 +64,31 @@ export function CreateCampaignButton() {
                         <DialogTitle className="text-foreground text-lg font-black tracking-tight">Nova Campanha</DialogTitle>
                     </DialogHeader>
                     <form action={action} className="space-y-4 py-4">
+                        <input type="hidden" name="channel" value={channel} />
+
+                        <div className="space-y-1.5">
+                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Canal</Label>
+                            <div className="flex gap-2">
+                                {CHANNELS.map(ch => {
+                                    const Icon = ch.icon
+                                    return (
+                                        <button
+                                            key={ch.value}
+                                            type="button"
+                                            onClick={() => setChannel(ch.value)}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-(--radius) text-xs font-bold uppercase tracking-wider border transition-colors ${channel === ch.value
+                                                ? 'bg-primary text-white border-primary'
+                                                : 'bg-secondary text-foreground-secondary border-border hover:border-primary/50'
+                                                }`}
+                                        >
+                                            <Icon className="w-3.5 h-3.5" />
+                                            {ch.label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
                         <div className="space-y-1.5">
                             <Label htmlFor="name" className="text-foreground-secondary text-xs uppercase tracking-wider">Nome da Campanha</Label>
                             <Input
@@ -63,27 +100,35 @@ export function CreateCampaignButton() {
                             />
                         </div>
 
-                        <div className="space-y-1.5">
-                            <Label htmlFor="subject" className="text-foreground-secondary text-xs uppercase tracking-wider">Assunto do Email</Label>
-                            <Input
-                                id="subject"
-                                name="subject"
-                                placeholder="Ex: Novidades que vão transformar seu negócio"
-                                className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary"
-                            />
-                        </div>
+                        {isEmail && (
+                            <div className="space-y-1.5">
+                                <Label htmlFor="subject" className="text-foreground-secondary text-xs uppercase tracking-wider">Assunto do Email</Label>
+                                <Input
+                                    id="subject"
+                                    name="subject"
+                                    placeholder="Ex: Novidades que vão transformar seu negócio"
+                                    className="bg-secondary border-border text-foreground rounded-(--radius) h-9 text-sm focus:border-primary"
+                                />
+                            </div>
+                        )}
 
                         <div className="space-y-1.5">
-                            <Label htmlFor="body" className="text-foreground-secondary text-xs uppercase tracking-wider">Conteúdo (HTML)</Label>
+                            <Label htmlFor="body" className="text-foreground-secondary text-xs uppercase tracking-wider">
+                                {isEmail ? 'Conteúdo (HTML)' : 'Mensagem'}
+                            </Label>
                             <Textarea
                                 id="body"
                                 name="body"
                                 rows={6}
-                                placeholder={"<h1>Olá {{nome}}</h1>\n<p>Seu conteúdo aqui...</p>"}
-                                className="bg-secondary border-border text-foreground rounded-(--radius) text-sm focus:border-primary resize-none font-mono text-xs"
+                                placeholder={isEmail
+                                    ? "<h1>Olá {{nome}}</h1>\n<p>Seu conteúdo aqui...</p>"
+                                    : "Olá {{nome}}, confira nossas novidades!"
+                                }
+                                className={`bg-secondary border-border text-foreground rounded-(--radius) text-sm focus:border-primary resize-none ${isEmail ? 'font-mono text-xs' : 'text-sm'}`}
                             />
                             <p className="text-muted-foreground text-[10px]">
-                                Use {"{{nome}}"} e {"{{email}}"} para personalização. HTML é suportado.
+                                Use {"{{nome}}"} e {"{{email}}"} para personalização.{isEmail && ' HTML é suportado.'}
+                                {!isEmail && ' Limite de 160 caracteres para SMS.'}
                             </p>
                         </div>
 

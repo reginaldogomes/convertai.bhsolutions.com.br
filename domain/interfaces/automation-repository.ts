@@ -1,5 +1,5 @@
 export interface AutomationStep {
-    type: 'send_whatsapp' | 'send_email' | 'add_tag' | 'assign_agent' | 'wait'
+    type: 'send_whatsapp' | 'send_email' | 'send_sms' | 'add_tag' | 'assign_agent' | 'wait'
     config: Record<string, unknown>
 }
 

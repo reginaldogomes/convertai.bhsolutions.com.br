@@ -43,7 +43,7 @@ export default async function DashboardPage() {
             {/* KPI Grid */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 {kpiCards.map(({ key, label, icon: Icon, color, suffix }) => (
-                    <div key={key} className="bg-card border border-border p-5 space-y-3 hover:border-primary/30 transition-colors rounded-(--radius)">
+                    <div key={key} className="bg-card border border-border p-5 space-y-3 hover:border-primary transition-colors rounded-(--radius)">
                         <div className="flex items-center justify-between">
                             <p className="text-muted-foreground text-xs uppercase tracking-wider">{label}</p>
                             <Icon className={`w-4 h-4 ${color}`} />
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
                             <div key={i} className="flex items-center gap-3 py-2 border-b border-border-subtle last:border-0">
                                 <div className="w-1.5 h-1.5 bg-primary shrink-0 rounded-full" />
                                 <div className="h-3 bg-muted flex-1 rounded" />
-                                <div className="h-3 bg-muted/60 w-16 rounded" />
+                                <div className="h-3 bg-muted w-16 rounded" />
                             </div>
                         ))}
                     </div>

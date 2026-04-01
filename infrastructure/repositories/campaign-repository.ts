@@ -34,6 +34,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
                 name: input.name,
                 subject: input.subject,
                 body: input.body,
+                channel: input.channel || 'email',
                 status: 'draft',
             })
             .select()
@@ -47,6 +48,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
         if (input.name !== undefined) updateData.name = input.name
         if (input.subject !== undefined) updateData.subject = input.subject
         if (input.body !== undefined) updateData.body = input.body
+        if (input.channel !== undefined) updateData.channel = input.channel
 
         const { data } = await supabase
             .from('campaigns')
@@ -92,7 +94,7 @@ export class SupabaseAutomationRepository implements IAutomationRepository {
             .select('*')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
-        return (data ?? []) as AutomationRow[]
+        return (data ?? []) as unknown as AutomationRow[]
     }
 
     async findById(id: string, orgId: string): Promise<AutomationRow | null> {

@@ -40,11 +40,11 @@ export function TestimonialsEditor({ content, onChange }: TestimonialsEditorProp
             <div className="space-y-2 mt-3">
                 <Label className="text-xs font-semibold">Depoimentos ({content.items.length})</Label>
                 {content.items.map((item, idx) => (
-                    <div key={idx} className="p-3 border border-border rounded-md bg-secondary/20 space-y-2">
+                    <div key={idx} className="p-3 border border-border rounded-md bg-[hsl(var(--secondary-subtle))] space-y-2">
                         <div className="flex items-center gap-2">
                             <Input value={item.name} onChange={e => updateItem(idx, 'name', e.target.value)} placeholder="Nome" className="bg-background h-8 text-xs" />
                             <Input value={item.role} onChange={e => updateItem(idx, 'role', e.target.value)} placeholder="Cargo" className="bg-background h-8 text-xs" />
-                            <button onClick={() => removeItem(idx)} className="p-1 text-destructive hover:bg-destructive/10 rounded shrink-0">
+                            <button onClick={() => removeItem(idx)} className="p-1 text-destructive hover:bg-[hsl(var(--destructive-subtle))] rounded shrink-0">
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>

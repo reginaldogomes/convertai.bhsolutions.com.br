@@ -16,6 +16,7 @@ export interface IContactRepository {
     findByEmail(email: string, orgId: string): Promise<Contact | null>
     findByOrgId(orgId: string): Promise<Contact[]>
     findWithEmailByOrgId(orgId: string, tags?: string[]): Promise<{ id: string; name: string; email: string }[]>
+    findWithPhoneByOrgId(orgId: string, tags?: string[]): Promise<{ id: string; name: string; phone: string }[]>
     findIdAndNameByOrgId(orgId: string): Promise<{ id: string; name: string }[]>
     create(input: CreateContactInput): Promise<Contact | null>
     update(id: string, input: Partial<Omit<CreateContactInput, 'organizationId'>>): Promise<void>

@@ -19,7 +19,7 @@ export default async function AdminPage() {
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[hsl(var(--primary-subtle))]">
                         <Building2 className="w-5 h-5 text-primary" />
                     </span>
                     <div>
@@ -28,7 +28,7 @@ export default async function AdminPage() {
                     </div>
                 </div>
                 <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[hsl(var(--primary-subtle))]">
                         <Users className="w-5 h-5 text-primary" />
                     </span>
                     <div>
@@ -37,7 +37,7 @@ export default async function AdminPage() {
                     </div>
                 </div>
                 <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[hsl(var(--primary-subtle))]">
                         <Globe className="w-5 h-5 text-primary" />
                     </span>
                     <div>
