@@ -15,13 +15,19 @@ import { SendGridEmailService } from '@/infrastructure/services/sendgrid-email-s
 import { ResendEmailService } from '@/infrastructure/services/resend-email-service'
 import { TwilioSmsService } from '@/infrastructure/services/twilio-sms-service'
 import { RagService } from '@/infrastructure/services/rag-service'
+import { MetaInstagramService } from '@/infrastructure/services/meta-instagram-service'
+import {
+    SupabaseInstagramContentRepository,
+    SupabaseInstagramAccountRepository,
+    SupabaseInstagramAutoConfigRepository,
+} from '@/infrastructure/repositories'
 
-import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase } from '@/application/use-cases/contacts'
+import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase, DeleteContactUseCase } from '@/application/use-cases/contacts'
 import { CreateDealUseCase, MoveDealUseCase, ListDealsUseCase } from '@/application/use-cases/deals'
 import { SendMessageUseCase, ListThreadsUseCase } from '@/application/use-cases/messages'
 import { GetDashboardStatsUseCase } from '@/application/use-cases/dashboard'
 import { CreateCampaignUseCase, UpdateCampaignUseCase, SendCampaignUseCase, GetCampaignUseCase, GetCrmContextUseCase } from '@/application/use-cases/campaigns'
-import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase } from '@/application/use-cases/queries'
+import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase, UpdateOrganizationUseCase } from '@/application/use-cases/queries'
 import {
     ListAutomationsUseCase,
     GetAutomationUseCase,
@@ -40,6 +46,18 @@ import {
     ListKnowledgeBaseUseCase,
     GetLandingPageAnalyticsUseCase,
 } from '@/application/use-cases/landing-pages'
+import {
+    ListInstagramContentsUseCase,
+    GetInstagramContentUseCase,
+    CreateInstagramContentUseCase,
+    UpdateInstagramContentUseCase,
+    DeleteInstagramContentUseCase,
+    PublishInstagramContentUseCase,
+    ConnectInstagramAccountUseCase,
+    GetAutoConfigUseCase,
+    SaveAutoConfigUseCase,
+    ToggleAutoConfigUseCase,
+} from '@/application/use-cases/instagram'
 
 // Repository singletons (stateless, safe to reuse)
 const contactRepo = new SupabaseContactRepository()
@@ -52,6 +70,9 @@ const landingPageRepo = new SupabaseLandingPageRepository()
 const knowledgeBaseRepo = new SupabaseKnowledgeBaseRepository()
 const chatSessionRepo = new SupabaseChatSessionRepository()
 const analyticsRepo = new SupabaseAnalyticsRepository()
+const instagramContentRepo = new SupabaseInstagramContentRepository()
+const instagramAccountRepo = new SupabaseInstagramAccountRepository()
+const instagramAutoConfigRepo = new SupabaseInstagramAutoConfigRepository()
 
 // Service singletons
 const whatsAppService = new TwilioWhatsAppService()
@@ -60,6 +81,7 @@ const emailService = process.env.EMAIL_PROVIDER === 'sendgrid'
     : new ResendEmailService()
 const smsService = new TwilioSmsService()
 const ragService = new RagService(knowledgeBaseRepo)
+const instagramService = new MetaInstagramService()
 
 // Use case factory — creates use cases with injected dependencies
 export const useCases = {
@@ -67,6 +89,7 @@ export const useCases = {
     createContact: () => new CreateContactUseCase(contactRepo),
     listContacts: () => new ListContactsUseCase(contactRepo),
     getContactDetail: () => new GetContactDetailUseCase(contactRepo, messageRepo, dealRepo),
+    deleteContact: () => new DeleteContactUseCase(contactRepo),
 
     // Deals
     createDeal: () => new CreateDealUseCase(dealRepo),
@@ -92,6 +115,7 @@ export const useCases = {
     listContactSelects: () => new ListContactSelectsUseCase(contactRepo),
     getUserSettings: () => new GetUserSettingsUseCase(userRepo),
     listRecipients: () => new ListRecipientsUseCase(contactRepo),
+    updateOrganization: () => new UpdateOrganizationUseCase(userRepo),
 
     // Automations
     listAutomations: () => new ListAutomationsUseCase(automationRepo),
@@ -114,7 +138,19 @@ export const useCases = {
 
     // Analytics
     getLandingPageAnalytics: () => new GetLandingPageAnalyticsUseCase(analyticsRepo),
+
+    // Instagram
+    listInstagramContents: () => new ListInstagramContentsUseCase(instagramContentRepo),
+    getInstagramContent: () => new GetInstagramContentUseCase(instagramContentRepo),
+    createInstagramContent: () => new CreateInstagramContentUseCase(instagramContentRepo),
+    updateInstagramContent: () => new UpdateInstagramContentUseCase(instagramContentRepo),
+    deleteInstagramContent: () => new DeleteInstagramContentUseCase(instagramContentRepo),
+    publishInstagramContent: () => new PublishInstagramContentUseCase(instagramContentRepo, instagramAccountRepo, instagramService),
+    connectInstagramAccount: () => new ConnectInstagramAccountUseCase(instagramAccountRepo, instagramService),
+    getAutoConfig: () => new GetAutoConfigUseCase(instagramAutoConfigRepo),
+    saveAutoConfig: () => new SaveAutoConfigUseCase(instagramAutoConfigRepo),
+    toggleAutoConfig: () => new ToggleAutoConfigUseCase(instagramAutoConfigRepo),
 } as const
 
 // Export singletons needed by API routes and server actions
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, contactRepo as contactRepoSingleton, analyticsRepo, ragService, userRepo }
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo }

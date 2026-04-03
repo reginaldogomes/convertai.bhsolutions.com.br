@@ -359,6 +359,123 @@ export interface Database {
                 ]
             }
 
+            instagram_accounts: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    ig_user_id: string
+                    ig_username: string
+                    access_token: string
+                    token_expires_at: string
+                    page_id: string
+                    followers_count: number
+                    media_count: number
+                    connected_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    ig_user_id: string
+                    ig_username?: string
+                    access_token: string
+                    token_expires_at: string
+                    page_id?: string
+                    followers_count?: number
+                    media_count?: number
+                    connected_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['instagram_accounts']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'instagram_accounts_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+
+            instagram_contents: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    type: string
+                    caption: string
+                    media_urls: string[]
+                    thumbnail_url: string | null
+                    hashtags: string[]
+                    status: string
+                    scheduled_at: string | null
+                    published_at: string | null
+                    ig_post_id: string | null
+                    metrics: Json
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    type?: string
+                    caption?: string
+                    media_urls?: string[]
+                    thumbnail_url?: string | null
+                    hashtags?: string[]
+                    status?: string
+                    scheduled_at?: string | null
+                    published_at?: string | null
+                    ig_post_id?: string | null
+                    metrics?: Json
+                    created_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['instagram_contents']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'instagram_contents_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+
+            instagram_auto_configs: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    active: boolean
+                    niche: string
+                    brand_description: string
+                    target_audience: string
+                    tone: string
+                    language: string
+                    content_types: string[]
+                    objectives: string[]
+                    posts_per_week: number
+                    hashtag_strategy: string
+                    default_hashtags: string[]
+                    visual_style: string
+                    cta_style: string
+                    avoid_topics: string
+                    reference_profiles: string[]
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    active?: boolean
+                    niche?: string
+                    brand_description?: string
+                    target_audience?: string
+                    tone?: string
+                    language?: string
+                    content_types?: string[]
+                    objectives?: string[]
+                    posts_per_week?: number
+                    hashtag_strategy?: string
+                    default_hashtags?: string[]
+                    visual_style?: string
+                    cta_style?: string
+                    avoid_topics?: string
+                    reference_profiles?: string[]
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['instagram_auto_configs']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'instagram_auto_configs_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+
         }
         Views: {
             [_ in never]: never

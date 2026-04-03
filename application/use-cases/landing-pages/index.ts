@@ -1,9 +1,7 @@
 import { z } from 'zod'
 import { type Result, success, failure, ValidationError, EntityNotFoundError } from '@/domain/errors'
-import type { ILandingPageRepository, IKnowledgeBaseRepository, IAnalyticsRepository } from '@/domain/interfaces'
-import type { PageAnalyticsSummary } from '@/domain/interfaces'
+import type { ILandingPageRepository, IKnowledgeBaseRepository, IAnalyticsRepository, IRagService, PageAnalyticsSummary } from '@/domain/interfaces'
 import { LandingPage, KnowledgeBase } from '@/domain/entities'
-import { RagService } from '@/infrastructure/services/rag-service'
 
 // --- Schemas ---
 
@@ -122,7 +120,7 @@ export class PublishLandingPageUseCase {
 export class AddKnowledgeBaseUseCase {
     constructor(
         private readonly knowledgeBaseRepo: IKnowledgeBaseRepository,
-        private readonly ragService: RagService,
+        private readonly ragService: IRagService,
     ) {}
 
     async execute(orgId: string, input: {

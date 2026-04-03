@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
+import { getErrorMessage } from './utils'
 
 export async function sendMessage(prevState: { error: string; success?: boolean }, formData: FormData) {
     try {
@@ -20,7 +21,7 @@ export async function sendMessage(prevState: { error: string; success?: boolean 
 
         revalidatePath('/inbox')
         return { error: '', success: true }
-    } catch {
-        return { error: 'Não autenticado' }
+    } catch (error) {
+        return { error: getErrorMessage(error) }
     }
 }

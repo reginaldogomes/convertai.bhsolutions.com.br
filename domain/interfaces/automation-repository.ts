@@ -1,3 +1,5 @@
+import type { Automation } from '@/domain/entities/automation'
+
 export interface AutomationStep {
     type: 'send_whatsapp' | 'send_email' | 'send_sms' | 'add_tag' | 'assign_agent' | 'wait'
     config: Record<string, unknown>
@@ -32,10 +34,10 @@ export interface UpdateAutomationInput {
 }
 
 export interface IAutomationRepository {
-    findByOrgId(orgId: string): Promise<AutomationRow[]>
-    findById(id: string, orgId: string): Promise<AutomationRow | null>
-    create(input: CreateAutomationInput): Promise<AutomationRow | null>
-    update(id: string, orgId: string, input: UpdateAutomationInput): Promise<AutomationRow | null>
+    findByOrgId(orgId: string): Promise<Automation[]>
+    findById(id: string, orgId: string): Promise<Automation | null>
+    create(input: CreateAutomationInput): Promise<Automation | null>
+    update(id: string, orgId: string, input: UpdateAutomationInput): Promise<Automation | null>
     delete(id: string, orgId: string): Promise<boolean>
     toggleActive(id: string, orgId: string, active: boolean): Promise<boolean>
 }

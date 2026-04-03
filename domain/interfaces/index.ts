@@ -11,3 +11,5 @@ export type { ILandingPageRepository, CreateLandingPageInput, UpdateLandingPageI
 export type { IKnowledgeBaseRepository, CreateKnowledgeBaseInput, KnowledgeBaseMatch } from './knowledge-base-repository'
 export type { IChatSessionRepository, CreateChatSessionInput, CreateChatMessageInput } from './chat-session-repository'
 export type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from './analytics-repository'
+export type { IInstagramContentRepository, IInstagramAccountRepository, IInstagramService, IInstagramAutoConfigRepository, CreateInstagramContentInput, UpdateInstagramContentInput } from './instagram-repository'
+export type { IRagService } from './rag-service'

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { type Result, success, failure, ValidationError } from '@/domain/errors'
-import type { IAutomationRepository, AutomationRow, AutomationWorkflow } from '@/domain/interfaces'
+import type { IAutomationRepository, AutomationWorkflow } from '@/domain/interfaces'
+import type { Automation } from '@/domain/entities'
 
 export const TRIGGER_EVENTS = [
     { value: 'new_contact', label: 'Novo contato criado' },
@@ -30,7 +31,7 @@ const automationSchema = z.object({
 export class ListAutomationsUseCase {
     constructor(private readonly automationRepo: IAutomationRepository) {}
 
-    async execute(orgId: string): Promise<AutomationRow[]> {
+    async execute(orgId: string): Promise<Automation[]> {
         return this.automationRepo.findByOrgId(orgId)
     }
 }
@@ -40,7 +41,7 @@ export class ListAutomationsUseCase {
 export class GetAutomationUseCase {
     constructor(private readonly automationRepo: IAutomationRepository) {}
 
-    async execute(id: string, orgId: string): Promise<AutomationRow | null> {
+    async execute(id: string, orgId: string): Promise<Automation | null> {
         return this.automationRepo.findById(id, orgId)
     }
 }
@@ -54,7 +55,7 @@ export class CreateAutomationUseCase {
         name: string
         triggerEvent: string
         workflowJson: AutomationWorkflow
-    }): Promise<Result<AutomationRow>> {
+    }): Promise<Result<Automation>> {
         const parsed = automationSchema.safeParse(input)
         if (!parsed.success) {
             return failure(new ValidationError(parsed.error.issues[0]?.message ?? 'Dados inválidos'))
@@ -92,7 +93,7 @@ export class UpdateAutomationUseCase {
         name?: string
         triggerEvent?: string
         workflowJson?: AutomationWorkflow
-    }): Promise<Result<AutomationRow>> {
+    }): Promise<Result<Automation>> {
         const parsed = updateSchema.safeParse(input)
         if (!parsed.success) {
             return failure(new ValidationError(parsed.error.issues[0]?.message ?? 'Dados inválidos'))

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/auth'
 import {
     LayoutDashboard, Users, TrendingUp, MessageSquare, Mail,
-    Zap, Bot, Settings, LogOut, Globe, ShieldCheck,
+    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './ThemeToggle'
@@ -19,6 +19,7 @@ const navItems = [
     { href: '/campaigns', label: 'Campanhas', icon: Mail },
     { href: '/landing-pages', label: 'Landing Pages', icon: Globe },
     { href: '/automations', label: 'Automações', icon: Zap },
+    { href: '/instagram', label: 'Instagram', icon: Instagram },
     { href: '/agents', label: 'Agentes IA', icon: Bot },
 ]
 

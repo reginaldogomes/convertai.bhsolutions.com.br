@@ -3,9 +3,15 @@ import { validateRequest } from 'twilio'
 import { HandleInboundMessageUseCase } from '@/application/use-cases/messages/handle-inbound'
 import { SupabaseMessageRepository } from '@/infrastructure/repositories/message-repository'
 import { SupabaseContactRepository } from '@/infrastructure/repositories/contact-repository'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN!
-const WEBHOOK_ORG_ID = process.env.TWILIO_WEBHOOK_ORG_ID!
+
+async function getOrgId(): Promise<string | null> {
+    const supabase = createAdminClient()
+    const { data } = await supabase.from('organizations').select('id').limit(1).single()
+    return data?.id ?? null
+}
 
 /**
  * POST /api/webhooks/twilio
@@ -36,10 +42,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Process inbound message
+    const orgId = await getOrgId()
+    if (!orgId) {
+        return NextResponse.json({ error: 'Organization not found' }, { status: 500 })
+    }
+
     const useCase = new HandleInboundMessageUseCase(
         new SupabaseMessageRepository(),
         new SupabaseContactRepository(),
-        WEBHOOK_ORG_ID,
+        orgId,
     )
 
     const result = await useCase.execute({

@@ -3,7 +3,7 @@ import { agentModel } from '@/lib/ai'
 import {
     landingPageRepo,
     chatSessionRepo,
-    contactRepoSingleton as contactRepo,
+    contactRepo,
     analyticsRepo,
     ragService,
 } from '@/application/services/container'

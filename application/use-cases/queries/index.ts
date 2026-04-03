@@ -41,3 +41,5 @@ export class ListRecipientsUseCase {
         return this.contactRepo.findWithEmailByOrgId(orgId, tags)
     }
 }
+
+export { UpdateOrganizationUseCase } from './update-organization'

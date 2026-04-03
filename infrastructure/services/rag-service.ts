@@ -1,8 +1,8 @@
 import { embed } from 'ai'
 import { google } from '@ai-sdk/google'
-import type { IKnowledgeBaseRepository, KnowledgeBaseMatch } from '@/domain/interfaces'
+import type { IKnowledgeBaseRepository, KnowledgeBaseMatch, IRagService } from '@/domain/interfaces'
 
-export class RagService {
+export class RagService implements IRagService {
     constructor(private knowledgeBaseRepo: IKnowledgeBaseRepository) {}
 
     async generateEmbedding(text: string): Promise<number[]> {

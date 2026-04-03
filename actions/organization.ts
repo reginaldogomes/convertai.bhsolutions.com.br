@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
-import { userRepo } from '@/application/services/container'
+import { useCases } from '@/application/services/container'
 import { getErrorMessage } from './utils'
 
 export async function updateOrganization(
@@ -12,7 +12,7 @@ export async function updateOrganization(
     try {
         const { orgId } = await getAuthContext()
 
-        await userRepo.updateOrganization(orgId, {
+        const result = await useCases.updateOrganization().execute(orgId, {
             orgName: (formData.get('name') as string) || undefined,
             orgEmail: formData.get('email') as string | null,
             orgPhone: formData.get('phone') as string | null,
@@ -24,6 +24,8 @@ export async function updateOrganization(
             orgCountry: formData.get('country') as string | null,
             orgDescription: formData.get('description') as string | null,
         })
+
+        if (!result.ok) return { error: result.error.message, success: false }
 
         revalidatePath('/settings')
         return { error: '', success: true }

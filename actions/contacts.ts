@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
-import { contactRepo } from '@/application/services/container'
 import { getErrorMessage } from './utils'
 
 export async function createContact(prevState: { error: string; success: boolean }, formData: FormData) {
@@ -31,7 +30,8 @@ export async function createContact(prevState: { error: string; success: boolean
 
 export async function deleteContact(contactId: string) {
     const { orgId } = await getAuthContext()
-    await contactRepo.delete(contactId, orgId)
+    const result = await useCases.deleteContact().execute(orgId, contactId)
+    if (!result.ok) throw new Error(result.error.message)
     revalidatePath('/contacts')
     redirect('/contacts')
 }

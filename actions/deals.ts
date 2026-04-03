@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import type { PipelineStage } from '@/types/database'
+import { getErrorMessage } from './utils'
 
 export async function createDeal(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
@@ -21,8 +22,8 @@ export async function createDeal(prevState: { error: string; success: boolean },
         revalidatePath('/deals')
         revalidatePath(`/contacts/${formData.get('contact_id')}`)
         return { error: '', success: true }
-    } catch {
-        return { error: 'Não autenticado', success: false }
+    } catch (error) {
+        return { error: getErrorMessage(error), success: false }
     }
 }
 
@@ -33,7 +34,7 @@ export async function moveDeal(dealId: string, stage: PipelineStage) {
         if (!result.ok) return { error: result.error.message }
         revalidatePath('/deals')
         return { success: true }
-    } catch {
-        return { error: 'Não autenticado' }
+    } catch (error) {
+        return { error: getErrorMessage(error) }
     }
 }
