@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import type {
     LandingPageSection, SectionType, SectionContentMap,
     HeroContent, FeaturesContent, TestimonialsContent, FaqContent,
@@ -8,29 +9,38 @@ import type {
     StatsContent,
 } from '@/domain/entities'
 import { DEFAULT_SECTION_CONTENT, SECTION_LABELS } from '@/domain/entities'
-import { HeroEditor } from './editors/HeroEditor'
-import { FeaturesEditor } from './editors/FeaturesEditor'
-import { TestimonialsEditor } from './editors/TestimonialsEditor'
-import { FaqEditor } from './editors/FaqEditor'
-import { PricingEditor } from './editors/PricingEditor'
-import { ContactFormEditor } from './editors/ContactFormEditor'
-import { CtaBannerEditor } from './editors/CtaBannerEditor'
-import { VideoEditor } from './editors/VideoEditor'
-import { StatsEditor } from './editors/StatsEditor'
-import { GenericEditor } from './editors/GenericEditor'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
 import {
     Plus, GripVertical, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, Save, Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { updateLandingPageSections } from '@/actions/landing-pages'
-import { GenerateSectionsAI } from './GenerateSectionsAI'
+
+const editorFallback = <div className="h-32 animate-pulse bg-secondary rounded-(--radius)" />
+
+const HeroEditor = dynamic(() => import('./editors/HeroEditor').then(m => m.HeroEditor), { loading: () => editorFallback })
+const FeaturesEditor = dynamic(() => import('./editors/FeaturesEditor').then(m => m.FeaturesEditor), { loading: () => editorFallback })
+const TestimonialsEditor = dynamic(() => import('./editors/TestimonialsEditor').then(m => m.TestimonialsEditor), { loading: () => editorFallback })
+const FaqEditor = dynamic(() => import('./editors/FaqEditor').then(m => m.FaqEditor), { loading: () => editorFallback })
+const PricingEditor = dynamic(() => import('./editors/PricingEditor').then(m => m.PricingEditor), { loading: () => editorFallback })
+const ContactFormEditor = dynamic(() => import('./editors/ContactFormEditor').then(m => m.ContactFormEditor), { loading: () => editorFallback })
+const CtaBannerEditor = dynamic(() => import('./editors/CtaBannerEditor').then(m => m.CtaBannerEditor), { loading: () => editorFallback })
+const VideoEditor = dynamic(() => import('./editors/VideoEditor').then(m => m.VideoEditor), { loading: () => editorFallback })
+const StatsEditor = dynamic(() => import('./editors/StatsEditor').then(m => m.StatsEditor), { loading: () => editorFallback })
+const GenericEditor = dynamic(() => import('./editors/GenericEditor').then(m => m.GenericEditor), { loading: () => editorFallback })
+const GenerateSectionsAI = dynamic(() => import('./GenerateSectionsAI').then(m => m.GenerateSectionsAI))
 
 interface SectionManagerProps {
     pageId: string
     initialSections: LandingPageSection[]
+    pageContext?: {
+        name: string
+        headline: string
+        subheadline: string
+    }
 }
 
-export function SectionManager({ pageId, initialSections }: SectionManagerProps) {
+export function SectionManager({ pageId, initialSections, pageContext }: SectionManagerProps) {
     const [sections, setSections] = useState<LandingPageSection[]>(
         () => [...initialSections].sort((a, b) => a.order - b.order)
     )
@@ -103,10 +113,22 @@ export function SectionManager({ pageId, initialSections }: SectionManagerProps)
         }
     }
 
-    const handleAIGenerated = (newSections: LandingPageSection[]) => {
-        setSections(newSections.sort((a, b) => a.order - b.order))
+    const handleAIGenerated = async (newSections: LandingPageSection[], designSystem?: DesignSystem) => {
+        const sorted = newSections.sort((a, b) => a.order - b.order)
+        setSections(sorted)
         setExpandedId(null)
-        markDirty()
+
+        // Auto-save generated sections immediately
+        setSaving(true)
+        try {
+            await updateLandingPageSections(pageId, sorted, designSystem)
+            setDirty(false)
+        } catch {
+            // If auto-save fails, mark dirty so user can retry manually
+            setDirty(true)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
@@ -209,7 +231,7 @@ export function SectionManager({ pageId, initialSections }: SectionManagerProps)
                         </div>
                     )}
                 </div>
-                <GenerateSectionsAI onGenerated={handleAIGenerated} />
+                <GenerateSectionsAI onGenerated={handleAIGenerated} pageContext={pageContext} />
             </div>
         </div>
     )

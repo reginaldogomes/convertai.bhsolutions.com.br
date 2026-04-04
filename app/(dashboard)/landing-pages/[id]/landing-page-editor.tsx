@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useCallback } from 'react'
+import { DesignSystemPicker } from '@/components/crm/DesignSystemPicker'
+import { useCallback, useState } from 'react'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
+import { DEFAULT_DESIGN_SYSTEM, designSystemFromPrimaryColor } from '@/domain/value-objects/design-system'
 
 interface LandingPageEditorProps {
     page: {
@@ -21,10 +24,16 @@ interface LandingPageEditorProps {
         chatbotSystemPrompt: string
         theme: string
         primaryColor: string
+        designSystem?: DesignSystem
     }
 }
 
 export function LandingPageEditor({ page }: LandingPageEditorProps) {
+    const initialDesignSystem = page.designSystem
+        ?? designSystemFromPrimaryColor(page.primaryColor, page.theme as 'light' | 'dark')
+
+    const [designSystem, setDesignSystem] = useState<DesignSystem>(initialDesignSystem)
+
     const boundAction = useCallback(
         (state: { error: string; success: boolean }, formData: FormData) =>
             updateLandingPage(page.id, state, formData),
@@ -34,7 +43,7 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
     const [state, action, isPending] = useActionState(boundAction, { error: '', success: false })
 
     return (
-        <form action={action} className="space-y-4">
+        <form action={action} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="name">Nome</Label>
@@ -78,19 +87,13 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                 <Textarea id="chatbotSystemPrompt" name="chatbotSystemPrompt" defaultValue={page.chatbotSystemPrompt} rows={4} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="theme">Tema</Label>
-                    <select id="theme" name="theme" defaultValue={page.theme}
-                        className="flex h-9 w-full rounded-(--radius) border border-input bg-transparent px-3 py-1 text-sm">
-                        <option value="light">Claro</option>
-                        <option value="dark">Escuro</option>
-                    </select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="primaryColor">Cor Principal</Label>
-                    <Input id="primaryColor" name="primaryColor" type="color" defaultValue={page.primaryColor} />
-                </div>
+            {/* Design System */}
+            <div className="space-y-3 pt-2 border-t border-border">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: designSystem.palette.primary }} />
+                    Design System
+                </h3>
+                <DesignSystemPicker value={designSystem} onChange={setDesignSystem} />
             </div>
 
             {state.error && (

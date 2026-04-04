@@ -2,18 +2,24 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
-import { ChatWidget } from '@/components/crm/ChatWidget'
+import dynamic from 'next/dynamic'
 import { SectionRenderer } from '@/components/landing-sections'
 import type { LandingPageSection } from '@/domain/entities'
+import type { ColorPalette, DesignSystem } from '@/domain/value-objects/design-system'
 import { Container } from '@/components/ui/container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BRAND } from '@/lib/brand'
 import { cn } from '@/lib/utils'
 
+const ChatWidget = dynamic(() => import('@/components/crm/ChatWidget').then(m => m.ChatWidget), {
+    ssr: false,
+})
+
 interface LandingPageConfig {
     theme: 'light' | 'dark'
     primaryColor: string
+    designSystem?: DesignSystem
     logoUrl: string | null
     sections: LandingPageSection[]
 }
@@ -45,6 +51,12 @@ export function LandingPageView({ page }: LandingPageViewProps) {
     const { config } = page
     const isDark = config.theme === 'dark'
     const hasSections = config.sections && config.sections.length > 0
+    const designSystem = config.designSystem
+    const shellStyle = {
+        fontFamily: resolveFontFamily(designSystem?.fontFamily),
+        borderRadius: resolveBorderRadius(designSystem?.borderRadius),
+        backgroundImage: resolveStyleBackground(designSystem?.style, config.designSystem?.palette as ColorPalette | undefined),
+    }
 
     useEffect(() => {
         fetch('/api/analytics/track', {
@@ -71,12 +83,13 @@ export function LandingPageView({ page }: LandingPageViewProps) {
     }
 
     return (
-        <div className={cn('min-h-screen bg-background text-foreground', isDark && 'dark')}>
-            <div className="min-h-screen bg-background text-foreground">
+        <div className={cn('min-h-screen bg-background text-foreground', isDark && 'dark')} style={shellStyle}>
+            <div className="min-h-screen bg-background text-foreground" style={shellStyle}>
                 {hasSections ? (
                     <SectionRenderer
                         sections={config.sections}
                         primaryColor={config.primaryColor}
+                        palette={config.designSystem?.palette}
                         isDark={isDark}
                         landingPageId={page.id}
                         onCtaClick={handleCtaClick}
@@ -98,6 +111,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                                         alt={page.name}
                                         width={160}
                                         height={48}
+                                        priority
                                         className="mx-auto mb-10 h-12 object-contain"
                                     />
                                 )}
@@ -161,4 +175,53 @@ export function LandingPageView({ page }: LandingPageViewProps) {
             />
         </div>
     )
+}
+
+function resolveFontFamily(fontFamily: DesignSystem['fontFamily'] | undefined): string | undefined {
+    switch (fontFamily) {
+        case 'poppins':
+            return 'Poppins, Inter, ui-sans-serif, system-ui, sans-serif'
+        case 'dm-sans':
+            return 'DM Sans, Inter, ui-sans-serif, system-ui, sans-serif'
+        case 'space-grotesk':
+            return 'Space Grotesk, Inter, ui-sans-serif, system-ui, sans-serif'
+        case 'playfair':
+            return 'Playfair Display, Georgia, Times New Roman, serif'
+        default:
+            return 'Inter, ui-sans-serif, system-ui, sans-serif'
+    }
+}
+
+function resolveBorderRadius(borderRadius: DesignSystem['borderRadius'] | undefined): string | undefined {
+    switch (borderRadius) {
+        case 'none':
+            return '0px'
+        case 'sm':
+            return '10px'
+        case 'md':
+            return '16px'
+        case 'full':
+            return '999px'
+        default:
+            return '24px'
+    }
+}
+
+function resolveStyleBackground(style: DesignSystem['style'] | undefined, palette?: ColorPalette): string | undefined {
+    if (!palette) return undefined
+
+    switch (style) {
+        case 'elegant':
+            return `radial-gradient(circle at top right, ${palette.accent}12 0%, transparent 30%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+        case 'corporate':
+            return `linear-gradient(180deg, ${palette.background}, ${palette.background}), linear-gradient(90deg, ${palette.primary}08 1px, transparent 1px), linear-gradient(${palette.primary}08 1px, transparent 1px)`
+        case 'bold':
+            return `radial-gradient(circle at 20% 10%, ${palette.primary}14 0%, transparent 32%), radial-gradient(circle at 80% 0%, ${palette.accent}14 0%, transparent 26%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+        case 'minimal':
+            return `linear-gradient(180deg, ${palette.background}, ${palette.background})`
+        case 'playful':
+            return `radial-gradient(circle at 10% 20%, ${palette.primary}12 0%, transparent 24%), radial-gradient(circle at 90% 10%, ${palette.secondary}10 0%, transparent 20%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+        default:
+            return `radial-gradient(circle at top left, ${palette.primary}10 0%, transparent 28%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+    }
 }

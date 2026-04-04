@@ -31,8 +31,8 @@ export default async function AutomationsPage() {
                 )}
 
                 {automations.map((auto) => {
-                    const triggerLabel = TRIGGER_EVENTS.find(t => t.value === auto.trigger_event)?.label ?? auto.trigger_event
-                    const stepCount = (auto.workflow_json?.steps?.length) ?? 0
+                    const triggerLabel = TRIGGER_EVENTS.find(t => t.value === auto.triggerEvent)?.label ?? auto.triggerEvent
+                    const stepCount = (auto.workflowJson?.steps?.length) ?? 0
                     return (
                         <AutomationCard
                             key={auto.id}

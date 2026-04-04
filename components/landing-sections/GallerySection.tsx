@@ -1,6 +1,7 @@
 'use client'
 
 import type { GalleryContent } from '@/domain/entities'
+import { Container } from '@/components/ui/container'
 
 interface GallerySectionProps {
     content: GalleryContent
@@ -16,23 +17,30 @@ export function GallerySection({ content, isDark }: GallerySectionProps) {
         'md:grid-cols-3'
 
     return (
-        <section className={`py-20 ${isDark ? 'bg-gray-950' : 'bg-white'}`}>
-            <div className="max-w-5xl mx-auto px-6">
+        <section className="bg-background py-24">
+            <Container>
                 {content.title && (
-                    <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">{content.title}</h2>
+                    <h2 className="text-2xl md:text-4xl font-black text-center mb-12 tracking-tight text-foreground">
+                        {content.title}
+                    </h2>
                 )}
                 <div className={`grid ${colsClass} gap-4`}>
                     {content.images.map((img, idx) => (
-                        <div key={idx} className="rounded-xl overflow-hidden aspect-video">
+                        <div
+                            key={idx}
+                            className={`group rounded-2xl overflow-hidden aspect-video transition-all duration-300 hover:shadow-lg ${
+                                isDark ? 'ring-1 ring-white/[0.06]' : 'ring-1 ring-black/[0.04]'
+                            }`}
+                        >
                             <img
                                 src={img.url}
                                 alt={img.alt}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                         </div>
                     ))}
                 </div>
-            </div>
+            </Container>
         </section>
     )
 }

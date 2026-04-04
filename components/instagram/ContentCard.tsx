@@ -74,6 +74,7 @@ export function ContentCard({ content }: ContentCardProps) {
                         src={content.mediaUrls[0]}
                         alt={content.caption.slice(0, 50)}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="object-cover"
                     />
                 ) : (

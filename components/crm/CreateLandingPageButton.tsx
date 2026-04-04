@@ -13,11 +13,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
-import { Plus } from 'lucide-react'
+import { Plus, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { DESIGN_PRESETS, DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
 
 export function CreateLandingPageButton() {
     const [open, setOpen] = useState(false)
+    const [designSystem, setDesignSystem] = useState<DesignSystem>(DEFAULT_DESIGN_SYSTEM)
     const [state, action, isPending] = useActionState(createLandingPage, { error: '', success: false })
 
     useEffect(() => {
@@ -37,6 +40,9 @@ export function CreateLandingPageButton() {
                     <DialogTitle className="text-lg font-bold text-card-foreground">Criar Landing Page</DialogTitle>
                 </DialogHeader>
                 <form action={action} className="space-y-5">
+                    {/* Hidden design system field */}
+                    <input type="hidden" name="designSystem" value={JSON.stringify(designSystem)} />
+
                     {/* Informações básicas */}
                     <fieldset className="space-y-4 rounded-md border border-border p-4">
                         <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -54,6 +60,48 @@ export function CreateLandingPageButton() {
                                 title="Apenas letras minúsculas, números e hifens"
                                 className="bg-background border-input" />
                             <p className="text-xs text-muted-foreground">URL: /p/seu-slug</p>
+                        </div>
+                    </fieldset>
+
+                    {/* Design System - Palette Picker */}
+                    <fieldset className="space-y-4 rounded-md border border-border p-4">
+                        <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Paleta de Cores
+                        </legend>
+                        <div className="grid grid-cols-2 gap-2">
+                            {DESIGN_PRESETS.map((preset) => {
+                                const isSelected = designSystem.palette.primary === preset.designSystem.palette.primary
+                                    && designSystem.palette.secondary === preset.designSystem.palette.secondary
+                                return (
+                                    <button
+                                        key={preset.id}
+                                        type="button"
+                                        onClick={() => setDesignSystem(preset.designSystem)}
+                                        className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition-all ${
+                                            isSelected
+                                                ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                                : 'border-border hover:border-primary/30 hover:bg-secondary/50'
+                                        }`}
+                                    >
+                                        {/* Color dots */}
+                                        <div className="flex gap-1 shrink-0">
+                                            {[preset.designSystem.palette.primary, preset.designSystem.palette.secondary, preset.designSystem.palette.accent].map((color, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="w-4 h-4 rounded-full border border-white/20"
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-semibold text-foreground truncate">{preset.name}</p>
+                                        </div>
+                                        {isSelected && (
+                                            <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-auto" />
+                                        )}
+                                    </button>
+                                )
+                            })}
                         </div>
                     </fieldset>
 

@@ -2,61 +2,91 @@
 
 import { useState } from 'react'
 import type { FaqContent } from '@/domain/entities'
+import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { ChevronDown } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 
 interface FaqSectionProps {
     content: FaqContent
     primaryColor: string
+    palette?: ColorPalette
     isDark: boolean
 }
 
-export function FaqSection({ content, primaryColor }: FaqSectionProps) {
+export function FaqSection({ content, primaryColor, palette, isDark }: FaqSectionProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(null)
 
     return (
-        <section className="bg-background-secondary py-20">
-            <Container className="max-w-3xl">
+        <section className="relative bg-background-secondary py-24 overflow-hidden">
+            {/* Decorative glow */}
+            <div
+                className="pointer-events-none absolute -bottom-20 left-[20%] h-60 w-60 rounded-full blur-[120px] opacity-10"
+                style={{ backgroundColor: primaryColor }}
+                aria-hidden
+            />
+
+            <Container className="relative max-w-3xl">
                 {content.title && (
-                    <h2 className="text-balance mb-3 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+                    <h2 className="text-balance mb-4 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}
                 {content.subtitle && (
-                    <p className="mx-auto mb-10 max-w-xl text-center text-base text-muted-foreground">
+                    <p className="mx-auto mb-12 max-w-xl text-center text-base leading-relaxed text-muted-foreground">
                         {content.subtitle}
                     </p>
                 )}
-                <div className="space-y-2.5" role="list">
+                <div className="space-y-3" role="list">
                     {content.items.map((item, idx) => {
                         const isOpen = openIndex === idx
                         return (
                             <div
                                 key={idx}
-                                className={`overflow-hidden rounded-2xl border transition-colors duration-150 ${
-                                    isOpen ? 'border-primary/30 bg-card' : 'border-border/70 bg-card hover:border-border'
+                                className={`overflow-hidden rounded-2xl transition-all duration-300 ${
+                                    isOpen
+                                        ? isDark
+                                            ? 'bg-white/[0.05] border border-white/[0.1]'
+                                            : 'bg-white border border-black/[0.06] shadow-sm'
+                                        : isDark
+                                            ? 'bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04]'
+                                            : 'bg-white/50 border border-black/[0.03] hover:bg-white/80'
                                 }`}
+                                style={{
+                                    borderLeftColor: isOpen ? primaryColor : undefined,
+                                    borderLeftWidth: isOpen ? 3 : undefined,
+                                }}
                                 role="listitem"
                             >
                                 <button
                                     onClick={() => setOpenIndex(isOpen ? null : idx)}
-                                    className="flex w-full items-center justify-between px-6 py-4 text-left"
+                                    className="flex w-full items-center gap-4 px-6 py-5 text-left"
                                     aria-expanded={isOpen}
                                 >
-                                    <span className="pr-4 text-sm font-semibold text-foreground">{item.question}</span>
+                                    {/* Number badge */}
+                                    <span
+                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                                        style={{
+                                            backgroundColor: isOpen ? `${primaryColor}18` : 'transparent',
+                                            color: isOpen ? primaryColor : 'hsl(var(--muted-foreground))',
+                                            border: isOpen ? 'none' : '1px solid hsl(var(--border) / 0.5)',
+                                        }}
+                                    >
+                                        {String(idx + 1).padStart(2, '0')}
+                                    </span>
+                                    <span className="flex-1 pr-4 text-sm font-semibold text-foreground">{item.question}</span>
                                     <ChevronDown
-                                        className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                                        style={{ color: primaryColor }}
+                                        className={`h-4 w-4 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                                        style={{ color: isOpen ? primaryColor : 'hsl(var(--muted-foreground))' }}
                                         aria-hidden
                                     />
                                 </button>
                                 <div
-                                    className={`grid transition-all duration-200 ease-in-out ${
+                                    className={`grid transition-all duration-300 ease-in-out ${
                                         isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                                     }`}
                                 >
                                     <div className="overflow-hidden">
-                                        <p className="px-6 pb-5 text-sm leading-relaxed text-muted-foreground">
+                                        <p className="px-6 pb-5 pl-[4.25rem] text-sm leading-relaxed text-muted-foreground">
                                             {item.answer}
                                         </p>
                                     </div>

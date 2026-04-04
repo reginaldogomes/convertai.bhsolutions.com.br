@@ -44,8 +44,10 @@ export class CreateLandingPageUseCase {
         chatbotName?: string
         chatbotWelcomeMessage?: string
         chatbotSystemPrompt?: string
+        configJson?: Record<string, unknown>
     }): Promise<Result<LandingPage>> {
-        const parsed = createLandingPageSchema.safeParse(input)
+        const { configJson, ...rest } = input
+        const parsed = createLandingPageSchema.safeParse(rest)
         if (!parsed.success) {
             return failure(new ValidationError(parsed.error.issues[0]?.message ?? 'Dados inválidos'))
         }
@@ -59,6 +61,7 @@ export class CreateLandingPageUseCase {
         const page = await this.landingPageRepo.create({
             organizationId: orgId,
             ...parsed.data,
+            configJson,
         })
 
         if (!page) return failure(new ValidationError('Erro ao criar landing page'))
@@ -147,6 +150,21 @@ export class AddKnowledgeBaseUseCase {
         })
 
         return success(entry)
+    }
+}
+
+// --- Delete Landing Page ---
+
+export class DeleteLandingPageUseCase {
+    constructor(private readonly landingPageRepo: ILandingPageRepository) {}
+
+    async execute(orgId: string, pageId: string): Promise<Result<boolean>> {
+        const page = await this.landingPageRepo.findById(pageId)
+        if (!page || page.organizationId !== orgId) {
+            return failure(new EntityNotFoundError('Landing Page'))
+        }
+        await this.landingPageRepo.delete(pageId, orgId)
+        return success(true)
     }
 }
 

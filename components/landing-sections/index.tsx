@@ -6,6 +6,7 @@ import type {
     PricingContent, ContactFormContent, CtaBannerContent, VideoContent,
     StatsContent, LogoCloudContent, GalleryContent,
 } from '@/domain/entities'
+import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { HeroSection } from './HeroSection'
 import { FeaturesSection } from './FeaturesSection'
 import { TestimonialsSection } from './TestimonialsSection'
@@ -21,15 +22,26 @@ import { GallerySection } from './GallerySection'
 interface SectionRendererProps {
     sections: LandingPageSection[]
     primaryColor: string
+    palette?: ColorPalette
     isDark: boolean
     landingPageId: string
     onCtaClick?: () => void
 }
 
-export function SectionRenderer({ sections, primaryColor, isDark, landingPageId, onCtaClick }: SectionRendererProps) {
+export function SectionRenderer({ sections, primaryColor, palette, isDark, landingPageId, onCtaClick }: SectionRendererProps) {
     const sorted = [...sections]
         .filter(s => s.visible !== false)
         .sort((a, b) => a.order - b.order)
+
+    // Build resolved palette: use explicit palette or derive from primaryColor
+    const resolvedPalette: ColorPalette = palette ?? {
+        primary: primaryColor,
+        secondary: primaryColor,
+        accent: primaryColor,
+        background: isDark ? '#0f0f23' : '#fafbfc',
+        foreground: isDark ? '#f1f5f9' : '#0f172a',
+        muted: isDark ? '#64748b' : '#94a3b8',
+    }
 
     return (
         <>
@@ -38,6 +50,7 @@ export function SectionRenderer({ sections, primaryColor, isDark, landingPageId,
                     key={section.id}
                     section={section}
                     primaryColor={primaryColor}
+                    palette={resolvedPalette}
                     isDark={isDark}
                     landingPageId={landingPageId}
                     onCtaClick={onCtaClick}
@@ -50,12 +63,14 @@ export function SectionRenderer({ sections, primaryColor, isDark, landingPageId,
 function SectionBlock({
     section,
     primaryColor,
+    palette,
     isDark,
     landingPageId,
     onCtaClick,
 }: {
     section: LandingPageSection
     primaryColor: string
+    palette: ColorPalette
     isDark: boolean
     landingPageId: string
     onCtaClick?: () => void
@@ -64,23 +79,23 @@ function SectionBlock({
 
     switch (type) {
         case 'hero':
-            return <HeroSection content={section.content as HeroContent} primaryColor={primaryColor} isDark={isDark} onCtaClick={onCtaClick} />
+            return <HeroSection content={section.content as HeroContent} primaryColor={primaryColor} palette={palette} isDark={isDark} onCtaClick={onCtaClick} />
         case 'features':
-            return <FeaturesSection content={section.content as FeaturesContent} primaryColor={primaryColor} isDark={isDark} />
+            return <FeaturesSection content={section.content as FeaturesContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'testimonials':
-            return <TestimonialsSection content={section.content as TestimonialsContent} primaryColor={primaryColor} isDark={isDark} />
+            return <TestimonialsSection content={section.content as TestimonialsContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'faq':
-            return <FaqSection content={section.content as FaqContent} primaryColor={primaryColor} isDark={isDark} />
+            return <FaqSection content={section.content as FaqContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'pricing':
-            return <PricingSection content={section.content as PricingContent} primaryColor={primaryColor} isDark={isDark} />
+            return <PricingSection content={section.content as PricingContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'contact_form':
-            return <ContactFormSection content={section.content as ContactFormContent} primaryColor={primaryColor} isDark={isDark} landingPageId={landingPageId} />
+            return <ContactFormSection content={section.content as ContactFormContent} primaryColor={primaryColor} palette={palette} isDark={isDark} landingPageId={landingPageId} />
         case 'cta_banner':
-            return <CtaBannerSection content={section.content as CtaBannerContent} primaryColor={primaryColor} isDark={isDark} />
+            return <CtaBannerSection content={section.content as CtaBannerContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'video':
-            return <VideoSection content={section.content as VideoContent} isDark={isDark} />
+            return <VideoSection content={section.content as VideoContent} isDark={isDark} primaryColor={primaryColor} />
         case 'stats':
-            return <StatsSection content={section.content as StatsContent} primaryColor={primaryColor} isDark={isDark} />
+            return <StatsSection content={section.content as StatsContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'logo_cloud':
             return <LogoCloudSection content={section.content as LogoCloudContent} isDark={isDark} />
         case 'gallery':

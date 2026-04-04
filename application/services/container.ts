@@ -41,6 +41,7 @@ import {
     UpdateLandingPageUseCase,
     GetLandingPageUseCase,
     PublishLandingPageUseCase,
+    DeleteLandingPageUseCase,
     AddKnowledgeBaseUseCase,
     ListLandingPagesUseCase,
     ListKnowledgeBaseUseCase,
@@ -101,7 +102,10 @@ export const useCases = {
     listThreads: () => new ListThreadsUseCase(messageRepo),
 
     // Dashboard
-    getDashboardStats: () => new GetDashboardStatsUseCase(contactRepo, messageRepo, campaignRepo, dealRepo),
+    getDashboardStats: () => new GetDashboardStatsUseCase(
+        contactRepo, messageRepo, campaignRepo, dealRepo,
+        landingPageRepo, automationRepo, instagramContentRepo, analyticsRepo,
+    ),
 
     // Campaigns
     createCampaign: () => new CreateCampaignUseCase(campaignRepo),
@@ -130,6 +134,7 @@ export const useCases = {
     updateLandingPage: () => new UpdateLandingPageUseCase(landingPageRepo),
     getLandingPage: () => new GetLandingPageUseCase(landingPageRepo),
     publishLandingPage: () => new PublishLandingPageUseCase(landingPageRepo),
+    deleteLandingPage: () => new DeleteLandingPageUseCase(landingPageRepo),
     listLandingPages: () => new ListLandingPagesUseCase(landingPageRepo),
 
     // Knowledge Base

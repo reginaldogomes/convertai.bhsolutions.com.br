@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { powerModel } from '@/lib/ai'
+import { getAuthContext } from '@/infrastructure/auth'
 import { DEFAULT_SECTION_CONTENT, SECTION_LABELS, type SectionType } from '@/domain/entities'
+import { inferDesignSystemFromText } from '@/domain/value-objects/design-system'
 
 // --- Zod schemas mirroring LandingPageSection types ---
 
@@ -132,7 +134,15 @@ const SECTION_LIST = Object.entries(SECTION_LABELS)
 
 const SYSTEM_PROMPT = `Você é um copywriter e estrategista de conversão especializado em landing pages de alta performance para o mercado brasileiro.
 
-O usuário vai descrever um negócio/produto/serviço. Você deve gerar um array de seções otimizado para conversão, com conteúdo REAL, persuasivo e específico ao nicho descrito.
+O usuário vai descrever um negócio/produto/serviço. Você deve gerar um array de seções otimizado para conversão, com conteúdo REAL, persuasivo e ESPECÍFICO ao nicho descrito.
+
+## REGRA #1 — PERSONALIZAÇÃO ABSOLUTA:
+CADA PALAVRA do conteúdo gerado DEVE refletir o nicho, localização, público-alvo e diferenciais informados.
+- Se o usuário mencionou "imobiliária em São Paulo", toda a landing page deve falar sobre imóveis, bairros de SP, preços de imóveis, etc.
+- Se mencionou "clínica odontológica", fale de procedimentos odontológicos, saúde bucal, etc.
+- NUNCA gere conteúdo genérico que poderia servir para qualquer negócio.
+- Use a localização (cidade, bairro) mencionada em headlines, CTAs, depoimentos e FAQs.
+- Se o usuário informou "Nome da página/empresa", use esse nome nos textos quando natural.
 
 ## Seções disponíveis:
 ${SECTION_LIST}
@@ -193,18 +203,26 @@ ${SECTION_LIST}
 - subtitle: detalhe o que acontece após o clique
 - ctaText: call to action específico e motivador
 
-## Adaptação por nicho:
-- Clínicas/saúde: tom acolhedor e profissional, foco em confiança e resultados
-- SaaS/tecnologia: tom direto e eficiente, foco em ROI e economia de tempo
-- Educação/cursos: tom inspirador, foco em transformação e carreira
-- Varejo/e-commerce: tom descontraído e irresistível, foco em economia e exclusividade  
-- Consultoria/B2B: tom estratégico e sofisticado, foco em resultados mensuráveis
-- Imóveis: tom aspiracional, foco em investimento e qualidade de vida`
+## Adaptação por nicho (OBRIGATÓRIO — identifique o nicho e adapte TODO o conteúdo):
+- Clínicas/saúde: tom acolhedor e profissional, foco em confiança e resultados. Menção a procedimentos, consultas, planos de saúde
+- SaaS/tecnologia: tom direto e eficiente, foco em ROI e economia de tempo. Métricas de produtividade, integrações
+- Educação/cursos: tom inspirador, foco em transformação e carreira. Certificados, metodologia, carga horária
+- Varejo/e-commerce: tom descontraído e irresistível, foco em economia e exclusividade. Ofertas, frete, categorias
+- Consultoria/B2B: tom estratégico e sofisticado, foco em resultados mensuráveis. Cases, ROI, equipe especializada
+- Imóveis/imobiliária: tom aspiracional, foco em investimento e qualidade de vida. Metragem, localização, valorização do bairro, infraestrutura do condomínio, financiamento. Use bairros e regiões REAIS da cidade mencionada
+- Alimentação/restaurantes: tom sensorial, foco em experiência gastronômica. Pratos, ingredientes, ambiente, reservas
+- Fitness/bem-estar: tom motivacional, foco em transformação pessoal. Resultados, metodologia, acompanhamento
+- Jurídico: tom sério e acessível, foco em segurança e expertise. Áreas de atuação, experiência, sigilo profissional`
 
 export async function POST(request: Request) {
     try {
+        await getAuthContext()
+
         const body = await request.json()
-        const { prompt } = body as { prompt?: string }
+        const { prompt, pageContext } = body as {
+            prompt?: string
+            pageContext?: { name?: string; headline?: string; subheadline?: string }
+        }
 
         if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 10) {
             return NextResponse.json(
@@ -213,44 +231,71 @@ export async function POST(request: Request) {
             )
         }
 
-        const { object } = await generateObject({
-            model: powerModel,
-            schema: looseGenerateResponseSchema,
-            system: SYSTEM_PROMPT,
-            prompt: `Negócio/produto/serviço: ${prompt.trim()}`,
-            temperature: 0.8,
-            maxOutputTokens: 4096,
-        })
+        // Build enriched prompt with page context
+        const contextParts: string[] = []
+        if (pageContext?.name) contextParts.push(`Nome da página/empresa: ${pageContext.name}`)
+        if (pageContext?.headline) contextParts.push(`Headline atual: ${pageContext.headline}`)
+        if (pageContext?.subheadline) contextParts.push(`Subheadline atual: ${pageContext.subheadline}`)
 
-        const normalizedSections = normalizeSections(object.sections)
-        const parsed = generateResponseSchema.safeParse({ sections: normalizedSections })
-        if (!parsed.success) {
-            const fallbackSections = [
-                { type: 'hero' as const, content: DEFAULT_SECTION_CONTENT.hero },
-                { type: 'features' as const, content: DEFAULT_SECTION_CONTENT.features },
-                { type: 'cta_banner' as const, content: DEFAULT_SECTION_CONTENT.cta_banner },
-            ]
+        const enrichedPrompt = contextParts.length > 0
+            ? `${contextParts.join('\n')}\n\nDescrição do negócio/produto/serviço: ${prompt.trim()}`
+            : `Negócio/produto/serviço: ${prompt.trim()}`
 
-            const sections = fallbackSections.map((section, idx) => ({
-                id: crypto.randomUUID(),
-                ...section,
-                order: idx,
-                visible: true,
+        const designSystem = inferDesignSystemFromText(enrichedPrompt)
+
+        console.log('[generate] enrichedPrompt:', enrichedPrompt)
+        console.log('[generate] inferred preset:', designSystem.presetId)
+
+        // Use STRICT schema — gives the AI exact structure guidance for each section type
+        // This produces much better results than the loose schema which gives no structural hints
+        let rawSections: Array<{ type: typeof availableSectionTypes[number]; content: Record<string, unknown> }>
+
+        try {
+            const { object } = await generateObject({
+                model: powerModel,
+                schema: generateResponseSchema,
+                system: SYSTEM_PROMPT,
+                prompt: enrichedPrompt,
+                temperature: 0.5,
+                maxOutputTokens: 8192,
+            })
+
+            console.log('[generate] strict schema OK — sections:', object.sections.length)
+            rawSections = object.sections.map(s => ({
+                type: s.type as typeof availableSectionTypes[number],
+                content: s.content as unknown as Record<string, unknown>,
             }))
+        } catch (strictError) {
+            // Strict schema failed (rare) — fall back to loose schema
+            console.warn('[generate] strict schema failed, falling back to loose:', strictError instanceof Error ? strictError.message : strictError)
 
-            return NextResponse.json({ sections })
+            const { object } = await generateObject({
+                model: powerModel,
+                schema: looseGenerateResponseSchema,
+                system: SYSTEM_PROMPT,
+                prompt: enrichedPrompt,
+                temperature: 0.5,
+                maxOutputTokens: 8192,
+            })
+
+            rawSections = object.sections
         }
 
-        // Add id, order, visible to each section
-        const sections = parsed.data.sections.map((section, idx) => ({
+        const heroContent = rawSections.find(s => s.type === 'hero')?.content
+        console.log('[generate] Hero headline:', heroContent?.headline)
+
+        const normalizedSections = normalizeSections(rawSections)
+
+        const sections = normalizedSections.map((section, idx) => ({
             id: crypto.randomUUID(),
             ...section,
             order: idx,
             visible: true,
         }))
 
-        return NextResponse.json({ sections })
+        return NextResponse.json({ sections, designSystem })
     } catch (error) {
+        console.error('[generate] FATAL:', error)
         const message = error instanceof Error ? error.message : 'Erro ao gerar landing page'
         return NextResponse.json({ error: message }, { status: 500 })
     }

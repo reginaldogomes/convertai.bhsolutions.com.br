@@ -1,9 +1,11 @@
 import type { LandingPageStatus} from '@/types/database'
 import type { LandingPageSection } from './landing-page-sections'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
 
 export interface LandingPageConfig {
     theme: 'light' | 'dark'
     primaryColor: string
+    designSystem?: DesignSystem
     logoUrl: string | null
     sections: LandingPageSection[]
 }
@@ -26,7 +28,7 @@ export interface LandingPageProps {
 }
 
 const DEFAULT_CONFIG: LandingPageConfig = {
-    theme: 'light',
+    theme: 'dark',
     primaryColor: '#6366f1',
     logoUrl: null,
     sections: [],
@@ -82,6 +84,7 @@ export class LandingPage {
             configJson: {
                 theme: (rawConfig?.theme as 'light' | 'dark') ?? DEFAULT_CONFIG.theme,
                 primaryColor: (rawConfig?.primaryColor as string) ?? DEFAULT_CONFIG.primaryColor,
+                designSystem: (rawConfig?.designSystem as DesignSystem | undefined) ?? undefined,
                 logoUrl: (rawConfig?.logoUrl as string | null) ?? DEFAULT_CONFIG.logoUrl,
                 sections: (Array.isArray(rawConfig?.sections) ? rawConfig.sections : []).map((s: unknown) => {
                     const section = s as Record<string, unknown>

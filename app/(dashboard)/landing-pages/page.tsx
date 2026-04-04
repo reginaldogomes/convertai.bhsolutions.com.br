@@ -1,6 +1,7 @@
 import { tryGetAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { CreateLandingPageButton } from '@/components/crm/CreateLandingPageButton'
+import { DeleteLandingPageButton } from '@/components/crm/DeleteLandingPageButton'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Globe, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
@@ -71,6 +72,7 @@ export default async function LandingPagesPage() {
                                 >
                                     Editar
                                 </Link>
+                                <DeleteLandingPageButton pageId={page.id} pageName={page.name} />
                             </div>
                         </div>
                     ))}

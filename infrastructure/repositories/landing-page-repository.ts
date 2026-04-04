@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { LandingPage } from '@/domain/entities'
 import type { ILandingPageRepository, CreateLandingPageInput, UpdateLandingPageInput } from '@/domain/interfaces'
 import type { LandingPageStatus } from '@/types/database'
+import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 
 export class SupabaseLandingPageRepository implements ILandingPageRepository {
     async findById(id: string): Promise<LandingPage | null> {
@@ -20,7 +21,6 @@ export class SupabaseLandingPageRepository implements ILandingPageRepository {
             .from('landing_pages')
             .select('*')
             .eq('slug', slug)
-            .eq('status', 'published')
             .single()
         return data ? LandingPage.fromRow(data) : null
     }
@@ -49,7 +49,12 @@ export class SupabaseLandingPageRepository implements ILandingPageRepository {
                 chatbot_name: input.chatbotName,
                 chatbot_welcome_message: input.chatbotWelcomeMessage,
                 chatbot_system_prompt: input.chatbotSystemPrompt,
-                config_json: (input.configJson ?? { theme: 'light', primaryColor: '#6366f1', logoUrl: null }) as Record<string, string>,
+                config_json: (input.configJson ?? {
+                    theme: 'dark',
+                    primaryColor: DEFAULT_DESIGN_SYSTEM.palette.primary,
+                    designSystem: DEFAULT_DESIGN_SYSTEM,
+                    logoUrl: null,
+                }) as Record<string, string>,
             })
             .select()
             .single()

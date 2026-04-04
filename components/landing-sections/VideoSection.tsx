@@ -1,10 +1,12 @@
 'use client'
 
 import type { VideoContent } from '@/domain/entities'
+import { Container } from '@/components/ui/container'
 
 interface VideoSectionProps {
     content: VideoContent
     isDark: boolean
+    primaryColor?: string
 }
 
 function getEmbedUrl(url: string, provider: 'youtube' | 'vimeo'): string | null {
@@ -20,18 +22,28 @@ function getEmbedUrl(url: string, provider: 'youtube' | 'vimeo'): string | null 
     return null
 }
 
-export function VideoSection({ content, isDark }: VideoSectionProps) {
+export function VideoSection({ content, isDark, primaryColor }: VideoSectionProps) {
     const embedUrl = getEmbedUrl(content.videoUrl, content.provider)
 
     if (!embedUrl) return null
 
     return (
-        <section className={`py-20 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            <div className="max-w-4xl mx-auto px-6">
+        <section className="bg-background py-24">
+            <Container className="max-w-4xl">
                 {content.title && (
-                    <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">{content.title}</h2>
+                    <h2 className="text-2xl md:text-4xl font-black text-center mb-12 tracking-tight text-foreground">
+                        {content.title}
+                    </h2>
                 )}
-                <div className="relative rounded-xl overflow-hidden shadow-lg" style={{ paddingBottom: '56.25%' }}>
+                <div
+                    className={`relative rounded-2xl overflow-hidden shadow-2xl ${
+                        isDark ? 'ring-1 ring-white/[0.06]' : 'ring-1 ring-black/[0.04]'
+                    }`}
+                    style={{
+                        paddingBottom: '56.25%',
+                        boxShadow: primaryColor ? `0 20px 60px -12px ${primaryColor}15` : undefined,
+                    }}
+                >
                     <iframe
                         src={embedUrl}
                         className="absolute inset-0 w-full h-full"
@@ -40,7 +52,7 @@ export function VideoSection({ content, isDark }: VideoSectionProps) {
                         title={content.title}
                     />
                 </div>
-            </div>
+            </Container>
         </section>
     )
 }

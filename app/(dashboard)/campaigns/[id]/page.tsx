@@ -1,12 +1,19 @@
 import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
-import { CampaignEditor } from '@/components/crm/CampaignEditor'
-import { HtmlPreview } from '@/components/crm/HtmlPreview'
+import dynamic from 'next/dynamic'
 import { SendCampaignButton } from '@/components/crm/SendCampaignButton'
 import { ResendCampaignButton } from '@/components/crm/ResendCampaignButton'
 import { Mail, ArrowLeft, CheckCircle2, XCircle, MessageSquare, Phone } from 'lucide-react'
 import Link from 'next/link'
+
+const CampaignEditor = dynamic(() => import('@/components/crm/CampaignEditor').then(m => m.CampaignEditor), {
+    loading: () => <div className="h-96 animate-pulse bg-secondary rounded-(--radius)" />,
+})
+
+const HtmlPreview = dynamic(() => import('@/components/crm/HtmlPreview').then(m => m.HtmlPreview), {
+    loading: () => <div className="h-48 animate-pulse bg-secondary rounded-(--radius)" />,
+})
 
 const channelIcons = { email: Mail, sms: Phone, whatsapp: MessageSquare } as const
 const channelLabels = { email: 'Email', sms: 'SMS', whatsapp: 'WhatsApp' } as const

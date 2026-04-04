@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useActionState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { updateCampaign } from '@/actions/campaigns'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
@@ -9,8 +10,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Save, Code, Eye, Type, MessageSquare, Mail, Phone } from 'lucide-react'
 import { GenerateCampaignAI } from './GenerateCampaignAI'
-import { RichTextEditor } from './RichTextEditor'
 import { HtmlPreview } from './HtmlPreview'
+
+const RichTextEditor = dynamic(() => import('./RichTextEditor').then(m => m.RichTextEditor), {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-secondary rounded-(--radius)" />,
+})
 
 const initialState = { error: '', success: false }
 

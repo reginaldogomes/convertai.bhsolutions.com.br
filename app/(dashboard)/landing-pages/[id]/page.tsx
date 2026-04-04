@@ -3,11 +3,18 @@ import { tryGetAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PublishButton } from '@/components/crm/PublishButton'
+import { DeleteLandingPageButton } from '@/components/crm/DeleteLandingPageButton'
 import { AddKnowledgeBaseButton } from '@/components/crm/AddKnowledgeBaseButton'
-import { SectionManager } from '@/components/crm/SectionManager'
-import { LandingPageEditor } from './landing-page-editor'
-import { Globe, ExternalLink, Eye, MessageSquare, Users, MousePointer } from 'lucide-react'
-import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import { Globe, Eye, MessageSquare, Users, MousePointer } from 'lucide-react'
+
+const SectionManager = dynamic(() => import('@/components/crm/SectionManager').then(m => m.SectionManager), {
+    loading: () => <div className="h-64 animate-pulse bg-secondary rounded-(--radius)" />,
+})
+
+const LandingPageEditor = dynamic(() => import('./landing-page-editor').then(m => m.LandingPageEditor), {
+    loading: () => <div className="h-96 animate-pulse bg-secondary rounded-(--radius)" />,
+})
 
 export default async function LandingPageDetailPage({
     params,
@@ -35,18 +42,17 @@ export default async function LandingPageDetailPage({
                 icon={Globe}
                 actions={
                     <div className="flex items-center gap-3">
-                        {page.isPublished() && (
-                            <a
-                                href={`/p/${page.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                                Ver página
-                            </a>
-                        )}
+                        <a
+                            href={`/p/${page.slug}?preview=1`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <Eye className="w-4 h-4" />
+                            Pré-visualizar
+                        </a>
                         <PublishButton pageId={page.id} isPublished={page.isPublished()} />
+                        <DeleteLandingPageButton pageId={page.id} pageName={page.name} redirectAfterDelete />
                     </div>
                 }
             />
@@ -74,6 +80,11 @@ export default async function LandingPageDetailPage({
                 <SectionManager
                     pageId={page.id}
                     initialSections={page.configJson.sections ?? []}
+                    pageContext={{
+                        name: page.name,
+                        headline: page.headline,
+                        subheadline: page.subheadline,
+                    }}
                 />
             </div>
 
@@ -94,6 +105,7 @@ export default async function LandingPageDetailPage({
                             chatbotSystemPrompt: page.chatbotSystemPrompt,
                             theme: page.configJson.theme,
                             primaryColor: page.configJson.primaryColor,
+                            designSystem: page.configJson.designSystem,
                         }} />
                     </div>
                 </div>

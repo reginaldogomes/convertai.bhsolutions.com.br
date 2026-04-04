@@ -2,7 +2,11 @@ import { tryGetAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TrendingUp } from 'lucide-react'
-import { PipelineBoard } from '@/components/crm/PipelineBoard'
+import dynamic from 'next/dynamic'
+
+const PipelineBoard = dynamic(() => import('@/components/crm/PipelineBoard').then(m => m.PipelineBoard), {
+    loading: () => <div className="h-150 animate-pulse bg-secondary rounded-(--radius)" />,
+})
 
 export default async function DealsPipelinePage() {
     const auth = await tryGetAuthContext()

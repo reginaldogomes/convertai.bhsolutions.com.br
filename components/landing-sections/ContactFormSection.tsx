@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { z } from 'zod'
 import type { ContactFormContent } from '@/domain/entities'
+import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { Send, CheckCircle, Clock, X } from 'lucide-react'
 
 interface ContactFormSectionProps {
     content: ContactFormContent
     primaryColor: string
+    palette?: ColorPalette
     isDark: boolean
     landingPageId: string
 }
@@ -57,7 +59,7 @@ function maskPhone(value: string): string {
     return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-export function ContactFormSection({ content, primaryColor, isDark, landingPageId }: ContactFormSectionProps) {
+export function ContactFormSection({ content, primaryColor, palette, isDark, landingPageId }: ContactFormSectionProps) {
     const [submitted, setSubmitted] = useState(false)
     const [dialogOpen, setDialogOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
@@ -193,7 +195,7 @@ export function ContactFormSection({ content, primaryColor, isDark, landingPageI
                         <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">{content.title}</h2>
                     )}
                     {content.subtitle && (
-                        <p className={`text-center text-base mb-8 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <p className="text-center text-base mb-8 text-muted-foreground">
                             {content.subtitle}
                         </p>
                     )}

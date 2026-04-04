@@ -1,31 +1,42 @@
 'use client'
 
 import type { PricingContent } from '@/domain/entities'
+import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { Check, Sparkles } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 
 interface PricingSectionProps {
     content: PricingContent
     primaryColor: string
+    palette?: ColorPalette
     isDark: boolean
 }
 
-export function PricingSection({ content, primaryColor }: PricingSectionProps) {
+export function PricingSection({ content, primaryColor, palette, isDark }: PricingSectionProps) {
+    const secondary = palette?.secondary ?? primaryColor
+    const accent = palette?.accent ?? primaryColor
     return (
-        <section className="bg-background-secondary py-20">
-            <Container>
+        <section className="relative bg-background-secondary py-24 overflow-hidden">
+            {/* Decorative glow */}
+            <div
+                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full blur-[180px] opacity-10"
+                style={{ backgroundColor: secondary }}
+                aria-hidden
+            />
+
+            <Container className="relative">
                 {content.title && (
-                    <h2 className="text-balance mb-3 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+                    <h2 className="text-balance mb-4 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}
                 {content.subtitle && (
-                    <p className="mx-auto mb-12 max-w-xl text-center text-base text-muted-foreground">
+                    <p className="mx-auto mb-14 max-w-xl text-center text-base leading-relaxed text-muted-foreground">
                         {content.subtitle}
                     </p>
                 )}
                 <div
-                    className={`grid gap-6 ${
+                    className={`grid gap-6 items-start ${
                         content.tiers.length === 1
                             ? 'max-w-sm mx-auto'
                             : content.tiers.length === 2
@@ -36,52 +47,70 @@ export function PricingSection({ content, primaryColor }: PricingSectionProps) {
                     {content.tiers.map((tier, idx) => (
                         <div
                             key={idx}
-                            className={`relative flex flex-col rounded-2xl border p-6 transition-all duration-200 ${
+                            className={`relative flex flex-col rounded-2xl p-7 transition-all duration-300 ${
                                 tier.highlighted
-                                    ? 'border-primary/50 bg-card shadow-lg shadow-primary/10 scale-[1.03]'
-                                    : 'border-border/70 bg-card hover:-translate-y-0.5 hover:border-border'
+                                    ? `${isDark ? 'bg-white/[0.05] border-2' : 'bg-white border-2'} shadow-xl scale-[1.03]`
+                                    : `${isDark ? 'bg-white/[0.02] border border-white/[0.06]' : 'bg-white/60 border border-black/[0.04]'} hover:-translate-y-1`
                             }`}
+                            style={{
+                                borderColor: tier.highlighted ? `${primaryColor}50` : undefined,
+                                boxShadow: tier.highlighted ? `0 20px 60px -12px ${primaryColor}20` : undefined,
+                                backdropFilter: 'blur(12px)',
+                            }}
                         >
                             {tier.highlighted && (
                                 <div
-                                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-sm"
-                                    style={{ backgroundColor: primaryColor }}
+                                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-lg"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${primaryColor}, ${secondary})`,
+                                        boxShadow: `0 4px 14px ${primaryColor}40`,
+                                    }}
                                 >
                                     <Sparkles className="w-3 h-3" aria-hidden />
                                     Mais Popular
                                 </div>
                             )}
 
-                            <div className="mb-5">
+                            <div className="mb-6">
                                 <h3 className="text-base font-black text-foreground">{tier.name}</h3>
-                                <p className="mt-1 text-sm text-muted-foreground">{tier.description}</p>
+                                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{tier.description}</p>
                             </div>
 
-                            <div className="mb-6 flex items-end gap-1">
-                                <span className="text-4xl font-black tracking-tight text-foreground">{tier.price}</span>
+                            <div className="mb-7 flex items-end gap-1">
+                                <span className="text-4xl font-black tracking-tight text-foreground md:text-5xl">{tier.price}</span>
                                 {tier.period && (
-                                    <span className="mb-1 text-sm text-muted-foreground">{tier.period}</span>
+                                    <span className="mb-1.5 text-sm text-muted-foreground">{tier.period}</span>
                                 )}
                             </div>
 
-                            <ul className="mb-7 flex-1 space-y-2.5">
+                            <ul className="mb-8 flex-1 space-y-3">
                                 {tier.features.map((feature, i) => (
-                                    <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
-                                        <Check
-                                            className="mt-0.5 h-4 w-4 shrink-0"
-                                            style={{ color: primaryColor }}
-                                            aria-hidden
-                                        />
+                                    <li key={i} className="flex items-start gap-3 text-sm text-foreground">
+                                        <div
+                                            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                                            style={{ backgroundColor: `${primaryColor}15` }}
+                                        >
+                                            <Check
+                                                className="h-3 w-3"
+                                                style={{ color: primaryColor }}
+                                                aria-hidden
+                                            />
+                                        </div>
                                         {feature}
                                     </li>
                                 ))}
                             </ul>
 
                             <button
-                                className={`w-full rounded-xl py-2.5 text-sm font-bold transition-opacity hover:opacity-90 ${
-                                    tier.highlighted ? 'text-white' : 'bg-accent text-foreground hover:bg-muted'
+                                className={`w-full rounded-xl py-3 text-sm font-bold transition-all duration-200 ${
+                                    tier.highlighted
+                                        ? 'text-white shadow-lg hover:shadow-xl hover:scale-[1.01]'
+                                        : `${isDark ? 'bg-white/[0.06] hover:bg-white/[0.1]' : 'bg-black/[0.04] hover:bg-black/[0.07]'} text-foreground`
                                 }`}
-                                style={tier.highlighted ? { backgroundColor: primaryColor } : undefined}
+                                style={tier.highlighted ? {
+                                    backgroundColor: primaryColor,
+                                    boxShadow: `0 4px 14px ${primaryColor}30`,
+                                } : undefined}
                             >
                                 {tier.ctaText}
                             </button>

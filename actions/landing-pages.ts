@@ -5,10 +5,26 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { getErrorMessage } from './utils'
 import type { LandingPageSection } from '@/domain/entities'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
+import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 
 export async function createLandingPage(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
         const { orgId } = await getAuthContext()
+
+        // Parse design system from form if provided, otherwise use default
+        let designSystem = DEFAULT_DESIGN_SYSTEM
+        const designSystemRaw = formData.get('designSystem') as string | null
+        if (designSystemRaw) {
+            try {
+                designSystem = JSON.parse(designSystemRaw)
+            } catch {
+                // Invalid JSON — use default
+            }
+        }
+
+        const bg = designSystem.palette?.background ?? ''
+        const isDark = isColorDark(bg)
 
         const result = await useCases.createLandingPage().execute(orgId, {
             name: formData.get('name') as string,
@@ -19,6 +35,12 @@ export async function createLandingPage(prevState: { error: string; success: boo
             chatbotName: (formData.get('chatbotName') as string) || 'Assistente',
             chatbotWelcomeMessage: (formData.get('chatbotWelcomeMessage') as string) || 'Olá! Como posso ajudar?',
             chatbotSystemPrompt: (formData.get('chatbotSystemPrompt') as string) || '',
+            configJson: {
+                theme: isDark ? 'dark' : 'light',
+                primaryColor: designSystem.palette?.primary ?? '#6366f1',
+                designSystem,
+                logoUrl: null,
+            },
         })
 
         if (!result.ok) return { error: result.error.message, success: false }
@@ -44,7 +66,33 @@ export async function updateLandingPage(pageId: string, prevState: { error: stri
         const configJson: Record<string, unknown> = {}
         if (formData.get('theme')) configJson.theme = formData.get('theme') as string
         if (formData.get('primaryColor')) configJson.primaryColor = formData.get('primaryColor') as string
-        if (Object.keys(configJson).length > 0) input.configJson = configJson
+
+        // Parse design system from serialized JSON
+        const designSystemRaw = formData.get('designSystem') as string | null
+        if (designSystemRaw) {
+            try {
+                const designSystem = JSON.parse(designSystemRaw)
+                configJson.designSystem = designSystem
+                // Sync primaryColor and theme from design system for backward compat
+                configJson.primaryColor = designSystem.palette?.primary ?? configJson.primaryColor
+                const bg = designSystem.palette?.background ?? ''
+                const isDark = isColorDark(bg)
+                configJson.theme = isDark ? 'dark' : 'light'
+            } catch {
+                // Invalid JSON – ignore design system update
+            }
+        }
+
+        if (Object.keys(configJson).length > 0) {
+            // Merge with existing config to preserve sections and other fields
+            const pageResult = await useCases.getLandingPage().execute(orgId, pageId)
+            if (pageResult.ok) {
+                const currentConfig = pageResult.value.configJson as unknown as Record<string, unknown>
+                input.configJson = { ...currentConfig, ...configJson }
+            } else {
+                input.configJson = configJson
+            }
+        }
 
         const result = await useCases.updateLandingPage().execute(orgId, pageId, input)
 
@@ -92,7 +140,21 @@ export async function addKnowledgeBaseEntry(prevState: { error: string; success:
     }
 }
 
-export async function updateLandingPageSections(pageId: string, sections: LandingPageSection[]) {
+export async function deleteLandingPage(pageId: string) {
+    try {
+        const { orgId } = await getAuthContext()
+        const result = await useCases.deleteLandingPage().execute(orgId, pageId)
+
+        if (!result.ok) return { error: result.error.message, success: false }
+
+        revalidatePath('/landing-pages')
+        return { error: '', success: true }
+    } catch (error) {
+        return { error: getErrorMessage(error), success: false }
+    }
+}
+
+export async function updateLandingPageSections(pageId: string, sections: LandingPageSection[], designSystem?: DesignSystem) {
     try {
         const { orgId } = await getAuthContext()
 
@@ -101,10 +163,18 @@ export async function updateLandingPageSections(pageId: string, sections: Landin
         if (!pageResult.ok) return { error: pageResult.error.message, success: false }
 
         const currentConfig = pageResult.value.configJson
-        const updatedConfig = { ...currentConfig, sections }
+        const updatedConfig: Record<string, unknown> = { ...currentConfig, sections }
+
+        if (designSystem) {
+            const bg = designSystem.palette?.background ?? ''
+            const isDark = isColorDark(bg)
+            updatedConfig.designSystem = designSystem
+            updatedConfig.primaryColor = designSystem.palette?.primary ?? currentConfig.primaryColor
+            updatedConfig.theme = isDark ? 'dark' : 'light'
+        }
 
         const result = await useCases.updateLandingPage().execute(orgId, pageId, {
-            configJson: updatedConfig as Record<string, unknown>,
+            configJson: updatedConfig,
         })
 
         if (!result.ok) return { error: result.error.message, success: false }
@@ -115,4 +185,15 @@ export async function updateLandingPageSections(pageId: string, sections: Landin
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
     }
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
+function isColorDark(hex: string): boolean {
+    if (!hex || !hex.startsWith('#') || hex.length < 7) return false
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return luminance < 0.5
 }

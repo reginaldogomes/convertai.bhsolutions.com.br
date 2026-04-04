@@ -9,10 +9,15 @@ import { ConnectInstagramModal } from '@/components/instagram/ConnectInstagramMo
 import { GenerateContentButton } from '@/components/instagram/GenerateContentButton'
 import { GenerateImagePromptButton } from '@/components/instagram/GenerateImagePromptButton'
 import { CalendarButton } from '@/components/instagram/CalendarButton'
-import { AutoContentConfig } from '@/components/instagram/AutoContentConfig'
-import { CreativeGenerator } from '@/components/instagram/CreativeGenerator'
 import { PageHeader } from '@/components/layout/PageHeader'
+import dynamic from 'next/dynamic'
 import type { LucideIcon } from 'lucide-react'
+
+const AutoContentConfig = dynamic(() => import('@/components/instagram/AutoContentConfig').then(m => m.AutoContentConfig), {
+    loading: () => <div className="h-48 animate-pulse bg-secondary rounded-(--radius)" />,
+})
+
+const CreativeGenerator = dynamic(() => import('@/components/instagram/CreativeGenerator').then(m => m.CreativeGenerator))
 
 const TYPE_LABELS: Record<string, string> = {
     post: 'Post',
