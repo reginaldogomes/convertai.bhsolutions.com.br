@@ -13,3 +13,4 @@ export type { IChatSessionRepository, CreateChatSessionInput, CreateChatMessageI
 export type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from './analytics-repository'
 export type { IInstagramContentRepository, IInstagramAccountRepository, IInstagramService, IInstagramAutoConfigRepository, CreateInstagramContentInput, UpdateInstagramContentInput } from './instagram-repository'
 export type { IRagService } from './rag-service'
+export type { IProductRepository, CreateProductInput, UpdateProductInput } from './product-repository'

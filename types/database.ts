@@ -18,6 +18,9 @@ export type MessageChannel = 'whatsapp' | 'email' | 'sms'
 export type MessageDirection = 'inbound' | 'outbound'
 export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent'
 export type LandingPageStatus = 'draft' | 'published' | 'archived'
+export type ProductType = 'product' | 'service'
+export type ProductStatus = 'draft' | 'active' | 'archived'
+export type ProductPriceType = 'one_time' | 'monthly' | 'yearly' | 'custom'
 export type ChatSessionStatus = 'active' | 'lead_captured' | 'closed'
 export type ChatMessageRole = 'user' | 'assistant' | 'system'
 export type AnalyticsEventType = 'view' | 'chat_start' | 'lead_captured' | 'cta_click'
@@ -236,6 +239,7 @@ export interface Database {
                     chatbot_name: string
                     chatbot_welcome_message: string
                     chatbot_system_prompt: string
+                    product_id: string | null
                     status: LandingPageStatus
                     created_at: string
                     updated_at: string
@@ -252,13 +256,15 @@ export interface Database {
                     chatbot_name?: string
                     chatbot_welcome_message?: string
                     chatbot_system_prompt?: string
+                    product_id?: string | null
                     status?: LandingPageStatus
                     created_at?: string
                     updated_at?: string
                 }
                 Update: Partial<Database['public']['Tables']['landing_pages']['Insert']>
                 Relationships: [
-                    { foreignKeyName: 'landing_pages_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                    { foreignKeyName: 'landing_pages_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'landing_pages_product_id_fkey'; columns: ['product_id']; referencedRelation: 'products'; referencedColumns: ['id'] }
                 ]
             }
             knowledge_base: {
@@ -266,6 +272,7 @@ export interface Database {
                     id: string
                     organization_id: string
                     landing_page_id: string | null
+                    product_id: string | null
                     title: string
                     content: string
                     embedding: string | null
@@ -276,6 +283,7 @@ export interface Database {
                     id?: string
                     organization_id: string
                     landing_page_id?: string | null
+                    product_id?: string | null
                     title: string
                     content: string
                     embedding?: string | null
@@ -285,7 +293,8 @@ export interface Database {
                 Update: Partial<Database['public']['Tables']['knowledge_base']['Insert']>
                 Relationships: [
                     { foreignKeyName: 'knowledge_base_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
-                    { foreignKeyName: 'knowledge_base_landing_page_id_fkey'; columns: ['landing_page_id']; referencedRelation: 'landing_pages'; referencedColumns: ['id'] }
+                    { foreignKeyName: 'knowledge_base_landing_page_id_fkey'; columns: ['landing_page_id']; referencedRelation: 'landing_pages'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'knowledge_base_product_id_fkey'; columns: ['product_id']; referencedRelation: 'products'; referencedColumns: ['id'] }
                 ]
             }
             chat_sessions: {
@@ -356,6 +365,59 @@ export interface Database {
                 Relationships: [
                     { foreignKeyName: 'page_analytics_landing_page_id_fkey'; columns: ['landing_page_id']; referencedRelation: 'landing_pages'; referencedColumns: ['id'] },
                     { foreignKeyName: 'page_analytics_session_id_fkey'; columns: ['session_id']; referencedRelation: 'chat_sessions'; referencedColumns: ['id'] }
+                ]
+            }
+
+            products: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    name: string
+                    slug: string
+                    type: string
+                    short_description: string
+                    full_description: string
+                    price: number | null
+                    price_type: string | null
+                    currency: string
+                    features_json: Json
+                    benefits_json: Json
+                    faqs_json: Json
+                    target_audience: string
+                    differentials: string
+                    tags: string[]
+                    images: string[]
+                    status: string
+                    metadata_json: Json
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    name: string
+                    slug: string
+                    type?: string
+                    short_description?: string
+                    full_description?: string
+                    price?: number | null
+                    price_type?: string | null
+                    currency?: string
+                    features_json?: Json
+                    benefits_json?: Json
+                    faqs_json?: Json
+                    target_audience?: string
+                    differentials?: string
+                    tags?: string[]
+                    images?: string[]
+                    status?: string
+                    metadata_json?: Json
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['products']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'products_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
                 ]
             }
 

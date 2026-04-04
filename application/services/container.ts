@@ -20,6 +20,7 @@ import {
     SupabaseInstagramContentRepository,
     SupabaseInstagramAccountRepository,
     SupabaseInstagramAutoConfigRepository,
+    SupabaseProductRepository,
 } from '@/infrastructure/repositories'
 
 import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase, DeleteContactUseCase } from '@/application/use-cases/contacts'
@@ -59,6 +60,15 @@ import {
     SaveAutoConfigUseCase,
     ToggleAutoConfigUseCase,
 } from '@/application/use-cases/instagram'
+import {
+    CreateProductUseCase,
+    UpdateProductUseCase,
+    GetProductUseCase,
+    ToggleProductStatusUseCase,
+    DeleteProductUseCase,
+    ListProductsUseCase,
+    ListActiveProductsUseCase,
+} from '@/application/use-cases/products'
 
 // Repository singletons (stateless, safe to reuse)
 const contactRepo = new SupabaseContactRepository()
@@ -74,6 +84,7 @@ const analyticsRepo = new SupabaseAnalyticsRepository()
 const instagramContentRepo = new SupabaseInstagramContentRepository()
 const instagramAccountRepo = new SupabaseInstagramAccountRepository()
 const instagramAutoConfigRepo = new SupabaseInstagramAutoConfigRepository()
+const productRepo = new SupabaseProductRepository()
 
 // Service singletons
 const whatsAppService = new TwilioWhatsAppService()
@@ -155,7 +166,16 @@ export const useCases = {
     getAutoConfig: () => new GetAutoConfigUseCase(instagramAutoConfigRepo),
     saveAutoConfig: () => new SaveAutoConfigUseCase(instagramAutoConfigRepo),
     toggleAutoConfig: () => new ToggleAutoConfigUseCase(instagramAutoConfigRepo),
+
+    // Products
+    createProduct: () => new CreateProductUseCase(productRepo),
+    updateProduct: () => new UpdateProductUseCase(productRepo),
+    getProduct: () => new GetProductUseCase(productRepo),
+    toggleProductStatus: () => new ToggleProductStatusUseCase(productRepo),
+    deleteProduct: () => new DeleteProductUseCase(productRepo),
+    listProducts: () => new ListProductsUseCase(productRepo),
+    listActiveProducts: () => new ListActiveProductsUseCase(productRepo),
 } as const
 
 // Export singletons needed by API routes and server actions
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo }
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo }
