@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BRAND } from '@/lib/brand'
 import { cn } from '@/lib/utils'
+import { buildAdsMetadata, captureAttributionFromCurrentPage } from '@/lib/ads-attribution'
+import { ConsentBanner } from './consent-banner'
 
 const ChatWidget = dynamic(() => import('@/components/crm/ChatWidget').then(m => m.ChatWidget), {
     ssr: false,
@@ -59,6 +61,8 @@ export function LandingPageView({ page }: LandingPageViewProps) {
     }
 
     useEffect(() => {
+        captureAttributionFromCurrentPage()
+
         fetch('/api/analytics/track', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -66,6 +70,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                 landingPageId: page.id,
                 eventType: 'view',
                 visitorId: getVisitorId(),
+                metadata: buildAdsMetadata('view'),
             }),
         }).catch(() => {})
     }, [page.id])
@@ -78,6 +83,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                 landingPageId: page.id,
                 eventType: 'cta_click',
                 visitorId: getVisitorId(),
+                metadata: buildAdsMetadata('cta_click'),
             }),
         }).catch(() => {})
     }
@@ -173,6 +179,8 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                 welcomeMessage={page.chatbotWelcomeMessage}
                 primaryColor={config.primaryColor}
             />
+
+            <ConsentBanner />
         </div>
     )
 }

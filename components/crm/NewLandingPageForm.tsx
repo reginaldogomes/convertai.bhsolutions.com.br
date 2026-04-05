@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState, useState, useCallback, useEffect, useRef } from 'react'
+import { useActionState, useState, useCallback, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createLandingPage } from '@/actions/landing-pages'
 import { Button } from '@/components/ui/button'
@@ -117,7 +118,6 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
 
     const [aiPrompt, setAiPrompt] = useState('')
     const { state: generation, reset: resetGeneration, generateSections, isGenerating, hasValidSections } = useGenerateSections()
-    const lastAppliedGenerationRef = useRef(0)
 
     // Server action
     const wrappedAction = async (prevState: { error: string; success: boolean }, formData: FormData) => {
@@ -202,52 +202,29 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     ])
 
     useEffect(() => {
-        if (!selectedProduct) {
+        if (!selectedProductId) {
             resetGeneration()
             return
         }
 
-        const productPrompt = buildPromptFromProduct(selectedProduct)
-        void generateSections({
-            prompt: productPrompt,
-            pageContext: {
-                name: selectedProduct.name,
-                headline: selectedProduct.name,
-                subheadline: selectedProduct.shortDescription,
-            },
-            productContext: buildProductContext(selectedProduct),
-            productId: selectedProduct.id,
-        })
-    }, [selectedProductId, selectedProduct, buildPromptFromProduct, generateSections, resetGeneration])
-
-    useEffect(() => {
-        if (generation.status !== 'success' || generation.requestId === lastAppliedGenerationRef.current) {
+        const selectedProductData = products.find((product) => product.id === selectedProductId)
+        if (!selectedProductData) {
+            resetGeneration()
             return
         }
 
-        lastAppliedGenerationRef.current = generation.requestId
-
-        if (generation.generatedDesignSystem) {
-            setDesignSystem(generation.generatedDesignSystem)
-        }
-
-        const heroSection = generation.sections.find((section) => section.type === 'hero')
-        const heroContent = heroSection?.content as {
-            headline?: unknown
-            subheadline?: unknown
-            ctaText?: unknown
-        } | undefined
-
-        if (heroContent?.headline && typeof heroContent.headline === 'string') {
-            setHeadline(heroContent.headline)
-        }
-        if (heroContent?.subheadline && typeof heroContent.subheadline === 'string') {
-            setSubheadline(heroContent.subheadline)
-        }
-        if (heroContent?.ctaText && typeof heroContent.ctaText === 'string') {
-            setCtaText(heroContent.ctaText)
-        }
-    }, [generation])
+        const productPrompt = buildPromptFromProduct(selectedProductData)
+        void generateSections({
+            prompt: productPrompt,
+            pageContext: {
+                name: selectedProductData.name,
+                headline: selectedProductData.name,
+                subheadline: selectedProductData.shortDescription,
+            },
+            productContext: buildProductContext(selectedProductData),
+            productId: selectedProductData.id,
+        })
+    }, [selectedProductId, products, buildPromptFromProduct, generateSections, resetGeneration])
 
     // AI Generation — manual trigger via "Gerar com IA" button
     const handleGenerate = useCallback(async () => {
@@ -369,13 +346,13 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                                 <p className="text-xs text-muted-foreground/70 mt-1 mb-4">
                                     Crie um produto primeiro para vincular à landing page e habilitar geração inteligente.
                                 </p>
-                                <a
+                                <Link
                                     href="/products/new"
                                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                                 >
                                     <Package className="w-3.5 h-3.5" />
                                     Criar Produto / Serviço
-                                </a>
+                                </Link>
                             </div>
                         )}
                     </div>

@@ -1,6 +1,9 @@
 import { useCallback, useReducer, useRef } from 'react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 
+const GENERATION_CACHE_TTL_MS = 10 * 60 * 1000
+const GENERATION_CACHE_MAX_ENTRIES = 20
+
 type GenerationStatus = 'idle' | 'generating' | 'success' | 'error'
 
 interface GeneratedSection {
@@ -35,6 +38,12 @@ interface GenerateSectionsParams {
     pageContext?: { name?: string; headline?: string; subheadline?: string }
     productContext?: string
     productId?: string
+}
+
+interface CachedGeneration {
+    timestamp: number
+    sections: GeneratedSection[]
+    generatedDesignSystem: DesignSystem | null
 }
 
 const initialState: GenerationState = {
@@ -97,10 +106,13 @@ export function useGenerateSections() {
     const [state, dispatch] = useReducer(reducer, initialState)
     const abortRef = useRef<AbortController | null>(null)
     const requestIdRef = useRef(0)
+    const inFlightKeyRef = useRef<string | null>(null)
+    const cacheRef = useRef<Map<string, CachedGeneration>>(new Map())
 
     const reset = useCallback(() => {
         abortRef.current?.abort()
         abortRef.current = null
+        inFlightKeyRef.current = null
         dispatch({ type: 'RESET' })
     }, [])
 
@@ -115,10 +127,37 @@ export function useGenerateSections() {
             return
         }
 
+        const payload = {
+            prompt,
+            pageContext: params.pageContext,
+            productContext: params.productContext,
+            productId: params.productId,
+        }
+        const requestKey = JSON.stringify(payload)
+        const now = Date.now()
+        const cached = cacheRef.current.get(requestKey)
+
+        if (cached && now - cached.timestamp < GENERATION_CACHE_TTL_MS) {
+            const requestId = requestIdRef.current + 1
+            requestIdRef.current = requestId
+            dispatch({
+                type: 'SUCCESS',
+                requestId,
+                sections: cached.sections,
+                generatedDesignSystem: cached.generatedDesignSystem,
+            })
+            return
+        }
+
+        if (inFlightKeyRef.current === requestKey) {
+            return
+        }
+
         abortRef.current?.abort()
 
         const controller = new AbortController()
         abortRef.current = controller
+        inFlightKeyRef.current = requestKey
         const requestId = requestIdRef.current + 1
         requestIdRef.current = requestId
 
@@ -128,12 +167,7 @@ export function useGenerateSections() {
             const response = await fetch('/api/landing-pages/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt,
-                    pageContext: params.pageContext,
-                    productContext: params.productContext,
-                    productId: params.productId,
-                }),
+                body: JSON.stringify(payload),
                 signal: controller.signal,
             })
 
@@ -148,11 +182,22 @@ export function useGenerateSections() {
                 throw new Error('A IA não retornou seções válidas. Tente descrever com mais detalhes.')
             }
 
+            const cacheSnapshot: CachedGeneration = {
+                timestamp: now,
+                sections: data.sections as GeneratedSection[],
+                generatedDesignSystem: (data.designSystem ?? null) as DesignSystem | null,
+            }
+            cacheRef.current.set(requestKey, cacheSnapshot)
+            if (cacheRef.current.size > GENERATION_CACHE_MAX_ENTRIES) {
+                const oldestKey = cacheRef.current.keys().next().value
+                if (oldestKey) cacheRef.current.delete(oldestKey)
+            }
+
             dispatch({
                 type: 'SUCCESS',
                 requestId,
-                sections: data.sections as GeneratedSection[],
-                generatedDesignSystem: (data.designSystem ?? null) as DesignSystem | null,
+                sections: cacheSnapshot.sections,
+                generatedDesignSystem: cacheSnapshot.generatedDesignSystem,
             })
         } catch (error) {
             if (controller.signal.aborted || requestId !== requestIdRef.current) return
@@ -161,6 +206,10 @@ export function useGenerateSections() {
                 requestId,
                 error: error instanceof Error ? error.message : 'Erro ao gerar conteúdo com IA',
             })
+        } finally {
+            if (inFlightKeyRef.current === requestKey) {
+                inFlightKeyRef.current = null
+            }
         }
     }, [])
 

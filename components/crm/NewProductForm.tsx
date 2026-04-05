@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState, useState, useCallback } from 'react'
+import { useActionState, useState, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createProduct } from '@/actions/products'
 import { Button } from '@/components/ui/button'
@@ -91,6 +92,7 @@ export function NewProductForm() {
     const [isGenerating, setIsGenerating] = useState(false)
     const [aiError, setAiError] = useState('')
     const [aiGenerated, setAiGenerated] = useState(false)
+    const lastGenerationSignatureRef = useRef<string | null>(null)
 
     // Server action
     const wrappedAction = async (prevState: { error: string; success: boolean }, formData: FormData) => {
@@ -119,6 +121,17 @@ export function NewProductForm() {
             setAiError('Informe o nome do produto antes de gerar com IA.')
             return
         }
+
+        const generationSignature = JSON.stringify({
+            name: name.trim().toLowerCase(),
+            type,
+            context: aiContext.trim(),
+        })
+
+        if (aiGenerated && generationSignature === lastGenerationSignatureRef.current) {
+            return
+        }
+
         setIsGenerating(true)
         setAiError('')
         setAiGenerated(false)
@@ -149,13 +162,14 @@ export function NewProductForm() {
             if (data.suggestedSlug && !slugManuallyEdited) {
                 setSlug(data.suggestedSlug)
             }
+            lastGenerationSignatureRef.current = generationSignature
             setAiGenerated(true)
         } catch (err) {
             setAiError(err instanceof Error ? err.message : 'Erro ao gerar conteúdo com IA')
         } finally {
             setIsGenerating(false)
         }
-    }, [name, type, aiContext, slugManuallyEdited])
+    }, [name, type, aiContext, slugManuallyEdited, aiGenerated])
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -555,10 +569,10 @@ export function NewProductForm() {
                                 )}
                             </Button>
                             <Button type="button" variant="ghost" asChild className="h-10">
-                                <a href="/products">
+                                <Link href="/products">
                                     <ArrowLeft className="w-4 h-4 mr-2" />
                                     Voltar
-                                </a>
+                                </Link>
                             </Button>
                         </div>
                     </form>

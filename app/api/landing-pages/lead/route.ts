@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { landingPageRepo, analyticsRepo, contactRepo } from '@/application/services/container'
+import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
 
 const leadSchema = z.object({
     landingPageId: z.string().uuid('Landing page inválida'),
@@ -64,12 +65,28 @@ export async function POST(request: Request) {
             contactId = newContact.id
         }
 
+        const leadMetadata = {
+            contactId,
+            source: 'contact_form',
+            eventId: crypto.randomUUID(),
+            consentMarketing: true,
+        }
+
         await analyticsRepo.track({
             landingPageId,
             eventType: 'lead_captured',
             visitorId: undefined,
-            metadata: { contactId, source: 'contact_form' },
+            metadata: leadMetadata,
         })
+
+        await enqueueAdsConversion({
+            landingPageId,
+            eventType: 'lead_captured',
+            visitorId: undefined,
+            metadata: leadMetadata,
+        })
+
+        void flushAdsConversionOutbox({ limit: 10, requestHeaders: request.headers })
 
         return NextResponse.json({ success: true, contactId })
     } catch {

@@ -8,6 +8,7 @@ import {
     ragService,
     productRepo,
 } from '@/application/services/container'
+import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
 
 export async function POST(
     req: Request,
@@ -15,10 +16,12 @@ export async function POST(
 ) {
     const { pageId } = await params
     const body = await req.json()
-    const { message, visitorId, sessionId: existingSessionId } = body as {
+    const { message, visitorId, sessionId: existingSessionId, attribution, eventId } = body as {
         message: string
         visitorId: string
         sessionId?: string
+        attribution?: Record<string, unknown>
+        eventId?: string
     }
 
     if (!message || !visitorId) {
@@ -41,13 +44,30 @@ export async function POST(
         if (!session) {
             return Response.json({ error: 'Failed to create session' }, { status: 500 })
         }
+        const chatStartEventId = eventId ?? crypto.randomUUID()
+        const chatStartMetadata = {
+            attribution: attribution ?? {},
+            eventId: chatStartEventId,
+        }
+
         // Track chat_start event
-        analyticsRepo.track({
+        await analyticsRepo.track({
             landingPageId: pageId,
             eventType: 'chat_start',
             sessionId: session.id,
             visitorId,
+            metadata: chatStartMetadata,
         })
+
+        await enqueueAdsConversion({
+            landingPageId: pageId,
+            eventType: 'chat_start',
+            sessionId: session.id,
+            visitorId,
+            metadata: chatStartMetadata,
+        })
+
+        void flushAdsConversionOutbox({ limit: 10, requestHeaders: req.headers })
     }
 
     // 3. Save the user message
@@ -87,17 +107,33 @@ export async function POST(
             phone: leadInfo.phone,
             company: null,
             tags: ['landing-page', page.slug],
-            notes: `Lead capturado via landing page: ${page.name}`,
+            notes: `Lead capturado via landing page: ${page.name}\nAtribuição: ${JSON.stringify(attribution ?? {})}`,
         })
         if (contact) {
             await chatSessionRepo.updateContactId(session.id, contact.id)
-            analyticsRepo.track({
+            const leadMetadata = {
+                contactId: contact.id,
+                attribution: attribution ?? {},
+                eventId: crypto.randomUUID(),
+            }
+
+            await analyticsRepo.track({
                 landingPageId: pageId,
                 eventType: 'lead_captured',
                 sessionId: session.id,
                 visitorId,
-                metadata: { contactId: contact.id },
+                metadata: leadMetadata,
             })
+
+            await enqueueAdsConversion({
+                landingPageId: pageId,
+                eventType: 'lead_captured',
+                sessionId: session.id,
+                visitorId,
+                metadata: leadMetadata,
+            })
+
+            void flushAdsConversionOutbox({ limit: 10, requestHeaders: req.headers })
         }
     }
 

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ChatBubble } from './ChatBubble'
 import { BRAND } from '@/lib/brand'
+import { buildAdsMetadata, captureAttributionFromCurrentPage } from '@/lib/ads-attribution'
 
 interface ChatWidgetProps {
     pageId: string
@@ -65,6 +66,10 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
         if (isOpen) inputRef.current?.focus()
     }, [isOpen])
 
+    useEffect(() => {
+        captureAttributionFromCurrentPage()
+    }, [])
+
     const sendMessage = async () => {
         const text = input.trim()
         if (!text || isLoading) return
@@ -76,10 +81,18 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
         setIsLoading(true)
 
         try {
+            const adsMetadata = buildAdsMetadata('chat_start')
+
             const res = await fetch(`/api/chat/${pageId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text, visitorId, sessionId }),
+                body: JSON.stringify({
+                    message: text,
+                    visitorId,
+                    sessionId,
+                    attribution: adsMetadata.attribution,
+                    eventId: adsMetadata.eventId,
+                }),
             })
 
             if (!res.ok) throw new Error('Chat error')
@@ -159,7 +172,7 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
             {/* Chat Window */}
             <Card
                 className={cn(
-                    'fixed bottom-6 right-6 z-50 flex h-[min(720px,85dvh)] w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden p-0',
+                    'fixed bottom-6 right-6 z-50 flex h-[min(720px,85dvh)] w-[calc(100vw-2rem)] max-w-105 flex-col overflow-hidden p-0',
                     'origin-bottom-right rounded-2xl border-border',
                     'transition-all duration-300',
                     isOpen

@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from '@/domain/interfaces'
+import type { Json } from '@/types/database'
 
 export class SupabaseAnalyticsRepository implements IAnalyticsRepository {
     async track(input: TrackEventInput): Promise<void> {
@@ -9,7 +10,7 @@ export class SupabaseAnalyticsRepository implements IAnalyticsRepository {
             event_type: input.eventType,
             session_id: input.sessionId ?? null,
             visitor_id: input.visitorId ?? null,
-            metadata_json: (input.metadata ?? {}) as Record<string, string>,
+            metadata_json: (input.metadata ?? {}) as Json,
         })
     }
 

@@ -367,6 +367,49 @@ export interface Database {
                     { foreignKeyName: 'page_analytics_session_id_fkey'; columns: ['session_id']; referencedRelation: 'chat_sessions'; referencedColumns: ['id'] }
                 ]
             }
+            ads_conversion_outbox: {
+                Row: {
+                    id: string
+                    dedupe_key: string
+                    landing_page_id: string
+                    event_type: string
+                    session_id: string | null
+                    visitor_id: string | null
+                    metadata_json: Json
+                    status: string
+                    attempts: number
+                    max_attempts: number
+                    last_error: string | null
+                    next_retry_at: string
+                    locked_at: string | null
+                    sent_at: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    dedupe_key: string
+                    landing_page_id: string
+                    event_type: string
+                    session_id?: string | null
+                    visitor_id?: string | null
+                    metadata_json?: Json
+                    status?: string
+                    attempts?: number
+                    max_attempts?: number
+                    last_error?: string | null
+                    next_retry_at?: string
+                    locked_at?: string | null
+                    sent_at?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['ads_conversion_outbox']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'ads_conversion_outbox_landing_page_id_fkey'; columns: ['landing_page_id']; referencedRelation: 'landing_pages'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'ads_conversion_outbox_session_id_fkey'; columns: ['session_id']; referencedRelation: 'chat_sessions'; referencedColumns: ['id'] }
+                ]
+            }
 
             products: {
                 Row: {
