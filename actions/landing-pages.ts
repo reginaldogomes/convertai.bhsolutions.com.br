@@ -29,6 +29,10 @@ export async function createLandingPage(prevState: { error: string; success: boo
         const isDark = isColorDark(bg)
 
         const productId = (formData.get('productId') as string) || null
+        const generateVisuals = (formData.get('generateVisuals') as string) === '1'
+        const imageModel = (formData.get('imageModel') as string) || 'gemini-2.5-flash-image'
+        const aiPrompt = ((formData.get('aiPrompt') as string) || '').trim()
+        let linkedProduct: Product | null = null
 
         // Parse AI-generated sections if present
         let sections: LandingPageSection[] = []
@@ -48,15 +52,17 @@ export async function createLandingPage(prevState: { error: string; success: boo
             } catch { /* ignore invalid JSON */ }
         }
 
-        // Authoritative server-side generation: when product is linked, generate sections from product context + RAG.
         if (productId) {
             const productResult = await useCases.getProduct().execute(orgId, productId)
             if (!productResult.ok) {
                 throw new Error('Produto selecionado não encontrado para gerar a landing page')
             }
+            linkedProduct = productResult.value
+        }
 
-            const product = productResult.value
-            const productContext = product.toAIContext()
+        // Server-side fallback generation when client payload is missing or omitted due to size limits.
+        if (sections.length === 0 && (linkedProduct || aiPrompt.length >= 10)) {
+            const productContext = linkedProduct ? linkedProduct.toAIContext() : undefined
 
             const promptFromForm = [
                 (formData.get('headline') as string) || '',
@@ -64,25 +70,35 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 (formData.get('name') as string) || '',
             ].filter(Boolean).join('. ').trim()
 
-            const generationPrompt = promptFromForm.length > 0
-                ? promptFromForm
-                : [
-                    product.name,
-                    product.shortDescription,
-                    product.targetAudience ? `Público-alvo: ${product.targetAudience}` : '',
-                    product.differentials ? `Diferenciais: ${product.differentials}` : '',
+            const productFallbackPrompt = linkedProduct
+                ? [
+                    linkedProduct.name,
+                    linkedProduct.shortDescription,
+                    linkedProduct.targetAudience ? `Público-alvo: ${linkedProduct.targetAudience}` : '',
+                    linkedProduct.differentials ? `Diferenciais: ${linkedProduct.differentials}` : '',
                 ].filter(Boolean).join('. ')
+                : ''
+
+            const generationPrompt = aiPrompt.length >= 10
+                ? aiPrompt
+                : promptFromForm.length > 0
+                ? promptFromForm
+                : productFallbackPrompt
 
             let knowledgeBaseContext = ''
             const ragMatches = await ragService.search(generationPrompt, orgId)
-            const productName = product.name.toLowerCase()
-            const relatedMatches = ragMatches.filter((match) => {
-                const title = match.title.toLowerCase()
-                const content = match.content.toLowerCase()
-                return title.includes(productName) || content.includes(productName)
-            })
+            const prioritizedMatches = linkedProduct
+                ? (() => {
+                    const productName = linkedProduct.name.toLowerCase()
+                    const relatedMatches = ragMatches.filter((match) => {
+                        const title = match.title.toLowerCase()
+                        const content = match.content.toLowerCase()
+                        return title.includes(productName) || content.includes(productName)
+                    })
+                    return (relatedMatches.length > 0 ? relatedMatches : ragMatches).slice(0, 5)
+                })()
+                : ragMatches.slice(0, 5)
 
-            const prioritizedMatches = (relatedMatches.length > 0 ? relatedMatches : ragMatches).slice(0, 5)
             if (prioritizedMatches.length > 0) {
                 knowledgeBaseContext = prioritizedMatches
                     .map((doc, index) => `[${index + 1}] ${doc.title}\n${doc.content}`)
@@ -92,12 +108,16 @@ export async function createLandingPage(prevState: { error: string; success: boo
             const generated = await generateLandingPageSections({
                 prompt: generationPrompt,
                 pageContext: {
-                    name: (formData.get('name') as string) || product.name,
-                    headline: (formData.get('headline') as string) || product.name,
-                    subheadline: (formData.get('subheadline') as string) || product.shortDescription,
+                    name: (formData.get('name') as string) || linkedProduct?.name,
+                    headline: (formData.get('headline') as string) || linkedProduct?.name,
+                    subheadline: (formData.get('subheadline') as string) || linkedProduct?.shortDescription,
                 },
                 productContext,
                 knowledgeBaseContext,
+                imageGeneration: {
+                    enabled: generateVisuals,
+                    model: imageModel as 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview',
+                },
             })
 
             sections = generated.sections.map((s, i) => ({
@@ -108,9 +128,16 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 content: s.content,
             })) as unknown as LandingPageSection[]
 
-            sections = anchorSectionsWithProductData(product, sections)
+            if (linkedProduct) {
+                sections = anchorSectionsWithProductData(linkedProduct, sections)
+            }
 
             designSystem = generated.designSystem
+        }
+
+        // If sections already came from client, still enforce product-anchored copy server-side.
+        if (linkedProduct && sections.length > 0) {
+            sections = anchorSectionsWithProductData(linkedProduct, sections)
         }
 
         // Strict non-bypassable guardrail.

@@ -8,11 +8,15 @@ export async function POST(request: Request) {
         const { orgId } = await getAuthContext()
 
         const body = await request.json()
-        const { prompt, pageContext, productContext, productId } = body as {
+        const { prompt, pageContext, productContext, productId, imageGeneration } = body as {
             prompt?: string
             pageContext?: { name?: string; headline?: string; subheadline?: string }
             productContext?: string
             productId?: string
+            imageGeneration?: {
+                enabled?: boolean
+                model?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
+            }
         }
 
         if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 10) {
@@ -56,6 +60,7 @@ export async function POST(request: Request) {
             pageContext,
             productContext: resolvedProductContext,
             knowledgeBaseContext,
+            imageGeneration,
         })
 
         const sections = generated.sections.map((section, idx) => ({

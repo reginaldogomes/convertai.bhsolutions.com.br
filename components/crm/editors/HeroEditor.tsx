@@ -18,6 +18,10 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
     return (
         <div className="space-y-3">
             <div className="space-y-1.5">
+                <Label className="text-xs">Kicker</Label>
+                <Input value={content.kicker ?? ''} onChange={e => update('kicker', e.target.value)} className="bg-background" placeholder="Oferta exclusiva para novos clientes" />
+            </div>
+            <div className="space-y-1.5">
                 <Label className="text-xs">Título</Label>
                 <Input value={content.headline} onChange={e => update('headline', e.target.value)} className="bg-background" />
             </div>
@@ -38,6 +42,27 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
             <div className="space-y-1.5">
                 <Label className="text-xs">Imagem de Fundo (URL)</Label>
                 <Input value={content.backgroundImageUrl ?? ''} onChange={e => update('backgroundImageUrl', e.target.value || '')} placeholder="https://..." className="bg-background" />
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Imagem de Destaque (URL)</Label>
+                <Input value={content.heroImageUrl ?? ''} onChange={e => update('heroImageUrl', e.target.value || '')} placeholder="https://..." className="bg-background" />
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Selos de confiança (1 por linha)</Label>
+                <Textarea
+                    value={(content.trustBadges ?? []).join('\n')}
+                    onChange={e => onChange({
+                        ...content,
+                        trustBadges: e.target.value
+                            .split('\n')
+                            .map((line) => line.trim())
+                            .filter(Boolean)
+                            .slice(0, 6),
+                    })}
+                    rows={3}
+                    className="bg-background"
+                    placeholder={'Sem compromisso\nSuporte especializado\nResultados mensuráveis'}
+                />
             </div>
             <div className="space-y-1.5">
                 <Label className="text-xs">Alinhamento</Label>

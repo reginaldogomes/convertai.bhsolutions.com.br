@@ -2,13 +2,15 @@
 
 import type {
     LandingPageSection, SectionType,
-    HeroContent, FeaturesContent, TestimonialsContent, FaqContent,
+    HeroContent, FeaturesContent, BenefitsGridContent, ProcessStepsContent, TestimonialsContent, FaqContent,
     PricingContent, ContactFormContent, CtaBannerContent, VideoContent,
     StatsContent, LogoCloudContent, GalleryContent,
 } from '@/domain/entities'
 import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { HeroSection } from './HeroSection'
 import { FeaturesSection } from './FeaturesSection'
+import { BenefitsGridSection } from './BenefitsGridSection'
+import { ProcessStepsSection } from './ProcessStepsSection'
 import { TestimonialsSection } from './TestimonialsSection'
 import { FaqSection } from './FaqSection'
 import { PricingSection } from './PricingSection'
@@ -82,6 +84,10 @@ function SectionBlock({
             return <HeroSection content={section.content as HeroContent} primaryColor={primaryColor} palette={palette} isDark={isDark} onCtaClick={onCtaClick} />
         case 'features':
             return <FeaturesSection content={section.content as FeaturesContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
+        case 'benefits_grid':
+            return <BenefitsGridSection content={section.content as BenefitsGridContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
+        case 'process_steps':
+            return <ProcessStepsSection content={section.content as ProcessStepsContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'testimonials':
             return <TestimonialsSection content={section.content as TestimonialsContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         case 'faq':

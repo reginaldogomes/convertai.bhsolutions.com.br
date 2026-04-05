@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DesignSystemPicker } from '@/components/crm/DesignSystemPicker'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { DEFAULT_DESIGN_SYSTEM, designSystemFromPrimaryColor } from '@/domain/value-objects/design-system'
 
@@ -31,8 +31,10 @@ interface LandingPageEditorProps {
 export function LandingPageEditor({ page }: LandingPageEditorProps) {
     const initialDesignSystem = page.designSystem
         ?? designSystemFromPrimaryColor(page.primaryColor, page.theme as 'light' | 'dark')
+    const initialDesignSystemSnapshot = useMemo(() => JSON.stringify(initialDesignSystem), [initialDesignSystem])
 
     const [designSystem, setDesignSystem] = useState<DesignSystem>(initialDesignSystem)
+    const [designSystemAlert, setDesignSystemAlert] = useState('')
 
     const boundAction = useCallback(
         (state: { error: string; success: boolean }, formData: FormData) =>
@@ -41,6 +43,22 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
     )
 
     const [state, action, isPending] = useActionState(boundAction, { error: '', success: false })
+
+    const hasUnsavedDesignSystemChanges = useMemo(
+        () => JSON.stringify(designSystem) !== initialDesignSystemSnapshot,
+        [designSystem, initialDesignSystemSnapshot]
+    )
+
+    const handleDesignSystemChange = useCallback((next: DesignSystem) => {
+        setDesignSystem(next)
+        setDesignSystemAlert('Tema alterado. Clique em "Salvar Design System" para aplicar permanentemente.')
+    }, [])
+
+    useEffect(() => {
+        if (state.success) {
+            setDesignSystemAlert('Design System salvo com sucesso.')
+        }
+    }, [state.success])
 
     return (
         <form action={action} className="space-y-6">
@@ -93,7 +111,31 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: designSystem.palette.primary }} />
                     Design System
                 </h3>
-                <DesignSystemPicker value={designSystem} onChange={setDesignSystem} />
+
+                {designSystemAlert && (
+                    <div className={`text-xs rounded-md px-3 py-2 border ${
+                        hasUnsavedDesignSystemChanges
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-[hsl(var(--success-subtle))] text-[hsl(var(--success))] border-[hsl(var(--success))]/30'
+                    }`}>
+                        {designSystemAlert}
+                    </div>
+                )}
+
+                <DesignSystemPicker value={designSystem} onChange={handleDesignSystemChange} />
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="submit"
+                        variant={hasUnsavedDesignSystemChanges ? 'default' : 'outline'}
+                        disabled={isPending || !hasUnsavedDesignSystemChanges}
+                    >
+                        {isPending ? 'Salvando...' : 'Salvar Design System'}
+                    </Button>
+                    {hasUnsavedDesignSystemChanges && (
+                        <span className="text-xs text-muted-foreground">Existem mudanças de tema pendentes.</span>
+                    )}
+                </div>
             </div>
 
             {state.error && (

@@ -33,7 +33,7 @@ export function CtaBannerSection({ content, primaryColor, palette, isDark }: Cta
                 aria-hidden
             />
             {/* Grid pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(128,128,128,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(128,128,128,0.03)_1px,transparent_1px)] bg-[size:48px_48px]" />
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(128,128,128,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(128,128,128,0.03)_1px,transparent_1px)] bg-size-[48px_48px]" />
 
             <Container className="relative max-w-3xl text-center">
                 <h2 className="text-balance mb-5 text-2xl font-black tracking-tight text-foreground md:text-4xl lg:text-5xl">

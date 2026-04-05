@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { DESIGN_PRESETS, DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
+import { IMAGE_MODELS, type ImageModelId } from '@/lib/ai'
 import type { ProductFeature, ProductBenefit, ProductFaq } from '@/domain/entities'
 import { useGenerateSections } from '@/hooks/useGenerateSections'
 
@@ -95,6 +96,16 @@ function buildProductContext(product: ProductOption): string {
     return lines.join('\n')
 }
 
+function buildFastCtaText(name: string): string {
+    const trimmed = name.trim()
+    if (!trimmed) return 'Falar com especialista'
+    return `Quero conhecer ${trimmed}`
+}
+
+function isSameDesignSystem(a: DesignSystem, b: DesignSystem): boolean {
+    return JSON.stringify(a) === JSON.stringify(b)
+}
+
 /* ─── Main Component ─── */
 
 export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
@@ -111,10 +122,15 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     const [headline, setHeadline] = useState('')
     const [subheadline, setSubheadline] = useState('')
     const [ctaText, setCtaText] = useState('')
+    const [ctaManuallyEdited, setCtaManuallyEdited] = useState(false)
     const [chatbotName, setChatbotName] = useState('')
     const [chatbotWelcomeMessage, setChatbotWelcomeMessage] = useState('')
     const [chatbotSystemPrompt, setChatbotSystemPrompt] = useState('')
     const [designSystem, setDesignSystem] = useState<DesignSystem>(DEFAULT_DESIGN_SYSTEM)
+    const [pendingDesignSystem, setPendingDesignSystem] = useState<DesignSystem | null>(null)
+    const [designSystemAlert, setDesignSystemAlert] = useState('')
+    const [generateVisuals, setGenerateVisuals] = useState(false)
+    const [imageModel, setImageModel] = useState<ImageModelId>('gemini-2.5-flash-image')
 
     const [aiPrompt, setAiPrompt] = useState('')
     const { state: generation, reset: resetGeneration, generateSections, isGenerating, hasValidSections } = useGenerateSections()
@@ -159,6 +175,9 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
             if (!name) handleNameChange(productName)
             setHeadline(productName)
             setSubheadline(product.shortDescription)
+            if (!ctaManuallyEdited) {
+                setCtaText(buildFastCtaText(productName))
+            }
             setChatbotName(productName)
             setChatbotWelcomeMessage(`Olá! Sou o assistente do ${productName}. Como posso ajudar?`)
 
@@ -170,7 +189,7 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
 
             setAiPrompt(buildPromptFromProduct(product))
         }
-    }, [products, name, handleNameChange, resetGeneration, buildPromptFromProduct])
+    }, [products, name, handleNameChange, resetGeneration, buildPromptFromProduct, ctaManuallyEdited])
 
     const generateFromCurrentContext = useCallback(async (forcedPrompt?: string) => {
         const prompt = forcedPrompt?.trim() || aiPrompt.trim() || (selectedProduct
@@ -181,7 +200,11 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
             return
         }
 
-        await generateSections({
+        if (!ctaManuallyEdited && !ctaText.trim()) {
+            setCtaText(buildFastCtaText(name || selectedProduct?.name || ''))
+        }
+
+        const generationResult = await generateSections({
             prompt,
             pageContext: {
                 name: name || selectedProduct?.name || undefined,
@@ -190,7 +213,36 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
             },
             productContext: selectedProduct ? buildProductContext(selectedProduct) : undefined,
             productId: selectedProduct?.id,
+            imageGeneration: {
+                enabled: generateVisuals,
+                model: imageModel,
+            },
         })
+
+        if (generationResult) {
+            if (generationResult.generatedDesignSystem) {
+                setDesignSystem(generationResult.generatedDesignSystem)
+                setPendingDesignSystem(null)
+                setDesignSystemAlert('Tema sugerido pela IA aplicado automaticamente.')
+            }
+
+            const heroSection = generationResult.sections.find((section) => section.type === 'hero')
+            const heroContent = heroSection?.content as {
+                headline?: unknown
+                subheadline?: unknown
+                ctaText?: unknown
+            } | undefined
+
+            if (heroContent?.headline && typeof heroContent.headline === 'string') {
+                setHeadline(heroContent.headline)
+            }
+            if (heroContent?.subheadline && typeof heroContent.subheadline === 'string') {
+                setSubheadline(heroContent.subheadline)
+            }
+            if (!ctaManuallyEdited && heroContent?.ctaText && typeof heroContent.ctaText === 'string') {
+                setCtaText(heroContent.ctaText)
+            }
+        }
     }, [
         aiPrompt,
         selectedProduct,
@@ -199,6 +251,10 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
         name,
         headline,
         subheadline,
+        generateVisuals,
+        imageModel,
+        ctaText,
+        ctaManuallyEdited,
     ])
 
     useEffect(() => {
@@ -223,8 +279,12 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
             },
             productContext: buildProductContext(selectedProductData),
             productId: selectedProductData.id,
+            imageGeneration: {
+                enabled: generateVisuals,
+                model: imageModel,
+            },
         })
-    }, [selectedProductId, products, buildPromptFromProduct, generateSections, resetGeneration])
+    }, [selectedProductId, products, buildPromptFromProduct, generateSections, resetGeneration, generateVisuals, imageModel])
 
     // AI Generation — manual trigger via "Gerar com IA" button
     const handleGenerate = useCallback(async () => {
@@ -237,6 +297,11 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     const generatedSectionsCount = generation.sectionsCount
     const generatedSectionsJson = generation.sectionsJson
     const generatedDesignSystemJson = generation.generatedDesignSystemJson
+    const sectionsPayloadBytes = generatedSectionsJson
+        ? new TextEncoder().encode(generatedSectionsJson).length
+        : 0
+    const MAX_INLINE_SECTIONS_PAYLOAD_BYTES = 700_000
+    const shouldSendSectionsJson = !!generatedSectionsJson && sectionsPayloadBytes <= MAX_INLINE_SECTIONS_PAYLOAD_BYTES
 
     const readinessItems = [
         { label: 'Nome da página', done: !!name.trim() },
@@ -255,6 +320,18 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     const requiresAiBeforeCreate = !!selectedProductId
     const isMissingRequiredAiSections = requiresAiBeforeCreate && !hasValidSections
     const submitDisabled = isPending || isGenerating || isMissingRequiredAiSections
+    const hasPendingThemeChange = !!pendingDesignSystem && !isSameDesignSystem(pendingDesignSystem, designSystem)
+
+    const handlePresetSelect = useCallback((next: DesignSystem) => {
+        setPendingDesignSystem(next)
+        setDesignSystemAlert('Novo tema selecionado. Clique em "Aplicar tema" para confirmar.')
+    }, [])
+
+    const applyPendingTheme = useCallback(() => {
+        if (!pendingDesignSystem || isSameDesignSystem(pendingDesignSystem, designSystem)) return
+        setDesignSystem(pendingDesignSystem)
+        setDesignSystemAlert('Design System aplicado com sucesso.')
+    }, [pendingDesignSystem, designSystem])
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -400,6 +477,40 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                             </p>
                         </div>
 
+                        <div className="rounded-lg border border-border bg-background p-3.5 space-y-3">
+                            <label className="flex items-center gap-2.5 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={generateVisuals}
+                                    onChange={(e) => setGenerateVisuals(e.target.checked)}
+                                    className="h-4 w-4 rounded border-input"
+                                />
+                                <span className="text-xs font-semibold text-foreground">
+                                    Gerar imagens com Nano Banana (Hero + destaques)
+                                </span>
+                            </label>
+
+                            {generateVisuals && (
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold text-foreground">Modelo de imagem</Label>
+                                    <select
+                                        value={imageModel}
+                                        onChange={(e) => setImageModel(e.target.value as ImageModelId)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                    >
+                                        {IMAGE_MODELS.map((model) => (
+                                            <option key={model.id} value={model.id}>
+                                                {model.name} ({model.badge})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Ative apenas quando quiser landing visual completa gerada por IA, pois essa opção aumenta o consumo de tokens e imagem.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex items-center gap-3">
                             <Button
                                 type="button"
@@ -456,8 +567,11 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                     <form action={action} className="p-6 space-y-8">
                         {/* Hidden fields */}
                         <input type="hidden" name="designSystem" value={JSON.stringify(designSystem)} />
+                        <input type="hidden" name="generateVisuals" value={generateVisuals ? '1' : '0'} />
+                        <input type="hidden" name="imageModel" value={imageModel} />
+                        <input type="hidden" name="aiPrompt" value={aiPrompt} />
                         {selectedProductId && <input type="hidden" name="productId" value={selectedProductId} />}
-                        {generatedSectionsJson && <input type="hidden" name="sectionsJson" value={generatedSectionsJson} />}
+                        {shouldSendSectionsJson && <input type="hidden" name="sectionsJson" value={generatedSectionsJson} />}
                         {generatedDesignSystemJson && <input type="hidden" name="generatedDesignSystem" value={generatedDesignSystemJson} />}
 
                         {/* Informações Básicas */}
@@ -521,7 +635,11 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                                     <Label htmlFor="ctaText" className="text-xs font-semibold text-foreground">Texto do CTA</Label>
                                     <Input
                                         id="ctaText" name="ctaText"
-                                        value={ctaText} onChange={e => setCtaText(e.target.value)}
+                                        value={ctaText}
+                                        onChange={e => {
+                                            setCtaText(e.target.value)
+                                            setCtaManuallyEdited(true)
+                                        }}
                                         placeholder="Fale conosco"
                                         className="bg-background border-input h-10 text-sm"
                                     />
@@ -541,17 +659,30 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                         {/* Paleta de Cores */}
                         <div className="space-y-4">
                             <SectionHeader icon={Palette} title="Paleta de Cores" description={aiGenerated ? 'A IA selecionou o tema ideal. Você pode alterar se preferir.' : 'Escolha a paleta visual da landing page.'} />
+
+                            {designSystemAlert && (
+                                <div className={`text-xs rounded-md px-3 py-2 border ${
+                                    hasPendingThemeChange
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                        : 'bg-[hsl(var(--success-subtle))] text-[hsl(var(--success))] border-[hsl(var(--success))]/30'
+                                }`}>
+                                    {designSystemAlert}
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {DESIGN_PRESETS.map((preset) => {
-                                    const isSelected = designSystem.palette.primary === preset.designSystem.palette.primary
-                                        && designSystem.palette.secondary === preset.designSystem.palette.secondary
+                                    const isSelected = isSameDesignSystem(designSystem, preset.designSystem)
+                                    const isPending = !!pendingDesignSystem && isSameDesignSystem(pendingDesignSystem, preset.designSystem)
                                     return (
                                         <button
                                             key={preset.id}
                                             type="button"
-                                            onClick={() => setDesignSystem(preset.designSystem)}
+                                            onClick={() => handlePresetSelect(preset.designSystem)}
                                             className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition-all ${
-                                                isSelected
+                                                isPending
+                                                    ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-300'
+                                                    : isSelected
                                                     ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                                                     : 'border-border hover:border-primary/30 hover:bg-secondary/50'
                                             }`}
@@ -567,11 +698,27 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-foreground truncate">{preset.name}</p>
+                                                {isPending && <p className="text-[10px] text-amber-700 mt-0.5">Pendente</p>}
                                             </div>
-                                            {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-auto" />}
+                                            {isSelected && !isPending && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-auto" />}
                                         </button>
                                     )
                                 })}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant={hasPendingThemeChange ? 'default' : 'outline'}
+                                    disabled={!hasPendingThemeChange}
+                                    onClick={applyPendingTheme}
+                                    className="h-9 px-4 text-xs font-semibold"
+                                >
+                                    Aplicar tema
+                                </Button>
+                                {hasPendingThemeChange && (
+                                    <span className="text-xs text-muted-foreground">Existem mudanças de tema pendentes.</span>
+                                )}
                             </div>
                         </div>
 
@@ -620,6 +767,13 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                             <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-(--radius) px-3 py-2.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
                                 Aguarde a IA gerar as seções com os dados do produto antes de criar a landing page.
+                            </div>
+                        )}
+
+                        {aiGenerated && !shouldSendSectionsJson && (
+                            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-(--radius) px-3 py-2.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                                Conteúdo visual grande detectado. As seções serão regeneradas no servidor no momento do salvamento para evitar erro de limite de payload.
                             </div>
                         )}
 

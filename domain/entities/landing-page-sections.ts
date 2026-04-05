@@ -5,6 +5,8 @@
 export type SectionType =
     | 'hero'
     | 'features'
+    | 'benefits_grid'
+    | 'process_steps'
     | 'testimonials'
     | 'faq'
     | 'pricing'
@@ -18,11 +20,14 @@ export type SectionType =
 // --- Content types per section ---
 
 export interface HeroContent {
+    kicker: string
     headline: string
     subheadline: string
     ctaText: string
     ctaUrl: string
     backgroundImageUrl: string | null
+    heroImageUrl: string | null
+    trustBadges: string[]
     alignment: 'center' | 'left'
 }
 
@@ -37,6 +42,18 @@ export interface FeaturesContent {
     subtitle: string
     columns: 2 | 3 | 4
     items: FeatureItem[]
+}
+
+export interface BenefitsGridContent {
+    title: string
+    subtitle: string
+    items: Array<{ title: string; description: string }>
+}
+
+export interface ProcessStepsContent {
+    title: string
+    subtitle: string
+    steps: Array<{ title: string; description: string }>
 }
 
 export interface TestimonialItem {
@@ -127,6 +144,8 @@ export interface GalleryContent {
 export type SectionContentMap = {
     hero: HeroContent
     features: FeaturesContent
+    benefits_grid: BenefitsGridContent
+    process_steps: ProcessStepsContent
     testimonials: TestimonialsContent
     faq: FaqContent
     pricing: PricingContent
@@ -152,11 +171,14 @@ export interface LandingPageSection<T extends SectionType = SectionType> {
 
 export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K] } = {
     hero: {
+        kicker: 'Oferta especial por tempo limitado',
         headline: 'Transforme seu negócio',
         subheadline: 'Soluções inovadoras para sua empresa crescer.',
         ctaText: 'Fale conosco',
         ctaUrl: '#',
         backgroundImageUrl: null,
+        heroImageUrl: null,
+        trustBadges: ['Sem compromisso', 'Suporte especializado', 'Resultados mensuráveis'],
         alignment: 'center',
     },
     features: {
@@ -167,6 +189,24 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
             { icon: 'Zap', title: 'Rápido', description: 'Resultados em tempo real.' },
             { icon: 'Shield', title: 'Seguro', description: 'Dados protegidos.' },
             { icon: 'HeadphonesIcon', title: 'Suporte', description: 'Atendimento 24/7.' },
+        ],
+    },
+    benefits_grid: {
+        title: 'Resultados que você vai sentir na prática',
+        subtitle: 'Mais do que recursos: ganhos reais para seu dia a dia.',
+        items: [
+            { title: 'Mais velocidade', description: 'Reduza o tempo operacional e avance mais rápido com menos esforço manual.' },
+            { title: 'Mais previsibilidade', description: 'Tenha clareza de próximos passos com dados organizados e acompanhamento contínuo.' },
+            { title: 'Mais conversão', description: 'Melhore a experiência do cliente e aumente as oportunidades de fechamento.' },
+        ],
+    },
+    process_steps: {
+        title: 'Como funciona',
+        subtitle: 'Implementação simples, guiada e orientada para resultado.',
+        steps: [
+            { title: 'Diagnóstico inicial', description: 'Entendemos seu cenário atual, objetivos e pontos críticos.' },
+            { title: 'Configuração estratégica', description: 'Parametrizamos a solução para o seu contexto e metas de negócio.' },
+            { title: 'Otimização contínua', description: 'Acompanhamos performance e evoluímos com base em dados reais.' },
         ],
     },
     testimonials: {
@@ -233,6 +273,8 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
 export const SECTION_LABELS: Record<SectionType, string> = {
     hero: 'Hero (Banner Principal)',
     features: 'Funcionalidades',
+    benefits_grid: 'Grade de Benefícios',
+    process_steps: 'Passo a Passo',
     testimonials: 'Depoimentos',
     faq: 'FAQ (Perguntas Frequentes)',
     pricing: 'Tabela de Preços',

@@ -14,6 +14,8 @@ export type {
     SectionContentMap,
     HeroContent,
     FeaturesContent,
+    BenefitsGridContent,
+    ProcessStepsContent,
     FeatureItem,
     TestimonialsContent,
     TestimonialItem,

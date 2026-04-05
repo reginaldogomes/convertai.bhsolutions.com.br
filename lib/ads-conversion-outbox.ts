@@ -30,6 +30,8 @@ interface OutboxRow {
     max_attempts: number
 }
 
+let missingOutboxTableWarned = false
+
 function hasMarketingConsent(metadata?: Record<string, unknown>): boolean {
     if (!metadata) return true
     if (typeof metadata.consentMarketing !== 'boolean') return true
@@ -56,6 +58,22 @@ function computeBackoffMinutes(attempts: number): number {
     return 30
 }
 
+function isMissingOutboxTableError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false
+
+    const maybe = error as { code?: string; message?: string }
+    if (maybe.code === 'PGRST205') return true
+
+    return typeof maybe.message === 'string' && maybe.message.includes('ads_conversion_outbox')
+}
+
+function warnMissingOutboxTableOnce() {
+    if (missingOutboxTableWarned) return
+
+    missingOutboxTableWarned = true
+    console.warn('[ads-outbox] Table public.ads_conversion_outbox not found. Skipping outbox operations until migration is applied.')
+}
+
 export async function enqueueAdsConversion(input: EnqueueAdsConversionInput): Promise<string | null> {
     if (!hasMarketingConsent(input.metadata)) return null
 
@@ -75,7 +93,13 @@ export async function enqueueAdsConversion(input: EnqueueAdsConversionInput): Pr
             next_retry_at: new Date().toISOString(),
         }, { onConflict: 'dedupe_key', ignoreDuplicates: true })
 
-    if (error) throw error
+    if (error) {
+        if (isMissingOutboxTableError(error)) {
+            warnMissingOutboxTableOnce()
+            return null
+        }
+        throw error
+    }
 
     return eventId
 }
@@ -93,7 +117,13 @@ export async function flushAdsConversionOutbox(input: FlushAdsOutboxInput = {}):
         .order('created_at', { ascending: true })
         .limit(limit)
 
-    if (error) throw error
+    if (error) {
+        if (isMissingOutboxTableError(error)) {
+            warnMissingOutboxTableOnce()
+            return 0
+        }
+        throw error
+    }
 
     let sentCount = 0
 

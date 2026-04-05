@@ -76,7 +76,7 @@ export default async function LandingPageDetailPage({
                     { label: 'Leads Capturados', value: analytics.totalLeads, icon: Users },
                     { label: 'Cliques no CTA', value: analytics.totalCtaClicks, icon: MousePointer },
                 ].map(({ label, value, icon: Icon }) => (
-                    <div key={label} className="bg-card border border-border rounded-(--radius) p-4">
+                    <div key={label} className="bg-[hsl(var(--card))] border border-border rounded-(--radius) p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <Icon className="w-4 h-4 text-muted-foreground" />
                             <p className="text-muted-foreground text-xs uppercase tracking-wider">{label}</p>
@@ -87,7 +87,7 @@ export default async function LandingPageDetailPage({
             </div>
 
             {/* Section Builder */}
-            <div className="bg-card border border-border rounded-(--radius) p-6">
+            <div className="bg-[hsl(var(--card))] border border-border rounded-(--radius) p-6">
                 <SectionManager
                     pageId={page.id}
                     initialSections={page.configJson.sections ?? []}
@@ -103,7 +103,7 @@ export default async function LandingPageDetailPage({
             {/* Editor */}
             <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-6">
-                    <div className="bg-card border border-border rounded-(--radius) p-6">
+                    <div className="bg-[hsl(var(--card))] border border-border rounded-(--radius) p-6">
                         <h2 className="text-lg font-bold mb-4">Configurações da Página</h2>
                         <LandingPageEditor page={{
                             id: page.id,
@@ -124,7 +124,7 @@ export default async function LandingPageDetailPage({
 
                 <div className="space-y-6">
                     {/* Knowledge Base */}
-                    <div className="bg-card border border-border rounded-(--radius) p-6">
+                    <div className="bg-[hsl(var(--card))] border border-border rounded-(--radius) p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-bold">Base de Conhecimento (RAG)</h2>
                             <div className="flex items-center gap-2">
@@ -142,7 +142,7 @@ export default async function LandingPageDetailPage({
                         ) : (
                             <div className="space-y-3">
                                 {knowledgeBase.map((kb) => (
-                                    <div key={kb.id} className="p-3 bg-secondary/50 rounded-(--radius) border border-border-subtle">
+                                    <div key={kb.id} className="p-3 bg-[hsl(var(--background-secondary))] rounded-(--radius) border border-border-subtle">
                                         <p className="font-medium text-sm">{kb.title}</p>
                                         <p className="text-muted-foreground text-xs mt-1 line-clamp-2">{kb.content}</p>
                                     </div>
@@ -152,7 +152,7 @@ export default async function LandingPageDetailPage({
                     </div>
 
                     {/* Info */}
-                    <div className="bg-card border border-border rounded-(--radius) p-6">
+                    <div className="bg-[hsl(var(--card))] border border-border rounded-(--radius) p-6">
                         <h2 className="text-lg font-bold mb-2">Informações</h2>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">

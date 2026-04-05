@@ -163,7 +163,7 @@ export function SectionManager({ pageId, initialSections, pageContext }: Section
                     <div
                         key={section.id}
                         className={`border rounded-lg ${
-                            expandedId === section.id ? 'border-primary bg-card' : 'border-border bg-card'
+                            expandedId === section.id ? 'border-primary bg-[hsl(var(--card))]' : 'border-border bg-[hsl(var(--card))]'
                         } ${!section.visible ? 'opacity-60' : ''}`}
                     >
                         {/* Section Header */}
@@ -219,7 +219,7 @@ export function SectionManager({ pageId, initialSections, pageContext }: Section
                         Adicionar Seção
                     </Button>
                     {showAddMenu && (
-                        <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-card border border-border rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-1 z-40 bg-[hsl(var(--card))] border border-border rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
                             {(Object.keys(SECTION_LABELS) as SectionType[]).map(type => (
                                 <button
                                     key={type}

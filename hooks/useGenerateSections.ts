@@ -38,6 +38,15 @@ interface GenerateSectionsParams {
     pageContext?: { name?: string; headline?: string; subheadline?: string }
     productContext?: string
     productId?: string
+    imageGeneration?: {
+        enabled?: boolean
+        model?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
+    }
+}
+
+interface GenerateSectionsResult {
+    sections: GeneratedSection[]
+    generatedDesignSystem: DesignSystem | null
 }
 
 interface CachedGeneration {
@@ -116,7 +125,7 @@ export function useGenerateSections() {
         dispatch({ type: 'RESET' })
     }, [])
 
-    const generateSections = useCallback(async (params: GenerateSectionsParams) => {
+    const generateSections = useCallback(async (params: GenerateSectionsParams): Promise<GenerateSectionsResult | null> => {
         const prompt = params.prompt.trim()
         if (prompt.length < 10) {
             dispatch({
@@ -124,7 +133,7 @@ export function useGenerateSections() {
                 requestId: requestIdRef.current,
                 error: 'Descreva o negócio com pelo menos 10 caracteres.',
             })
-            return
+            return null
         }
 
         const payload = {
@@ -132,6 +141,7 @@ export function useGenerateSections() {
             pageContext: params.pageContext,
             productContext: params.productContext,
             productId: params.productId,
+            imageGeneration: params.imageGeneration,
         }
         const requestKey = JSON.stringify(payload)
         const now = Date.now()
@@ -146,11 +156,14 @@ export function useGenerateSections() {
                 sections: cached.sections,
                 generatedDesignSystem: cached.generatedDesignSystem,
             })
-            return
+            return {
+                sections: cached.sections,
+                generatedDesignSystem: cached.generatedDesignSystem,
+            }
         }
 
         if (inFlightKeyRef.current === requestKey) {
-            return
+            return null
         }
 
         abortRef.current?.abort()
@@ -172,7 +185,7 @@ export function useGenerateSections() {
             })
 
             const data = await response.json()
-            if (requestId !== requestIdRef.current) return
+            if (requestId !== requestIdRef.current) return null
 
             if (!response.ok) {
                 throw new Error(data.error || `Erro ${response.status}`)
@@ -199,13 +212,19 @@ export function useGenerateSections() {
                 sections: cacheSnapshot.sections,
                 generatedDesignSystem: cacheSnapshot.generatedDesignSystem,
             })
+
+            return {
+                sections: cacheSnapshot.sections,
+                generatedDesignSystem: cacheSnapshot.generatedDesignSystem,
+            }
         } catch (error) {
-            if (controller.signal.aborted || requestId !== requestIdRef.current) return
+            if (controller.signal.aborted || requestId !== requestIdRef.current) return null
             dispatch({
                 type: 'ERROR',
                 requestId,
                 error: error instanceof Error ? error.message : 'Erro ao gerar conteúdo com IA',
             })
+            return null
         } finally {
             if (inFlightKeyRef.current === requestKey) {
                 inFlightKeyRef.current = null

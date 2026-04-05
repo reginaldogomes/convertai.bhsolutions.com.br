@@ -1,6 +1,7 @@
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { powerModel } from '@/lib/ai'
+import { agentModel } from '@/lib/ai'
+import { generateNanoBananaImageDataUrl, type NanoBananaModelId } from './nano-banana'
 import { DEFAULT_SECTION_CONTENT, SECTION_LABELS, type SectionType } from '@/domain/entities'
 import { inferDesignSystemFromText } from '@/domain/value-objects/design-system'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
@@ -10,6 +11,10 @@ export interface LandingPageGenerationInput {
     pageContext?: { name?: string; headline?: string; subheadline?: string }
     productContext?: string
     knowledgeBaseContext?: string
+    imageGeneration?: {
+        enabled?: boolean
+        model?: NanoBananaModelId
+    }
 }
 
 export interface GeneratedSection {
@@ -23,11 +28,14 @@ export interface LandingPageGenerationOutput {
 }
 
 const heroContentSchema = z.object({
+    kicker: z.string().default('Oferta especial por tempo limitado'),
     headline: z.string(),
     subheadline: z.string(),
     ctaText: z.string(),
     ctaUrl: z.string().default('#'),
     backgroundImageUrl: z.string().nullable().default(null),
+    heroImageUrl: z.string().nullable().default(null),
+    trustBadges: z.array(z.string()).max(6).default([]),
     alignment: z.enum(['center', 'left']).default('center'),
 })
 
@@ -42,6 +50,28 @@ const featuresContentSchema = z.object({
     subtitle: z.string(),
     columns: z.number().int().min(2).max(4).default(3),
     items: z.array(featureItemSchema).min(2).max(6),
+})
+
+const benefitsGridContentSchema = z.object({
+    title: z.string(),
+    subtitle: z.string(),
+    items: z.array(
+        z.object({
+            title: z.string(),
+            description: z.string(),
+        })
+    ).min(3).max(6),
+})
+
+const processStepsContentSchema = z.object({
+    title: z.string(),
+    subtitle: z.string(),
+    steps: z.array(
+        z.object({
+            title: z.string(),
+            description: z.string(),
+        })
+    ).min(3).max(5),
 })
 
 const testimonialItemSchema = z.object({
@@ -116,9 +146,32 @@ const statsContentSchema = z.object({
     items: z.array(statItemSchema).min(2).max(6),
 })
 
+const logoCloudContentSchema = z.object({
+    title: z.string(),
+    logos: z.array(
+        z.object({
+            name: z.string(),
+            imageUrl: z.string(),
+        })
+    ).max(8).default([]),
+})
+
+const galleryContentSchema = z.object({
+    title: z.string(),
+    images: z.array(
+        z.object({
+            url: z.string(),
+            alt: z.string(),
+        })
+    ).max(8).default([]),
+    columns: z.number().int().min(2).max(4).default(3),
+})
+
 const sectionSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('hero'), content: heroContentSchema }),
     z.object({ type: z.literal('features'), content: featuresContentSchema }),
+    z.object({ type: z.literal('benefits_grid'), content: benefitsGridContentSchema }),
+    z.object({ type: z.literal('process_steps'), content: processStepsContentSchema }),
     z.object({ type: z.literal('testimonials'), content: testimonialsContentSchema }),
     z.object({ type: z.literal('faq'), content: faqContentSchema }),
     z.object({ type: z.literal('pricing'), content: pricingContentSchema }),
@@ -126,13 +179,29 @@ const sectionSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('cta_banner'), content: ctaBannerContentSchema }),
     z.object({ type: z.literal('video'), content: videoContentSchema }),
     z.object({ type: z.literal('stats'), content: statsContentSchema }),
+    z.object({ type: z.literal('logo_cloud'), content: logoCloudContentSchema }),
+    z.object({ type: z.literal('gallery'), content: galleryContentSchema }),
 ])
 
 const generateResponseSchema = z.object({
     sections: z.array(sectionSchema).min(2).max(10),
 })
 
-const availableSectionTypes = ['hero', 'features', 'testimonials', 'faq', 'pricing', 'contact_form', 'cta_banner', 'video', 'stats'] as const
+const availableSectionTypes = [
+    'hero',
+    'features',
+    'benefits_grid',
+    'process_steps',
+    'testimonials',
+    'faq',
+    'pricing',
+    'contact_form',
+    'cta_banner',
+    'video',
+    'stats',
+    'logo_cloud',
+    'gallery',
+] as const
 
 const looseGenerateResponseSchema = z.object({
     sections: z.array(z.object({
@@ -164,9 +233,12 @@ ${SECTION_LIST}
 1. Todo texto DEVE ser em português brasileiro impecável
 2. Sempre comece com "hero" — nunca omita
 3. Sempre termine com "contact_form" ou "cta_banner"
-4. Escolha entre 4 e 8 seções, apenas as mais relevantes para o nicho
-5. NÃO inclua "logo_cloud" ou "gallery" (precisam de imagens reais)
-6. NÃO inclua "video" a menos que o usuário mencione vídeo explicitamente`
+4. Escolha entre 5 e 10 seções, apenas as mais relevantes para o nicho
+5. Priorize estrutura de alta conversão: hero, prova de valor (features/benefits), prova social, objeções (faq), CTA final
+6. Use "process_steps" para serviços com onboarding/implantação e "benefits_grid" para reforçar transformação
+7. "gallery" e "logo_cloud" são opcionais e devem aparecer apenas quando fizer sentido estratégico
+8. NÃO inclua "video" a menos que o usuário mencione vídeo explicitamente
+9. Evite frases genéricas; use linguagem orientada a resultado, clareza e confiança`
 
 export async function generateLandingPageSections(input: LandingPageGenerationInput): Promise<LandingPageGenerationOutput> {
     const prompt = input.prompt?.trim()
@@ -189,6 +261,10 @@ export async function generateLandingPageSections(input: LandingPageGenerationIn
         contextParts.push(`\n--- BASE DE CONHECIMENTO RELACIONADA ---\n${input.knowledgeBaseContext}\n--- FIM DA BASE DE CONHECIMENTO ---`)
     }
 
+    if (input.imageGeneration?.enabled) {
+        contextParts.push('A geração visual está habilitada. Você pode incluir seções visuais (como gallery) quando fizer sentido para aumentar percepção de valor e conversão.')
+    }
+
     const enrichedPrompt = contextParts.length > 0
         ? `${contextParts.join('\n')}\n\nDescrição do negócio/produto/serviço: ${prompt}`
         : `Negócio/produto/serviço: ${prompt}`
@@ -199,12 +275,12 @@ export async function generateLandingPageSections(input: LandingPageGenerationIn
 
     try {
         const { object } = await generateObject({
-            model: powerModel,
+            model: agentModel,
             schema: generateResponseSchema,
             system: SYSTEM_PROMPT,
             prompt: enrichedPrompt,
-            temperature: 0.5,
-            maxOutputTokens: 8192,
+            temperature: 0.4,
+            maxOutputTokens: 4096,
         })
 
         rawSections = object.sections.map((s) => ({
@@ -213,19 +289,20 @@ export async function generateLandingPageSections(input: LandingPageGenerationIn
         }))
     } catch {
         const { object } = await generateObject({
-            model: powerModel,
+            model: agentModel,
             schema: looseGenerateResponseSchema,
             system: SYSTEM_PROMPT,
             prompt: enrichedPrompt,
-            temperature: 0.5,
-            maxOutputTokens: 8192,
+            temperature: 0.4,
+            maxOutputTokens: 4096,
         })
 
         rawSections = object.sections
     }
 
     const sections = normalizeSections(rawSections)
-    return { sections, designSystem }
+    const sectionsWithVisuals = await enrichSectionsWithImages(sections, input)
+    return { sections: sectionsWithVisuals, designSystem }
 }
 
 function normalizeSections(sections: Array<{ type: typeof availableSectionTypes[number]; content: Record<string, unknown> }>): GeneratedSection[] {
@@ -255,16 +332,108 @@ function normalizeSections(sections: Array<{ type: typeof availableSectionTypes[
     return normalized.slice(0, 10)
 }
 
+async function enrichSectionsWithImages(sections: GeneratedSection[], input: LandingPageGenerationInput): Promise<GeneratedSection[]> {
+    if (!input.imageGeneration?.enabled) {
+        return sections
+    }
+
+    const model = input.imageGeneration.model ?? 'gemini-2.5-flash-image'
+    const cloned = sections.map((section) => ({ ...section, content: { ...section.content } }))
+    const hero = cloned.find((section) => section.type === 'hero')
+
+    if (hero) {
+        const heroContent = hero.content as {
+            headline?: string
+            subheadline?: string
+            backgroundImageUrl?: string | null
+            heroImageUrl?: string | null
+        }
+
+        const heroVisualPrompt = [
+            'Crie uma imagem publicitária premium para hero de landing page, sem texto na imagem.',
+            heroContent.headline ?? '',
+            heroContent.subheadline ?? '',
+            input.prompt,
+            'Estilo fotográfico realista, iluminação cinematográfica, composição limpa e foco em conversão.',
+        ].filter(Boolean).join(' ')
+
+        const generatedHeroImage = await generateNanoBananaImageDataUrl({
+            model,
+            prompt: heroVisualPrompt,
+            aspectRatio: '16:9',
+        })
+
+        if (generatedHeroImage) {
+            if (!heroContent.backgroundImageUrl) {
+                heroContent.backgroundImageUrl = generatedHeroImage
+            }
+            if (!heroContent.heroImageUrl) {
+                heroContent.heroImageUrl = generatedHeroImage
+            }
+            hero.content = heroContent as Record<string, unknown>
+        }
+    }
+
+    const gallery = cloned.find((section) => section.type === 'gallery')
+    if (gallery) {
+        const galleryContent = gallery.content as {
+            title?: string
+            images?: Array<{ url: string; alt: string }>
+            columns?: 2 | 3 | 4
+        }
+
+        const existing = Array.isArray(galleryContent.images) ? galleryContent.images.filter((item) => !!item?.url) : []
+        if (existing.length < 2) {
+            const promptBase = [
+                'Imagem de destaque para seção visual de landing page, sem textos e sem logos.',
+                input.prompt,
+                hero?.content?.headline ? String((hero.content as Record<string, unknown>).headline) : '',
+            ].filter(Boolean).join(' ')
+
+            const generatedGalleryImages: Array<{ url: string; alt: string }> = [...existing]
+            while (generatedGalleryImages.length < 3) {
+                const image = await generateNanoBananaImageDataUrl({
+                    model,
+                    prompt: `${promptBase} Variação visual ${generatedGalleryImages.length + 1}.`,
+                    aspectRatio: '4:3',
+                })
+                if (!image) break
+                generatedGalleryImages.push({
+                    url: image,
+                    alt: `Imagem de destaque ${generatedGalleryImages.length + 1}`,
+                })
+            }
+
+            gallery.content = {
+                title: galleryContent.title || 'Veja o que torna essa solução diferente',
+                columns: galleryContent.columns ?? 3,
+                images: generatedGalleryImages,
+            }
+        }
+    }
+
+    return cloned
+}
+
 function normalizeSectionContent(type: SectionType, content: Record<string, unknown>) {
     switch (type) {
         case 'hero':
+            {
+                const trustBadges = Array.isArray(content.trustBadges)
+                    ? content.trustBadges.map((item) => asString(item, '')).filter(Boolean).slice(0, 6)
+                    : []
+
             return {
+                kicker: asString(content.kicker, DEFAULT_SECTION_CONTENT.hero.kicker),
                 headline: asString(content.headline, DEFAULT_SECTION_CONTENT.hero.headline),
                 subheadline: asString(content.subheadline, DEFAULT_SECTION_CONTENT.hero.subheadline),
                 ctaText: asString(content.ctaText, DEFAULT_SECTION_CONTENT.hero.ctaText),
                 ctaUrl: asString(content.ctaUrl, DEFAULT_SECTION_CONTENT.hero.ctaUrl),
                 backgroundImageUrl: asNullableString(content.backgroundImageUrl, DEFAULT_SECTION_CONTENT.hero.backgroundImageUrl),
+                heroImageUrl: asNullableString(content.heroImageUrl, DEFAULT_SECTION_CONTENT.hero.heroImageUrl),
+                trustBadges: trustBadges.length > 0 ? trustBadges : DEFAULT_SECTION_CONTENT.hero.trustBadges,
                 alignment: content.alignment === 'left' ? 'left' : 'center',
+            }
             }
         case 'features': {
             const itemsRaw = Array.isArray(content.items) ? content.items : []
@@ -284,6 +453,42 @@ function normalizeSectionContent(type: SectionType, content: Record<string, unkn
                 subtitle: asString(content.subtitle, DEFAULT_SECTION_CONTENT.features.subtitle),
                 columns: normalizeColumns(content.columns),
                 items: items.length >= 2 ? items : DEFAULT_SECTION_CONTENT.features.items,
+            }
+        }
+        case 'benefits_grid': {
+            const itemsRaw = Array.isArray(content.items) ? content.items : []
+            const items = itemsRaw
+                .map((item) => {
+                    const obj = asRecord(item)
+                    return {
+                        title: asString(obj.title, 'Benefício principal'),
+                        description: asString(obj.description, 'Descrição do benefício.'),
+                    }
+                })
+                .slice(0, 6)
+
+            return {
+                title: asString(content.title, DEFAULT_SECTION_CONTENT.benefits_grid.title),
+                subtitle: asString(content.subtitle, DEFAULT_SECTION_CONTENT.benefits_grid.subtitle),
+                items: items.length >= 3 ? items : DEFAULT_SECTION_CONTENT.benefits_grid.items,
+            }
+        }
+        case 'process_steps': {
+            const stepsRaw = Array.isArray(content.steps) ? content.steps : []
+            const steps = stepsRaw
+                .map((step) => {
+                    const obj = asRecord(step)
+                    return {
+                        title: asString(obj.title, 'Etapa'),
+                        description: asString(obj.description, 'Descrição da etapa.'),
+                    }
+                })
+                .slice(0, 5)
+
+            return {
+                title: asString(content.title, DEFAULT_SECTION_CONTENT.process_steps.title),
+                subtitle: asString(content.subtitle, DEFAULT_SECTION_CONTENT.process_steps.subtitle),
+                steps: steps.length >= 3 ? steps : DEFAULT_SECTION_CONTENT.process_steps.steps,
             }
         }
         case 'testimonials': {
@@ -395,6 +600,43 @@ function normalizeSectionContent(type: SectionType, content: Record<string, unkn
             return {
                 title: asString(content.title, DEFAULT_SECTION_CONTENT.stats.title),
                 items: items.length >= 2 ? items : DEFAULT_SECTION_CONTENT.stats.items,
+            }
+        }
+        case 'logo_cloud': {
+            const logosRaw = Array.isArray(content.logos) ? content.logos : []
+            const logos = logosRaw
+                .map((item) => {
+                    const obj = asRecord(item)
+                    return {
+                        name: asString(obj.name, 'Marca parceira'),
+                        imageUrl: asString(obj.imageUrl, ''),
+                    }
+                })
+                .filter((logo) => logo.imageUrl.length > 0)
+                .slice(0, 8)
+
+            return {
+                title: asString(content.title, DEFAULT_SECTION_CONTENT.logo_cloud.title),
+                logos,
+            }
+        }
+        case 'gallery': {
+            const imagesRaw = Array.isArray(content.images) ? content.images : []
+            const images = imagesRaw
+                .map((item) => {
+                    const obj = asRecord(item)
+                    return {
+                        url: asString(obj.url, ''),
+                        alt: asString(obj.alt, 'Imagem de destaque'),
+                    }
+                })
+                .filter((img) => img.url.length > 0)
+                .slice(0, 8)
+
+            return {
+                title: asString(content.title, DEFAULT_SECTION_CONTENT.gallery.title),
+                images,
+                columns: normalizeColumns(content.columns),
             }
         }
         default:

@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Sparkles, Loader2, AlertCircle } from 'lucide-react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
+import { IMAGE_MODELS, type ImageModelId } from '@/lib/ai'
 
 interface GenerateSectionsAIProps {
     onGenerated: (sections: LandingPageSection[], designSystem?: DesignSystem) => void
@@ -39,6 +40,8 @@ export function GenerateSectionsAI({ onGenerated, pageContext }: GenerateSection
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [generated, setGenerated] = useState(false)
+    const [generateVisuals, setGenerateVisuals] = useState(false)
+    const [imageModel, setImageModel] = useState<ImageModelId>('gemini-2.5-flash-image')
 
     const handleGenerate = async () => {
         if (!prompt.trim() || loading) return
@@ -55,6 +58,10 @@ export function GenerateSectionsAI({ onGenerated, pageContext }: GenerateSection
                     prompt: prompt.trim(),
                     pageContext: pageContext ?? undefined,
                     productContext: pageContext?.productContext ?? undefined,
+                    imageGeneration: {
+                        enabled: generateVisuals,
+                        model: imageModel,
+                    },
                 }),
             })
 
@@ -115,6 +122,32 @@ export function GenerateSectionsAI({ onGenerated, pageContext }: GenerateSection
                         <p className="text-xs text-muted-foreground">
                             Quanto mais detalhes você incluir — nicho, público-alvo, diferenciais, preços e localização — mais preciso e persuasivo será o resultado.
                         </p>
+                    </div>
+
+                    <div className="rounded-md border border-border bg-background p-3 space-y-2">
+                        <label className="flex items-center gap-2 text-xs font-medium text-card-foreground">
+                            <input
+                                type="checkbox"
+                                checked={generateVisuals}
+                                onChange={(e) => setGenerateVisuals(e.target.checked)}
+                                className="h-4 w-4 rounded border-input"
+                            />
+                            Gerar visuais com Nano Banana (hero e destaque)
+                        </label>
+
+                        {generateVisuals && (
+                            <select
+                                value={imageModel}
+                                onChange={(e) => setImageModel(e.target.value as ImageModelId)}
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            >
+                                {IMAGE_MODELS.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.name} ({model.badge})
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     {/* Example prompts */}
