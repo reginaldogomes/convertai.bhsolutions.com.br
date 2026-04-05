@@ -99,7 +99,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
                                     boxShadow: `0 8px 32px ${primaryColor}30`,
                                 }}
                             >
-                                <a href={content.ctaUrl || '#'} onClick={onCtaClick}>
+                                <a href={content.ctaUrl || '#contato'} onClick={onCtaClick}>
                                     {content.ctaText}
                                     <ArrowRight className="w-4 h-4 ml-1 transition-transform duration-200 group-hover:translate-x-1" />
                                 </a>

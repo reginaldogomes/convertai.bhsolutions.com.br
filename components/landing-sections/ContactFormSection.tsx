@@ -189,7 +189,7 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
             )}
 
             {/* Section */}
-            <section className="bg-background-secondary py-20">
+            <section id="contato" className="bg-background-secondary py-20">
                 <div className="max-w-lg mx-auto px-6">
                     {content.title && (
                         <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">{content.title}</h2>

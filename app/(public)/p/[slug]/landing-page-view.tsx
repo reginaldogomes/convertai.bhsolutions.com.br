@@ -104,16 +104,34 @@ export function LandingPageView({ page }: LandingPageViewProps) {
 
     return (
         <div className={cn('min-h-screen bg-background text-foreground', isDark && 'dark')} style={shellStyle}>
-            <div className="min-h-screen bg-background text-foreground">
+            <div className={cn('min-h-screen bg-background text-foreground', hasSections && 'pb-20 md:pb-0')}>
                 {hasSections ? (
-                    <SectionRenderer
-                        sections={config.sections}
-                        primaryColor={config.primaryColor}
-                        palette={config.designSystem?.palette}
-                        isDark={isDark}
-                        landingPageId={page.id}
-                        onCtaClick={handleCtaClick}
-                    />
+                    <>
+                        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/75">
+                            <Container className="flex h-14 items-center justify-between gap-4">
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-bold text-foreground">{page.name}</p>
+                                </div>
+                                <a
+                                    href="#contato"
+                                    onClick={handleCtaClick}
+                                    className="inline-flex shrink-0 items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                                    style={{ backgroundColor: config.primaryColor }}
+                                >
+                                    {page.ctaText || 'Falar com especialista'}
+                                </a>
+                            </Container>
+                        </header>
+
+                        <SectionRenderer
+                            sections={config.sections}
+                            primaryColor={config.primaryColor}
+                            palette={config.designSystem?.palette}
+                            isDark={isDark}
+                            landingPageId={page.id}
+                            onCtaClick={handleCtaClick}
+                        />
+                    </>
                 ) : (
                     <>
                         <header className="gradient-mesh relative overflow-hidden border-b border-border/60 bg-background">
@@ -185,6 +203,19 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                     <p>Powered by <span className="font-semibold text-foreground">{BRAND.poweredBy}</span></p>
                 </footer>
             </div>
+
+            {hasSections && (
+                <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 p-3 backdrop-blur md:hidden">
+                    <a
+                        href="#contato"
+                        onClick={handleCtaClick}
+                        className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                        style={{ backgroundColor: config.primaryColor }}
+                    >
+                        {page.ctaText || 'Falar com especialista'}
+                    </a>
+                </div>
+            )}
 
             {/* Chat Widget */}
             {shouldRenderChat && (

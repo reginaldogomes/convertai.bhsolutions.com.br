@@ -175,7 +175,7 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
         headline: 'Transforme seu negócio',
         subheadline: 'Soluções inovadoras para sua empresa crescer.',
         ctaText: 'Fale conosco',
-        ctaUrl: '#',
+        ctaUrl: '#contato',
         backgroundImageUrl: null,
         heroImageUrl: null,
         trustBadges: ['Sem compromisso', 'Suporte especializado', 'Resultados mensuráveis'],
@@ -243,7 +243,7 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
         title: 'Pronto para começar?',
         subtitle: 'Crie sua conta gratuitamente e comece agora.',
         ctaText: 'Começar Grátis',
-        ctaUrl: '#',
+        ctaUrl: '#contato',
     },
     video: {
         title: 'Veja como funciona',

@@ -97,7 +97,7 @@ function SectionBlock({
         case 'contact_form':
             return <ContactFormSection content={section.content as ContactFormContent} primaryColor={primaryColor} palette={palette} isDark={isDark} landingPageId={landingPageId} />
         case 'cta_banner':
-            return <CtaBannerSection content={section.content as CtaBannerContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
+            return <CtaBannerSection content={section.content as CtaBannerContent} primaryColor={primaryColor} palette={palette} isDark={isDark} onCtaClick={onCtaClick} />
         case 'video':
             return <VideoSection content={section.content as VideoContent} isDark={isDark} primaryColor={primaryColor} />
         case 'stats':

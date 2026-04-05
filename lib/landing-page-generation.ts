@@ -240,6 +240,22 @@ ${SECTION_LIST}
 8. NÃO inclua "video" a menos que o usuário mencione vídeo explicitamente
 9. Evite frases genéricas; use linguagem orientada a resultado, clareza e confiança`
 
+## Estrutura ideal de referência (quando aplicável):
+- Hero simples e claro com 1 CTA
+- Proposta de valor principal
+- Benefícios/Vantagens
+- Prova social (depoimentos, logos, números)
+- Produto/serviço e como funciona
+- Objeções e dúvidas (FAQ)
+- CTA final
+- Formulário de contato
+
+## Regras de conversão adicionais:
+- Inclua FAQ com objeções reais (preço, risco, prazo, suporte) sempre que possível
+- Inclua ao menos um bloco de prova social (testimonials, stats ou logo_cloud)
+- Use CTA orientado a ação concreta (ex.: "Quero uma demonstração", "Falar com especialista")
+- Não gere mais de 1 CTA primário por seção
+
 export async function generateLandingPageSections(input: LandingPageGenerationInput): Promise<LandingPageGenerationOutput> {
     const prompt = input.prompt?.trim()
     if (!prompt || prompt.length < 10) {
@@ -327,6 +343,38 @@ function normalizeSections(sections: Array<{ type: typeof availableSectionTypes[
     const lastType = normalized[normalized.length - 1]?.type
     if (lastType !== 'contact_form' && lastType !== 'cta_banner') {
         normalized.push({ type: 'cta_banner', content: DEFAULT_SECTION_CONTENT.cta_banner })
+    }
+
+    const conversionOrder: Record<SectionType, number> = {
+        hero: 0,
+        logo_cloud: 1,
+        stats: 2,
+        features: 3,
+        benefits_grid: 4,
+        process_steps: 5,
+        pricing: 6,
+        gallery: 7,
+        video: 8,
+        testimonials: 9,
+        faq: 10,
+        cta_banner: 11,
+        contact_form: 12,
+    }
+
+    // Keep a conversion-friendly progression even if AI returns mixed ordering.
+    normalized.sort((a, b) => {
+        const aRank = conversionOrder[a.type]
+        const bRank = conversionOrder[b.type]
+        if (aRank !== bRank) return aRank - bRank
+        return 0
+    })
+
+    if (normalized[0]?.type !== 'hero') {
+        const heroIndex = normalized.findIndex((section) => section.type === 'hero')
+        if (heroIndex > 0) {
+            const [hero] = normalized.splice(heroIndex, 1)
+            normalized.unshift(hero)
+        }
     }
 
     return normalized.slice(0, 10)

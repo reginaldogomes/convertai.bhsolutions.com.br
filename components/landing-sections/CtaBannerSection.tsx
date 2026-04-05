@@ -11,12 +11,13 @@ interface CtaBannerSectionProps {
     primaryColor: string
     palette?: ColorPalette
     isDark: boolean
+    onCtaClick?: () => void
 }
 
-export function CtaBannerSection({ content, primaryColor, palette, isDark }: CtaBannerSectionProps) {
+export function CtaBannerSection({ content, primaryColor, palette, isDark, onCtaClick }: CtaBannerSectionProps) {
     const secondary = palette?.secondary ?? primaryColor
     return (
-        <section className="relative overflow-hidden py-24">
+        <section id="cta-final" className="relative overflow-hidden py-24">
             {/* Multi-layer gradient background */}
             <div
                 className="absolute inset-0"
@@ -54,7 +55,7 @@ export function CtaBannerSection({ content, primaryColor, palette, isDark }: Cta
                         boxShadow: `0 8px 32px ${primaryColor}30`,
                     }}
                 >
-                    <a href={content.ctaUrl || '#'}>
+                    <a href={content.ctaUrl || '#contato'} onClick={onCtaClick}>
                         {content.ctaText}
                         <ArrowRight className="h-4 w-4 ml-1 transition-transform duration-200 group-hover:translate-x-1" />
                     </a>

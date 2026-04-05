@@ -17,7 +17,7 @@ export function FaqSection({ content, primaryColor, palette, isDark }: FaqSectio
     const [openIndex, setOpenIndex] = useState<number | null>(null)
 
     return (
-        <section className="relative bg-background-secondary py-24 overflow-hidden">
+        <section id="faq" className="relative bg-background-secondary py-24 overflow-hidden">
             {/* Decorative glow */}
             <div
                 className="pointer-events-none absolute -bottom-20 left-[20%] h-60 w-60 rounded-full blur-[120px] opacity-10"
@@ -45,11 +45,11 @@ export function FaqSection({ content, primaryColor, palette, isDark }: FaqSectio
                                 className={`overflow-hidden rounded-2xl transition-all duration-300 ${
                                     isOpen
                                         ? isDark
-                                            ? 'bg-white/[0.05] border border-white/[0.1]'
-                                            : 'bg-white border border-black/[0.06] shadow-sm'
+                                            ? 'bg-white/5 border border-white/10'
+                                            : 'bg-white border border-black/6 shadow-sm'
                                         : isDark
-                                            ? 'bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04]'
-                                            : 'bg-white/50 border border-black/[0.03] hover:bg-white/80'
+                                            ? 'bg-white/2 border border-white/4 hover:bg-white/4'
+                                            : 'bg-white/50 border border-black/3 hover:bg-white/80'
                                 }`}
                                 style={{
                                     borderLeftColor: isOpen ? primaryColor : undefined,
@@ -86,7 +86,7 @@ export function FaqSection({ content, primaryColor, palette, isDark }: FaqSectio
                                     }`}
                                 >
                                     <div className="overflow-hidden">
-                                        <p className="px-6 pb-5 pl-[4.25rem] text-sm leading-relaxed text-muted-foreground">
+                                        <p className="px-6 pb-5 pl-17 text-sm leading-relaxed text-muted-foreground">
                                             {item.answer}
                                         </p>
                                     </div>

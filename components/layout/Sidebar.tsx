@@ -12,17 +12,42 @@ import { ThemeToggle } from './ThemeToggle'
 import { BRAND } from '@/lib/brand'
 
 const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/contacts', label: 'Contatos', icon: Users },
-    { href: '/deals', label: 'Pipeline', icon: TrendingUp },
-    { href: '/inbox', label: 'WhatsApp', icon: MessageSquare },
-    { href: '/campaigns', label: 'Campanhas', icon: Mail },
-    { href: '/products', label: 'Produtos', icon: Package },
-    { href: '/landing-pages', label: 'Landing Pages', icon: Globe },
-    { href: '/automations', label: 'Automações', icon: Zap },
-    { href: '/instagram', label: 'Instagram', icon: Instagram },
-    { href: '/agents', label: 'Agentes IA', icon: Bot },
-]
+    {
+        section: 'Visão Geral',
+        items: [
+            { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+        ],
+    },
+    {
+        section: 'CRM & Vendas',
+        items: [
+            { href: '/contacts', label: 'Contatos', icon: Users },
+            { href: '/deals', label: 'Pipeline', icon: TrendingUp },
+            { href: '/products', label: 'Produtos', icon: Package },
+        ],
+    },
+    {
+        section: 'Marketing',
+        items: [
+            { href: '/landing-pages', label: 'Landing Pages', icon: Globe },
+            { href: '/campaigns', label: 'Campanhas', icon: Mail },
+        ],
+    },
+    {
+        section: 'Canais',
+        items: [
+            { href: '/inbox', label: 'WhatsApp', icon: MessageSquare },
+            { href: '/instagram', label: 'Instagram', icon: Instagram },
+        ],
+    },
+    {
+        section: 'Automação & IA',
+        items: [
+            { href: '/automations', label: 'Automações', icon: Zap },
+            { href: '/agents', label: 'Agentes IA', icon: Bot },
+        ],
+    },
+] as const
 
 export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
     const pathname = usePathname()
@@ -41,28 +66,37 @@ export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-                {navItems.map(({ href, label, icon: Icon }) => {
-                    const active = pathname === href || (href !== '/' && pathname.startsWith(href))
-                    return (
-                        <Link
-                            key={href}
-                            href={href}
-                            className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-medium transition-all duration-150 rounded-(--radius) group',
-                                active
-                                    ? 'bg-primary text-white shadow-sm'
-                                    : 'text-white/50 hover:text-white hover:bg-white/8'
-                            )}
-                        >
-                            <Icon className={cn(
-                                'w-4 h-4 shrink-0 transition-transform duration-150',
-                                active ? 'text-white' : 'text-white/50 group-hover:text-white',
-                                'group-hover:scale-110'
-                            )} />
-                            {label}
-                        </Link>
-                    )
-                })}
+                {navItems.map(({ section, items }) => (
+                    <div key={section} className="pt-2 first:pt-0">
+                        <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/30">
+                            {section}
+                        </p>
+                        <div className="space-y-0.5">
+                            {items.map(({ href, label, icon: Icon }) => {
+                                const active = pathname === href || (href !== '/' && pathname.startsWith(href))
+                                return (
+                                    <Link
+                                        key={href}
+                                        href={href}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 text-xs font-medium transition-all duration-150 rounded-(--radius) group',
+                                            active
+                                                ? 'bg-primary text-white shadow-sm'
+                                                : 'text-white/50 hover:text-white hover:bg-white/8'
+                                        )}
+                                    >
+                                        <Icon className={cn(
+                                            'w-4 h-4 shrink-0 transition-transform duration-150',
+                                            active ? 'text-white' : 'text-white/50 group-hover:text-white',
+                                            'group-hover:scale-110'
+                                        )} />
+                                        {label}
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    </div>
+                ))}
             </nav>
 
             {/* Footer actions */}
