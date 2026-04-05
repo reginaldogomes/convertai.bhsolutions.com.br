@@ -13,6 +13,7 @@ export interface LandingPageConfig {
 export interface LandingPageProps {
     id: string
     organizationId: string
+    productId: string | null
     name: string
     slug: string
     headline: string
@@ -39,6 +40,7 @@ export class LandingPage {
 
     get id() { return this.props.id }
     get organizationId() { return this.props.organizationId }
+    get productId() { return this.props.productId }
     get name() { return this.props.name }
     get slug() { return this.props.slug }
     get headline() { return this.props.headline }
@@ -59,6 +61,7 @@ export class LandingPage {
     static fromRow(row: {
         id: string
         organization_id: string
+        product_id?: string | null
         name: string
         slug: string
         headline: string
@@ -76,6 +79,7 @@ export class LandingPage {
         return new LandingPage({
             id: row.id,
             organizationId: row.organization_id,
+            productId: row.product_id ?? null,
             name: row.name,
             slug: row.slug,
             headline: row.headline,

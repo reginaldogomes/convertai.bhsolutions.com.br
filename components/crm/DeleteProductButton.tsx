@@ -1,9 +1,18 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, X, AlertTriangle } from 'lucide-react'
+import { Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import { deleteProduct } from '@/actions/products'
 import { Button } from '@/components/ui/button'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
 
 interface DeleteProductButtonProps {
@@ -27,74 +36,66 @@ export function DeleteProductButton({ productId, productName, redirectAfterDelet
     }
 
     return (
-        <>
-            <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setOpen(true)}
-                className="h-8 px-3 text-xs font-bold uppercase tracking-wider rounded-(--radius)"
-            >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Apagar
-            </Button>
-
-            {open && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="del-product-title"
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-bold uppercase tracking-wider rounded-(--radius)"
                 >
-                    <div
-                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                        onClick={() => setOpen(false)}
-                    />
-                    <div className="relative w-full max-w-sm rounded-(--radius) bg-card border border-border shadow-2xl p-6">
-                        <button
-                            onClick={() => setOpen(false)}
-                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Fechar"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                                <AlertTriangle className="w-5 h-5 text-destructive" />
-                            </div>
-                            <div>
-                                <h3 id="del-product-title" className="text-foreground font-black text-base tracking-tight">
-                                    Apagar produto?
-                                </h3>
-                                <p className="text-muted-foreground text-xs mt-0.5">Esta ação não pode ser desfeita.</p>
-                            </div>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Apagar
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm bg-card border-border p-0 gap-0">
+                <DialogHeader className="p-6 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
                         </div>
-
-                        <p className="text-foreground-secondary text-sm leading-relaxed mb-6">
-                            O produto <strong className="text-foreground">{productName}</strong> será removido permanentemente.
-                            Landing pages associadas perderão a referência ao produto.
-                        </p>
-
-                        <div className="flex gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setOpen(false)}
-                                className="flex-1"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={handleDelete}
-                                disabled={isPending}
-                                className="flex-1"
-                            >
-                                {isPending ? 'Apagando...' : 'Sim, apagar'}
-                            </Button>
+                        <div>
+                            <DialogTitle className="text-foreground font-black text-base tracking-tight">
+                                Apagar produto?
+                            </DialogTitle>
+                            <DialogDescription className="text-muted-foreground text-xs mt-0.5">
+                                Esta ação não pode ser desfeita.
+                            </DialogDescription>
                         </div>
                     </div>
+                </DialogHeader>
+
+                <div className="px-6 pb-4">
+                    <p className="text-foreground-secondary text-sm leading-relaxed">
+                        O produto <strong className="text-foreground">{productName}</strong> será removido permanentemente.
+                        Landing pages associadas perderão a referência ao produto.
+                    </p>
                 </div>
-            )}
-        </>
+
+                <DialogFooter className="px-6 pb-6 pt-2 flex gap-3 sm:gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => setOpen(false)}
+                        className="flex-1"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={handleDelete}
+                        disabled={isPending}
+                        className="flex-1"
+                    >
+                        {isPending ? (
+                            <>
+                                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                Apagando...
+                            </>
+                        ) : (
+                            'Sim, apagar'
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }

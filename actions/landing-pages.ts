@@ -2,11 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
-import { useCases } from '@/application/services/container'
+import { useCases, ragService } from '@/application/services/container'
 import { getErrorMessage } from './utils'
-import type { LandingPageSection } from '@/domain/entities'
+import type { LandingPageSection, SectionType } from '@/domain/entities'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
+import { generateLandingPageSections } from '@/lib/landing-page-generation'
+import type { Product } from '@/domain/entities/product'
 
 export async function createLandingPage(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
@@ -26,9 +28,109 @@ export async function createLandingPage(prevState: { error: string; success: boo
         const bg = designSystem.palette?.background ?? ''
         const isDark = isColorDark(bg)
 
+        const productId = (formData.get('productId') as string) || null
+
+        // Parse AI-generated sections if present
+        let sections: LandingPageSection[] = []
+        const sectionsRaw = formData.get('sectionsJson') as string | null
+        if (sectionsRaw) {
+            try {
+                const parsed = JSON.parse(sectionsRaw)
+                if (Array.isArray(parsed)) {
+                    sections = parsed.map((s: Record<string, unknown>, i: number) => ({
+                        id: crypto.randomUUID(),
+                        type: s.type as SectionType,
+                        order: i,
+                        visible: true,
+                        content: s.content as Record<string, unknown>,
+                    })) as unknown as LandingPageSection[]
+                }
+            } catch { /* ignore invalid JSON */ }
+        }
+
+        // Authoritative server-side generation: when product is linked, generate sections from product context + RAG.
+        if (productId) {
+            const productResult = await useCases.getProduct().execute(orgId, productId)
+            if (!productResult.ok) {
+                throw new Error('Produto selecionado não encontrado para gerar a landing page')
+            }
+
+            const product = productResult.value
+            const productContext = product.toAIContext()
+
+            const promptFromForm = [
+                (formData.get('headline') as string) || '',
+                (formData.get('subheadline') as string) || '',
+                (formData.get('name') as string) || '',
+            ].filter(Boolean).join('. ').trim()
+
+            const generationPrompt = promptFromForm.length > 0
+                ? promptFromForm
+                : [
+                    product.name,
+                    product.shortDescription,
+                    product.targetAudience ? `Público-alvo: ${product.targetAudience}` : '',
+                    product.differentials ? `Diferenciais: ${product.differentials}` : '',
+                ].filter(Boolean).join('. ')
+
+            let knowledgeBaseContext = ''
+            const ragMatches = await ragService.search(generationPrompt, orgId)
+            const productName = product.name.toLowerCase()
+            const relatedMatches = ragMatches.filter((match) => {
+                const title = match.title.toLowerCase()
+                const content = match.content.toLowerCase()
+                return title.includes(productName) || content.includes(productName)
+            })
+
+            const prioritizedMatches = (relatedMatches.length > 0 ? relatedMatches : ragMatches).slice(0, 5)
+            if (prioritizedMatches.length > 0) {
+                knowledgeBaseContext = prioritizedMatches
+                    .map((doc, index) => `[${index + 1}] ${doc.title}\n${doc.content}`)
+                    .join('\n\n---\n\n')
+            }
+
+            const generated = await generateLandingPageSections({
+                prompt: generationPrompt,
+                pageContext: {
+                    name: (formData.get('name') as string) || product.name,
+                    headline: (formData.get('headline') as string) || product.name,
+                    subheadline: (formData.get('subheadline') as string) || product.shortDescription,
+                },
+                productContext,
+                knowledgeBaseContext,
+            })
+
+            sections = generated.sections.map((s, i) => ({
+                id: crypto.randomUUID(),
+                type: s.type as SectionType,
+                order: i,
+                visible: true,
+                content: s.content,
+            })) as unknown as LandingPageSection[]
+
+            sections = anchorSectionsWithProductData(product, sections)
+
+            designSystem = generated.designSystem
+        }
+
+        // Strict non-bypassable guardrail.
+        if (productId && sections.length === 0) {
+            throw new Error('Cannot create landing page without AI-generated sections for selected product')
+        }
+
+        // Use AI-generated design system if available
+        const generatedDesignSystemRaw = formData.get('generatedDesignSystem') as string | null
+        if (generatedDesignSystemRaw) {
+            try {
+                const genDS = JSON.parse(generatedDesignSystemRaw)
+                if (genDS?.palette) designSystem = genDS
+            } catch { /* ignore */ }
+        }
+
         const result = await useCases.createLandingPage().execute(orgId, {
             name: formData.get('name') as string,
             slug: formData.get('slug') as string,
+            productId,
             headline: (formData.get('headline') as string) || '',
             subheadline: (formData.get('subheadline') as string) || '',
             ctaText: (formData.get('ctaText') as string) || 'Fale conosco',
@@ -40,6 +142,7 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 primaryColor: designSystem.palette?.primary ?? '#6366f1',
                 designSystem,
                 logoUrl: null,
+                sections,
             },
         })
 
@@ -50,6 +153,147 @@ export async function createLandingPage(prevState: { error: string; success: boo
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
     }
+}
+
+function anchorSectionsWithProductData(product: Product, sections: LandingPageSection[]): LandingPageSection[] {
+    const cloned = sections.map((section) => ({
+        ...section,
+        content: { ...section.content } as LandingPageSection['content'],
+    }))
+
+    for (const section of cloned) {
+        if (section.type === 'hero') {
+            const content = section.content as unknown as Record<string, unknown>
+            const headline = String(content.headline ?? '').trim()
+            const subheadline = String(content.subheadline ?? '').trim()
+
+            if (!headline || isGenericCopy(headline) || !headline.toLowerCase().includes(product.name.toLowerCase())) {
+                content.headline = `Conheça ${product.name}`
+            }
+            if (!subheadline || isGenericCopy(subheadline)) {
+                content.subheadline = product.shortDescription || product.fullDescription || `Solução ideal para ${product.targetAudience || 'o seu negócio'}.`
+            }
+            section.content = content as unknown as LandingPageSection['content']
+        }
+
+        if (section.type === 'features' && product.features.length > 0) {
+            const content = section.content as unknown as Record<string, unknown>
+            const items = product.features.slice(0, 6).map((feature, index) => ({
+                icon: ['Zap', 'Shield', 'Target', 'Rocket', 'CheckCircle', 'Star'][index % 6],
+                title: feature.title,
+                description: feature.description,
+            }))
+
+            content.title = `Funcionalidades de ${product.name}`
+            content.subtitle = product.differentials || product.targetAudience || 'Recursos reais do produto selecionado.'
+            content.items = items
+            section.content = content as unknown as LandingPageSection['content']
+        }
+
+        if (section.type === 'faq' && product.faqs.length > 0) {
+            const content = section.content as unknown as Record<string, unknown>
+            content.title = `Dúvidas sobre ${product.name}`
+            content.subtitle = 'Perguntas e respostas baseadas no produto selecionado.'
+            content.items = product.faqs.slice(0, 8).map((faq) => ({
+                question: faq.question,
+                answer: faq.answer,
+            }))
+            section.content = content as unknown as LandingPageSection['content']
+        }
+
+        if (section.type === 'pricing' && product.price !== null) {
+            const content = section.content as unknown as Record<string, unknown>
+            const tiers = Array.isArray(content.tiers) ? [...(content.tiers as Array<Record<string, unknown>>)] : []
+            const firstTier = tiers[0] ?? {}
+
+            firstTier.name = String(firstTier.name ?? product.name)
+            firstTier.price = product.formattedPrice
+            firstTier.period = product.priceType === 'monthly' ? '/mês' : product.priceType === 'yearly' ? '/ano' : ''
+            firstTier.description = String(firstTier.description ?? product.shortDescription)
+
+            if (product.features.length > 0) {
+                firstTier.features = product.features.slice(0, 6).map((f) => f.title)
+            }
+
+            tiers[0] = firstTier
+            content.title = `Investimento em ${product.name}`
+            content.subtitle = String(content.subtitle ?? 'Condição baseada no produto selecionado.')
+            content.tiers = tiers
+            section.content = content as unknown as LandingPageSection['content']
+        }
+
+        if (section.type === 'cta_banner') {
+            const content = section.content as unknown as Record<string, unknown>
+            const title = String(content.title ?? '').trim()
+            if (!title || isGenericCopy(title)) {
+                content.title = `Pronto para começar com ${product.name}?`
+            }
+            section.content = content as unknown as LandingPageSection['content']
+        }
+
+        if (section.type === 'contact_form') {
+            const content = section.content as unknown as Record<string, unknown>
+            const title = String(content.title ?? '').trim()
+            if (!title || isGenericCopy(title)) {
+                content.title = `Fale com nosso time sobre ${product.name}`
+            }
+            section.content = content as unknown as LandingPageSection['content']
+        }
+    }
+
+    if (!cloned.some((section) => section.type === 'features') && product.features.length > 0) {
+        cloned.push({
+            id: crypto.randomUUID(),
+            type: 'features',
+            order: cloned.length,
+            visible: true,
+            content: {
+                title: `Funcionalidades de ${product.name}`,
+                subtitle: product.differentials || 'Recursos do produto selecionado.',
+                columns: 3,
+                items: product.features.slice(0, 6).map((feature, index) => ({
+                    icon: ['Zap', 'Shield', 'Target', 'Rocket', 'CheckCircle', 'Star'][index % 6],
+                    title: feature.title,
+                    description: feature.description,
+                })),
+            },
+        } as LandingPageSection)
+    }
+
+    if (!cloned.some((section) => section.type === 'faq') && product.faqs.length > 0) {
+        cloned.push({
+            id: crypto.randomUUID(),
+            type: 'faq',
+            order: cloned.length,
+            visible: true,
+            content: {
+                title: `Dúvidas sobre ${product.name}`,
+                subtitle: 'Perguntas frequentes baseadas no produto selecionado.',
+                items: product.faqs.slice(0, 8).map((faq) => ({
+                    question: faq.question,
+                    answer: faq.answer,
+                })),
+            },
+        } as LandingPageSection)
+    }
+
+    return cloned.map((section, index) => ({
+        ...section,
+        order: index,
+    }))
+}
+
+function isGenericCopy(text: string): boolean {
+    const normalized = text.toLowerCase()
+    const genericTokens = [
+        'transforme seu negócio',
+        'nossos diferenciais',
+        'perguntas frequentes',
+        'pronto para começar',
+        'entre em contato',
+        'soluções inovadoras',
+    ]
+    return genericTokens.some((token) => normalized.includes(token))
 }
 
 export async function updateLandingPage(pageId: string, prevState: { error: string; success: boolean }, formData: FormData) {
@@ -135,6 +379,70 @@ export async function addKnowledgeBaseEntry(prevState: { error: string; success:
 
         revalidatePath('/landing-pages')
         return { error: '', success: true }
+    } catch (error) {
+        return { error: getErrorMessage(error), success: false }
+    }
+}
+
+export async function syncProductKnowledgeBase(pageId: string) {
+    try {
+        const { orgId } = await getAuthContext()
+
+        const pageResult = await useCases.getLandingPage().execute(orgId, pageId)
+        if (!pageResult.ok) return { error: pageResult.error.message, success: false }
+
+        const page = pageResult.value
+        if (!page.productId) return { error: 'Nenhum produto vinculado', success: false }
+
+        const productResult = await useCases.getProduct().execute(orgId, page.productId)
+        if (!productResult.ok) return { error: 'Produto não encontrado', success: false }
+
+        const product = productResult.value
+        const entries: Array<{ title: string; content: string }> = []
+
+        // Main overview
+        const overview = [
+            `${product.name} — ${product.isProduct() ? 'Produto Digital' : 'Serviço Digital'}`,
+            '',
+            product.fullDescription || product.shortDescription,
+            product.targetAudience ? `\nPúblico-alvo: ${product.targetAudience}` : '',
+            product.differentials ? `\nDiferenciais: ${product.differentials}` : '',
+            product.price !== null ? `\nPreço: ${product.formattedPrice}` : '',
+        ].filter(Boolean).join('\n')
+        entries.push({ title: `Sobre: ${product.name}`, content: overview })
+
+        if (product.features.length > 0) {
+            entries.push({
+                title: `Funcionalidades: ${product.name}`,
+                content: product.features.map(f => `• ${f.title}: ${f.description}`).join('\n'),
+            })
+        }
+        if (product.benefits.length > 0) {
+            entries.push({
+                title: `Benefícios: ${product.name}`,
+                content: product.benefits.map(b => `• ${b.title}: ${b.description}`).join('\n'),
+            })
+        }
+        if (product.faqs.length > 0) {
+            entries.push({
+                title: `Perguntas Frequentes: ${product.name}`,
+                content: product.faqs.map(f => `Pergunta: ${f.question}\nResposta: ${f.answer}`).join('\n\n'),
+            })
+        }
+
+        // Index all entries
+        let indexed = 0
+        for (const entry of entries) {
+            const result = await useCases.addKnowledgeBase().execute(orgId, {
+                landingPageId: pageId,
+                title: entry.title,
+                content: entry.content,
+            })
+            if (result.ok) indexed++
+        }
+
+        revalidatePath(`/landing-pages/${pageId}`)
+        return { error: '', success: true, message: `${indexed} entradas indexadas na base de conhecimento` }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
     }

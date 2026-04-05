@@ -16,6 +16,8 @@ const LandingPageEditor = dynamic(() => import('./landing-page-editor').then(m =
     loading: () => <div className="h-96 animate-pulse bg-secondary rounded-(--radius)" />,
 })
 
+import { SyncProductKnowledgeButton } from '@/components/crm/SyncProductKnowledgeButton'
+
 export default async function LandingPageDetailPage({
     params,
 }: {
@@ -33,6 +35,15 @@ export default async function LandingPageDetailPage({
 
     if (!pageResult.ok) notFound()
     const page = pageResult.value
+
+    // Fetch linked product for AI context enrichment
+    let productContext: string | undefined
+    if (page.productId) {
+        const productResult = await useCases.getProduct().execute(auth.orgId, page.productId)
+        if (productResult.ok) {
+            productContext = productResult.value.toAIContext()
+        }
+    }
 
     return (
         <div className="p-8 space-y-6">
@@ -84,6 +95,7 @@ export default async function LandingPageDetailPage({
                         name: page.name,
                         headline: page.headline,
                         subheadline: page.subheadline,
+                        productContext,
                     }}
                 />
             </div>
@@ -115,7 +127,10 @@ export default async function LandingPageDetailPage({
                     <div className="bg-card border border-border rounded-(--radius) p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-bold">Base de Conhecimento (RAG)</h2>
-                            <AddKnowledgeBaseButton landingPageId={page.id} />
+                            <div className="flex items-center gap-2">
+                                {page.productId && <SyncProductKnowledgeButton pageId={page.id} />}
+                                <AddKnowledgeBaseButton landingPageId={page.id} />
+                            </div>
                         </div>
                         {knowledgeBase.length === 0 ? (
                             <div className="text-center py-8">

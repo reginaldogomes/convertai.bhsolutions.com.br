@@ -41,6 +41,7 @@ export class SupabaseLandingPageRepository implements ILandingPageRepository {
             .from('landing_pages')
             .insert({
                 organization_id: input.organizationId,
+                product_id: input.productId ?? null,
                 name: input.name,
                 slug: input.slug,
                 headline: input.headline,

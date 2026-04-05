@@ -5,6 +5,7 @@ import { DeleteLandingPageButton } from '@/components/crm/DeleteLandingPageButto
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Globe, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { PublishToggleButton } from '@/components/crm/PublishToggleButton'
 
 export default async function LandingPagesPage() {
     const auth = await tryGetAuthContext()
@@ -40,22 +41,19 @@ export default async function LandingPagesPage() {
                                     <Link href={`/landing-pages/${page.id}`} className="text-foreground font-bold hover:text-primary transition-colors">
                                         {page.name}
                                     </Link>
-                                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${
-                                        page.isPublished()
-                                            ? 'bg-[hsl(var(--success-subtle))] text-[hsl(var(--success))] border-[hsl(var(--success))]'
-                                            : page.isArchived()
-                                                ? 'bg-[hsl(var(--destructive-subtle))] text-destructive border-destructive'
-                                                : 'bg-secondary text-foreground-secondary border-border'
-                                    }`}>
-                                        {page.status}
-                                    </span>
                                 </div>
                                 <p className="text-muted-foreground text-sm">
                                     /p/{page.slug} — {page.headline || 'Sem título'}
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
+                                <div className="flex flex-col items-end text-right">
+                                    <span className="text-xs font-semibold">
+                                        {page.isPublished() ? 'Publicada' : 'Rascunho'}
+                                    </span>
+                                    <PublishToggleButton pageId={page.id} isPublished={page.isPublished()} />
+                                </div>
                                 {page.isPublished() && (
                                     <a
                                         href={`/p/${page.slug}`}

@@ -37,6 +37,7 @@ interface SectionManagerProps {
         name: string
         headline: string
         subheadline: string
+        productContext?: string
     }
 }
 

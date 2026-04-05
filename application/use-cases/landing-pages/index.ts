@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { type Result, success, failure, ValidationError, EntityNotFoundError } from '@/domain/errors'
-import type { ILandingPageRepository, IKnowledgeBaseRepository, IAnalyticsRepository, IRagService, PageAnalyticsSummary } from '@/domain/interfaces'
-import { LandingPage, KnowledgeBase } from '@/domain/entities'
+import type { ILandingPageRepository, IKnowledgeBaseRepository, IAnalyticsRepository, IRagService, IProductRepository, PageAnalyticsSummary } from '@/domain/interfaces'
+import { LandingPage, KnowledgeBase, Product } from '@/domain/entities'
 
 // --- Schemas ---
 
@@ -9,12 +9,13 @@ const createLandingPageSchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório').max(200),
     slug: z.string().min(1, 'Slug é obrigatório').max(100)
         .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug deve conter apenas letras minúsculas, números e hifens'),
+    productId: z.string().uuid().nullable().optional(),
     headline: z.string().max(500).default(''),
     subheadline: z.string().max(1000).default(''),
     ctaText: z.string().max(100).optional(),
     chatbotName: z.string().max(100).optional(),
     chatbotWelcomeMessage: z.string().max(500).optional(),
-    chatbotSystemPrompt: z.string().max(5000).optional(),
+    chatbotSystemPrompt: z.string().max(15000).optional(),
 })
 
 const updateLandingPageSchema = z.object({
@@ -26,18 +27,24 @@ const updateLandingPageSchema = z.object({
     ctaText: z.string().max(100).optional(),
     chatbotName: z.string().max(100).optional(),
     chatbotWelcomeMessage: z.string().max(500).optional(),
-    chatbotSystemPrompt: z.string().max(5000).optional(),
+    chatbotSystemPrompt: z.string().max(15000).optional(),
     configJson: z.record(z.string(), z.unknown()).optional(),
 })
 
 // --- Create Landing Page ---
 
 export class CreateLandingPageUseCase {
-    constructor(private readonly landingPageRepo: ILandingPageRepository) {}
+    constructor(
+        private readonly landingPageRepo: ILandingPageRepository,
+        private readonly productRepo?: IProductRepository,
+        private readonly knowledgeBaseRepo?: IKnowledgeBaseRepository,
+        private readonly ragService?: IRagService,
+    ) {}
 
     async execute(orgId: string, input: {
         name: string
         slug: string
+        productId?: string | null
         headline?: string
         subheadline?: string
         ctaText?: string
@@ -65,7 +72,74 @@ export class CreateLandingPageUseCase {
         })
 
         if (!page) return failure(new ValidationError('Erro ao criar landing page'))
+
+        // Auto-index product data into RAG knowledge base when a product is linked
+        if (parsed.data.productId && this.productRepo && this.knowledgeBaseRepo && this.ragService) {
+            this.autoIndexProductData(orgId, page.id, parsed.data.productId).catch(() => {
+                // Non-critical: product data indexing failure shouldn't block LP creation
+            })
+        }
+
         return success(page)
+    }
+
+    private async autoIndexProductData(orgId: string, pageId: string, productId: string): Promise<void> {
+        const product = await this.productRepo!.findById(productId)
+        if (!product) return
+
+        // Build knowledge base entries from different product sections
+        const entries: Array<{ title: string; content: string }> = []
+
+        // 1. Main overview
+        const overview = [
+            `${product.name} — ${product.isProduct() ? 'Produto Digital' : 'Serviço Digital'}`,
+            '',
+            product.fullDescription || product.shortDescription,
+            product.targetAudience ? `\nPúblico-alvo: ${product.targetAudience}` : '',
+            product.differentials ? `\nDiferenciais: ${product.differentials}` : '',
+            product.price !== null ? `\nPreço: ${product.formattedPrice}` : '',
+        ].filter(Boolean).join('\n')
+
+        entries.push({ title: `Sobre: ${product.name}`, content: overview })
+
+        // 2. Features
+        if (product.features.length > 0) {
+            const featuresText = product.features
+                .map(f => `• ${f.title}: ${f.description}`)
+                .join('\n')
+            entries.push({ title: `Funcionalidades: ${product.name}`, content: featuresText })
+        }
+
+        // 3. Benefits
+        if (product.benefits.length > 0) {
+            const benefitsText = product.benefits
+                .map(b => `• ${b.title}: ${b.description}`)
+                .join('\n')
+            entries.push({ title: `Benefícios: ${product.name}`, content: benefitsText })
+        }
+
+        // 4. FAQs
+        if (product.faqs.length > 0) {
+            const faqText = product.faqs
+                .map(f => `Pergunta: ${f.question}\nResposta: ${f.answer}`)
+                .join('\n\n')
+            entries.push({ title: `Perguntas Frequentes: ${product.name}`, content: faqText })
+        }
+
+        // Index all entries in parallel
+        await Promise.allSettled(
+            entries.map(async (entry) => {
+                const kb = await this.knowledgeBaseRepo!.create({
+                    organizationId: orgId,
+                    landingPageId: pageId,
+                    title: entry.title,
+                    content: entry.content,
+                })
+                if (kb) {
+                    await this.ragService!.indexContent(kb.id, `${entry.title}\n\n${entry.content}`)
+                }
+            })
+        )
     }
 }
 

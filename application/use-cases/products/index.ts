@@ -16,7 +16,7 @@ const createProductSchema = z.object({
     priceType: z.enum(['one_time', 'monthly', 'yearly', 'custom']).nullable().optional(),
     currency: z.string().max(3).default('BRL'),
     targetAudience: z.string().max(2000).default(''),
-    differentials: z.string().max(5000).default(''),
+    differentials: z.string().max(15000).default(''),
     tags: z.array(z.string()).default([]),
 })
 
@@ -31,7 +31,7 @@ const updateProductSchema = z.object({
     priceType: z.enum(['one_time', 'monthly', 'yearly', 'custom']).nullable().optional(),
     currency: z.string().max(3).optional(),
     targetAudience: z.string().max(2000).optional(),
-    differentials: z.string().max(5000).optional(),
+    differentials: z.string().max(15000).optional(),
     tags: z.array(z.string()).optional(),
     featuresJson: z.array(z.object({ title: z.string(), description: z.string() })).optional(),
     benefitsJson: z.array(z.object({ title: z.string(), description: z.string() })).optional(),

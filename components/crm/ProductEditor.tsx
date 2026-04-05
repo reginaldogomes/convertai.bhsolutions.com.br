@@ -13,8 +13,43 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Save, Plus, X } from 'lucide-react'
+import { Save, Plus, X, Package, FileText, DollarSign, Sparkles, Star, HelpCircle, Target, Loader2, CheckCircle2 } from 'lucide-react'
 import type { ProductFeature, ProductBenefit, ProductFaq } from '@/domain/entities'
+
+function SectionHeader({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description?: string }) {
+    return (
+        <div className="flex items-start gap-2.5 pb-3 border-b border-border-subtle">
+            <div className="w-7 h-7 rounded-md bg-[hsl(var(--primary-subtle))] flex items-center justify-center shrink-0 mt-0.5">
+                <Icon className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div>
+                <h3 className="text-sm font-bold text-foreground">{title}</h3>
+                {description && <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>}
+            </div>
+        </div>
+    )
+}
+
+function DynamicListItem({ index, onRemove, children }: { index: number; onRemove: () => void; children: React.ReactNode }) {
+    return (
+        <div className="group relative flex gap-3 items-start bg-background rounded-lg border border-border-subtle p-3 transition-all duration-200 hover:border-border">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-muted-foreground mt-0.5 tabular-nums">
+                {index + 1}
+            </span>
+            <div className="flex-1 space-y-2">
+                {children}
+            </div>
+            <button
+                type="button"
+                onClick={onRemove}
+                className="text-muted-foreground/40 hover:text-destructive transition-colors mt-0.5 opacity-0 group-hover:opacity-100"
+                aria-label="Remover item"
+            >
+                <X className="w-4 h-4" />
+            </button>
+        </div>
+    )
+}
 
 interface ProductEditorProps {
     product: {
@@ -45,34 +80,32 @@ export function ProductEditor({ product }: ProductEditorProps) {
     const [faqs, setFaqs] = useState<ProductFaq[]>(product.faqs)
 
     return (
-        <form action={action} className="space-y-6">
+        <form action={action} className="space-y-8">
             {/* Hidden JSON fields */}
             <input type="hidden" name="featuresJson" value={JSON.stringify(features)} />
             <input type="hidden" name="benefitsJson" value={JSON.stringify(benefits)} />
             <input type="hidden" name="faqsJson" value={JSON.stringify(faqs)} />
 
             {/* Informações básicas */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Informações Básicas
-                </legend>
-                <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+                <SectionHeader icon={Package} title="Informações Básicas" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="name" className="text-sm font-medium">Nome</Label>
+                        <Label htmlFor="name" className="text-xs font-semibold text-foreground">Nome</Label>
                         <Input id="name" name="name" defaultValue={product.name}
-                            className="bg-background border-input" />
+                            className="bg-background border-input h-9" />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="slug" className="text-sm font-medium">Slug</Label>
+                        <Label htmlFor="slug" className="text-xs font-semibold text-foreground">Slug</Label>
                         <Input id="slug" name="slug" defaultValue={product.slug}
                             pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
-                            className="bg-background border-input" />
+                            className="bg-background border-input h-9 font-mono text-xs" />
                     </div>
                 </div>
                 <div className="space-y-1.5">
-                    <Label htmlFor="type" className="text-sm font-medium">Tipo</Label>
+                    <Label htmlFor="type" className="text-xs font-semibold text-foreground">Tipo</Label>
                     <Select name="type" defaultValue={product.type}>
-                        <SelectTrigger className="bg-background border-input">
+                        <SelectTrigger className="bg-background border-input h-9">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -81,43 +114,39 @@ export function ProductEditor({ product }: ProductEditorProps) {
                         </SelectContent>
                     </Select>
                 </div>
-            </fieldset>
+            </div>
 
             {/* Descrições */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Descrição
-                </legend>
+            <div className="space-y-4">
+                <SectionHeader icon={FileText} title="Descrição" description="Textos usados nas landing pages e como contexto para o agente IA." />
                 <div className="space-y-1.5">
-                    <Label htmlFor="shortDescription" className="text-sm font-medium">Descrição Curta</Label>
+                    <Label htmlFor="shortDescription" className="text-xs font-semibold text-foreground">Descrição Curta</Label>
                     <Input id="shortDescription" name="shortDescription" defaultValue={product.shortDescription}
-                        className="bg-background border-input" />
-                    <p className="text-xs text-muted-foreground">Usada como pitch rápido nas landing pages e pelo agente IA.</p>
+                        className="bg-background border-input h-9" />
+                    <p className="text-[11px] text-muted-foreground">Usada como pitch rápido nas landing pages e pelo agente IA.</p>
                 </div>
                 <div className="space-y-1.5">
-                    <Label htmlFor="fullDescription" className="text-sm font-medium">Descrição Completa</Label>
+                    <Label htmlFor="fullDescription" className="text-xs font-semibold text-foreground">Descrição Completa</Label>
                     <Textarea id="fullDescription" name="fullDescription" defaultValue={product.fullDescription}
-                        rows={6} className="bg-background border-input" />
-                    <p className="text-xs text-muted-foreground">Descrição detalhada para o agente IA. Quanto mais rica, melhor o atendimento.</p>
+                        rows={6} className="bg-background border-input text-sm" />
+                    <p className="text-[11px] text-muted-foreground">Quanto mais rica, melhor o atendimento do agente IA e a qualidade das landing pages.</p>
                 </div>
-            </fieldset>
+            </div>
 
             {/* Preço */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Precificação
-                </legend>
+            <div className="space-y-4">
+                <SectionHeader icon={DollarSign} title="Precificação" />
                 <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                        <Label htmlFor="price" className="text-sm font-medium">Preço</Label>
+                        <Label htmlFor="price" className="text-xs font-semibold text-foreground">Preço</Label>
                         <Input id="price" name="price" type="number" step="0.01" min="0"
                             defaultValue={product.price ?? ''}
-                            className="bg-background border-input" />
+                            className="bg-background border-input h-9 font-mono" />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="priceType" className="text-sm font-medium">Tipo</Label>
+                        <Label htmlFor="priceType" className="text-xs font-semibold text-foreground">Tipo</Label>
                         <Select name="priceType" defaultValue={product.priceType ?? ''}>
-                            <SelectTrigger className="bg-background border-input">
+                            <SelectTrigger className="bg-background border-input h-9">
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
@@ -129,106 +158,91 @@ export function ProductEditor({ product }: ProductEditorProps) {
                         </Select>
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="currency" className="text-sm font-medium">Moeda</Label>
+                        <Label htmlFor="currency" className="text-xs font-semibold text-foreground">Moeda</Label>
                         <Input id="currency" name="currency" defaultValue={product.currency}
-                            maxLength={3} className="bg-background border-input" />
+                            maxLength={3} className="bg-background border-input h-9 uppercase font-mono text-xs" />
                     </div>
                 </div>
-            </fieldset>
+            </div>
 
             {/* Features */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Funcionalidades / Características
-                </legend>
-                <p className="text-xs text-muted-foreground">O que o produto oferece. Usado nas landing pages e pelo agente IA.</p>
-                {features.map((feature, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                        <div className="flex-1 space-y-1">
+            <div className="space-y-4">
+                <SectionHeader icon={Sparkles} title="Funcionalidades / Características" description="O que o produto oferece. Alimenta landing pages e agente IA." />
+                <div className="space-y-3">
+                    {features.map((feature, i) => (
+                        <DynamicListItem key={i} index={i} onRemove={() => setFeatures(features.filter((_, j) => j !== i))}>
                             <Input
-                                placeholder="Título"
+                                placeholder="Título da funcionalidade"
                                 value={feature.title}
                                 onChange={e => {
                                     const updated = [...features]
                                     updated[i] = { ...updated[i], title: e.target.value }
                                     setFeatures(updated)
                                 }}
-                                className="bg-background border-input text-sm"
+                                className="bg-card border-input h-8 text-sm font-medium"
                             />
                             <Input
-                                placeholder="Descrição"
+                                placeholder="Descrição breve (opcional)"
                                 value={feature.description}
                                 onChange={e => {
                                     const updated = [...features]
                                     updated[i] = { ...updated[i], description: e.target.value }
                                     setFeatures(updated)
                                 }}
-                                className="bg-background border-input text-sm"
+                                className="bg-card border-input h-8 text-xs text-muted-foreground"
                             />
-                        </div>
-                        <button type="button" onClick={() => setFeatures(features.filter((_, j) => j !== i))}
-                            className="text-muted-foreground hover:text-destructive transition-colors mt-2">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
+                        </DynamicListItem>
+                    ))}
+                </div>
                 <Button type="button" variant="outline" size="sm"
+                    className="h-8 text-xs transition-all duration-200"
                     onClick={() => setFeatures([...features, { title: '', description: '' }])}>
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
+                    <Plus className="w-3 h-3 mr-1.5" /> Adicionar funcionalidade
                 </Button>
-            </fieldset>
+            </div>
 
             {/* Benefits */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Benefícios
-                </legend>
-                <p className="text-xs text-muted-foreground">Resultados que o cliente obtém. Usado para convencer nas landing pages.</p>
-                {benefits.map((benefit, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                        <div className="flex-1 space-y-1">
+            <div className="space-y-4">
+                <SectionHeader icon={Star} title="Benefícios" description="Resultados que o cliente obtém. Usado para convencer nas landing pages." />
+                <div className="space-y-3">
+                    {benefits.map((benefit, i) => (
+                        <DynamicListItem key={i} index={i} onRemove={() => setBenefits(benefits.filter((_, j) => j !== i))}>
                             <Input
-                                placeholder="Título"
+                                placeholder="Título do benefício"
                                 value={benefit.title}
                                 onChange={e => {
                                     const updated = [...benefits]
                                     updated[i] = { ...updated[i], title: e.target.value }
                                     setBenefits(updated)
                                 }}
-                                className="bg-background border-input text-sm"
+                                className="bg-card border-input h-8 text-sm font-medium"
                             />
                             <Input
-                                placeholder="Descrição"
+                                placeholder="Descrição breve (opcional)"
                                 value={benefit.description}
                                 onChange={e => {
                                     const updated = [...benefits]
                                     updated[i] = { ...updated[i], description: e.target.value }
                                     setBenefits(updated)
                                 }}
-                                className="bg-background border-input text-sm"
+                                className="bg-card border-input h-8 text-xs text-muted-foreground"
                             />
-                        </div>
-                        <button type="button" onClick={() => setBenefits(benefits.filter((_, j) => j !== i))}
-                            className="text-muted-foreground hover:text-destructive transition-colors mt-2">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
+                        </DynamicListItem>
+                    ))}
+                </div>
                 <Button type="button" variant="outline" size="sm"
+                    className="h-8 text-xs transition-all duration-200"
                     onClick={() => setBenefits([...benefits, { title: '', description: '' }])}>
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
+                    <Plus className="w-3 h-3 mr-1.5" /> Adicionar benefício
                 </Button>
-            </fieldset>
+            </div>
 
             {/* FAQs */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Perguntas Frequentes (FAQ)
-                </legend>
-                <p className="text-xs text-muted-foreground">Perguntas comuns sobre o produto. O agente IA usará para responder visitantes.</p>
-                {faqs.map((faq, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                        <div className="flex-1 space-y-1">
+            <div className="space-y-4">
+                <SectionHeader icon={HelpCircle} title="Perguntas Frequentes (FAQ)" description="O agente IA usará estas respostas para atender visitantes." />
+                <div className="space-y-3">
+                    {faqs.map((faq, i) => (
+                        <DynamicListItem key={i} index={i} onRemove={() => setFaqs(faqs.filter((_, j) => j !== i))}>
                             <Input
                                 placeholder="Pergunta"
                                 value={faq.question}
@@ -237,10 +251,10 @@ export function ProductEditor({ product }: ProductEditorProps) {
                                     updated[i] = { ...updated[i], question: e.target.value }
                                     setFaqs(updated)
                                 }}
-                                className="bg-background border-input text-sm"
+                                className="bg-card border-input h-8 text-sm font-medium"
                             />
                             <Textarea
-                                placeholder="Resposta"
+                                placeholder="Resposta detalhada"
                                 value={faq.answer}
                                 rows={2}
                                 onChange={e => {
@@ -248,59 +262,67 @@ export function ProductEditor({ product }: ProductEditorProps) {
                                     updated[i] = { ...updated[i], answer: e.target.value }
                                     setFaqs(updated)
                                 }}
-                                className="bg-background border-input text-sm"
+                                className="bg-card border-input text-xs"
                             />
-                        </div>
-                        <button type="button" onClick={() => setFaqs(faqs.filter((_, j) => j !== i))}
-                            className="text-muted-foreground hover:text-destructive transition-colors mt-2">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
+                        </DynamicListItem>
+                    ))}
+                </div>
                 <Button type="button" variant="outline" size="sm"
+                    className="h-8 text-xs transition-all duration-200"
                     onClick={() => setFaqs([...faqs, { question: '', answer: '' }])}>
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
+                    <Plus className="w-3 h-3 mr-1.5" /> Adicionar pergunta
                 </Button>
-            </fieldset>
+            </div>
 
             {/* Público & Diferenciais */}
-            <fieldset className="space-y-4 rounded-md border border-border p-4">
-                <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Público e Diferenciais
-                </legend>
+            <div className="space-y-4">
+                <SectionHeader icon={Target} title="Público e Diferenciais" description="Contexto para o agente IA qualificar leads e montar argumentos de venda." />
                 <div className="space-y-1.5">
-                    <Label htmlFor="targetAudience" className="text-sm font-medium">Público-alvo</Label>
+                    <Label htmlFor="targetAudience" className="text-xs font-semibold text-foreground">Público-alvo</Label>
                     <Textarea id="targetAudience" name="targetAudience" defaultValue={product.targetAudience}
-                        rows={3} className="bg-background border-input" />
-                    <p className="text-xs text-muted-foreground">Descreva o perfil do cliente ideal. O agente IA usará para qualificar leads.</p>
+                        rows={3} className="bg-background border-input text-sm" />
+                    <p className="text-[11px] text-muted-foreground">Descreva o perfil do cliente ideal. O agente IA usará para qualificar leads.</p>
                 </div>
                 <div className="space-y-1.5">
-                    <Label htmlFor="differentials" className="text-sm font-medium">Diferenciais</Label>
+                    <Label htmlFor="differentials" className="text-xs font-semibold text-foreground">Diferenciais</Label>
                     <Textarea id="differentials" name="differentials" defaultValue={product.differentials}
-                        rows={3} className="bg-background border-input" />
+                        rows={3} className="bg-background border-input text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                    <Label htmlFor="tags" className="text-sm font-medium">Tags</Label>
+                    <Label htmlFor="tags" className="text-xs font-semibold text-foreground">Tags</Label>
                     <Input id="tags" name="tags" defaultValue={product.tags.join(', ')}
                         placeholder="marketing, digital, curso"
-                        className="bg-background border-input" />
+                        className="bg-background border-input h-9" />
+                    <p className="text-[11px] text-muted-foreground">Separadas por vírgula. Usadas para filtros e organização.</p>
                 </div>
-            </fieldset>
+            </div>
 
+            {/* Feedback */}
             {state.error && (
-                <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-3 py-2">
+                <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-4 py-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
                     {state.error}
-                </p>
+                </div>
             )}
             {state.success && (
-                <p className="text-sm text-[hsl(var(--success))] bg-[hsl(var(--success-subtle))] border border-[hsl(var(--success))]/20 rounded-(--radius) px-3 py-2">
+                <div className="flex items-center gap-2 text-sm text-[hsl(var(--success))] bg-[hsl(var(--success-subtle))] border border-[hsl(var(--success))]/20 rounded-(--radius) px-4 py-3">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                     Produto atualizado com sucesso!
-                </p>
+                </div>
             )}
 
-            <Button type="submit" disabled={isPending} className="w-full">
-                <Save className="w-4 h-4 mr-2" />
-                {isPending ? 'Salvando...' : 'Salvar Alterações'}
+            <Button type="submit" disabled={isPending} className="w-full h-10">
+                {isPending ? (
+                    <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                    </>
+                ) : (
+                    <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar Alterações
+                    </>
+                )}
             </Button>
         </form>
     )

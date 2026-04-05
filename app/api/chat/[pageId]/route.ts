@@ -6,6 +6,7 @@ import {
     contactRepo,
     analyticsRepo,
     ragService,
+    productRepo,
 } from '@/application/services/container'
 
 export async function POST(
@@ -60,6 +61,15 @@ export async function POST(
     const ragMatches = await ragService.search(message, page.organizationId, pageId)
     const ragContext = ragService.formatContextForLLM(ragMatches)
 
+    // 4b. Fetch linked product for rich context enrichment
+    let productContext = ''
+    if (page.productId) {
+        const product = await productRepo.findById(page.productId)
+        if (product) {
+            productContext = product.toAIContext()
+        }
+    }
+
     // 5. Get conversation history
     const history = await chatSessionRepo.getMessages(session.id)
     const conversationMessages = history.slice(-20).map(m => ({
@@ -91,8 +101,8 @@ export async function POST(
         }
     }
 
-    // 7. Build the system prompt with RAG context
-    const systemPrompt = buildSystemPrompt(page, ragContext, !session.hasLead() && !leadInfo)
+    // 7. Build the system prompt with RAG context + product data
+    const systemPrompt = buildSystemPrompt(page, ragContext, productContext, !session.hasLead() && !leadInfo)
 
     // 8. Stream the response
     const result = await streamText({
@@ -116,6 +126,7 @@ export async function POST(
 function buildSystemPrompt(
     page: { chatbotName: string; chatbotSystemPrompt: string; name: string },
     ragContext: string,
+    productContext: string,
     shouldCaptureLeads: boolean,
 ): string {
     let prompt = `Você é ${page.chatbotName}, assistente virtual da página "${page.name}".
@@ -127,6 +138,10 @@ Regras importantes:
 - Seja conciso e útil
 - Se não souber algo, diga que não tem essa informação no momento
 - Nunca invente informações que não estão no contexto fornecido`
+
+    if (productContext) {
+        prompt += `\n\n--- DADOS DO PRODUTO/SERVIÇO VINCULADO ---\n${productContext}\n--- FIM DOS DADOS DO PRODUTO ---\n\nUse os dados do produto acima como fonte PRINCIPAL de informação. Responda com base nesses dados reais.`
+    }
 
     if (ragContext) {
         prompt += `\n\n${ragContext}\n\nUse o contexto acima para responder às perguntas. Priorize informações do contexto.`

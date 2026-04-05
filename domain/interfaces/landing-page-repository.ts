@@ -3,6 +3,7 @@ import type { LandingPageStatus } from '@/types/database'
 
 export interface CreateLandingPageInput {
     organizationId: string
+    productId?: string | null
     name: string
     slug: string
     headline: string

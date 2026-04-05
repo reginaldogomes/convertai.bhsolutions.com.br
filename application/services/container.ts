@@ -141,7 +141,7 @@ export const useCases = {
     deleteAutomation: () => new DeleteAutomationUseCase(automationRepo),
 
     // Landing Pages
-    createLandingPage: () => new CreateLandingPageUseCase(landingPageRepo),
+    createLandingPage: () => new CreateLandingPageUseCase(landingPageRepo, productRepo, knowledgeBaseRepo, ragService),
     updateLandingPage: () => new UpdateLandingPageUseCase(landingPageRepo),
     getLandingPage: () => new GetLandingPageUseCase(landingPageRepo),
     publishLandingPage: () => new PublishLandingPageUseCase(landingPageRepo),

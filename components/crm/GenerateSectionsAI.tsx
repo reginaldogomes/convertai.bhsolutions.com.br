@@ -21,6 +21,7 @@ interface GenerateSectionsAIProps {
         name: string
         headline: string
         subheadline: string
+        productContext?: string
     }
 }
 
@@ -53,6 +54,7 @@ export function GenerateSectionsAI({ onGenerated, pageContext }: GenerateSection
                 body: JSON.stringify({
                     prompt: prompt.trim(),
                     pageContext: pageContext ?? undefined,
+                    productContext: pageContext?.productContext ?? undefined,
                 }),
             })
 
