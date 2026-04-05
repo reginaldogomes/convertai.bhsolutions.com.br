@@ -29,12 +29,14 @@ export function GallerySection({ content, isDark }: GallerySectionProps) {
                         <div
                             key={idx}
                             className={`group rounded-2xl overflow-hidden aspect-video transition-all duration-300 hover:shadow-lg ${
-                                isDark ? 'ring-1 ring-white/[0.06]' : 'ring-1 ring-black/[0.04]'
+                                isDark ? 'ring-1 ring-white/6' : 'ring-1 ring-black/4'
                             }`}
                         >
                             <img
                                 src={img.url}
                                 alt={img.alt}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                         </div>

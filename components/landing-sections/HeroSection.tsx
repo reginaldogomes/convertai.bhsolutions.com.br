@@ -136,10 +136,13 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
                             className="pointer-events-none absolute -inset-6 rounded-4xl blur-3xl"
                             style={{ background: `radial-gradient(circle, ${secondary}30 0%, transparent 70%)` }}
                         />
-                        <div className="relative overflow-hidden rounded-4xl border border-border/40 bg-card/40 shadow-2xl backdrop-blur">
+                        <div className="relative aspect-4/3 overflow-hidden rounded-4xl border border-border/40 bg-card/40 shadow-2xl backdrop-blur">
                             <img
                                 src={content.heroImageUrl}
                                 alt="Destaque visual da oferta"
+                                loading="eager"
+                                fetchPriority="high"
+                                decoding="async"
                                 className="h-full w-full object-cover"
                             />
                         </div>

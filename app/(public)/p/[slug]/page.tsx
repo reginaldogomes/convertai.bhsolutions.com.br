@@ -7,7 +7,7 @@ import { BRAND } from '@/lib/brand'
 import { toAbsoluteUrl } from '@/lib/site-url'
 import { LandingPageView } from './landing-page-view'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 type PageProps = {
     params: Promise<{ slug: string }>
@@ -104,11 +104,13 @@ export default async function PublicLandingPage({
 
     return (
         <>
-            <script
-                type="application/ld+json"
-                // JSON-LD for rich results (WebPage + optional FAQPage)
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-            />
+            {structuredData.length > 0 && (
+                <script
+                    type="application/ld+json"
+                    // JSON-LD for rich results (WebPage + optional FAQPage)
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+                />
+            )}
             <LandingPageView
                 page={{
                     id: page.id,

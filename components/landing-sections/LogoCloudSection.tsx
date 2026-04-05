@@ -25,6 +25,8 @@ export function LogoCloudSection({ content, isDark }: LogoCloudSectionProps) {
                             key={idx}
                             src={logo.imageUrl}
                             alt={logo.name}
+                            loading="lazy"
+                            decoding="async"
                             className={`h-8 md:h-10 object-contain transition-all duration-300 ${
                                 isDark ? 'opacity-40 hover:opacity-90 brightness-200 grayscale hover:grayscale-0 hover:brightness-100' : 'opacity-40 hover:opacity-90 grayscale hover:grayscale-0'
                             }`}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { SectionRenderer } from '@/components/landing-sections'
@@ -50,6 +50,7 @@ function getVisitorId(): string {
 }
 
 export function LandingPageView({ page }: LandingPageViewProps) {
+    const [shouldRenderChat, setShouldRenderChat] = useState(false)
     const { config } = page
     const isDark = config.theme === 'dark'
     const hasSections = config.sections && config.sections.length > 0
@@ -61,36 +62,49 @@ export function LandingPageView({ page }: LandingPageViewProps) {
     }
 
     useEffect(() => {
+        const idleWindow = window as Window & {
+            requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+            cancelIdleCallback?: (id: number) => void
+        }
+
+        let timeoutId: number | null = null
+        let idleId: number | null = null
+
+        if (idleWindow.requestIdleCallback) {
+            idleId = idleWindow.requestIdleCallback(() => setShouldRenderChat(true), { timeout: 2500 })
+        } else {
+            timeoutId = window.setTimeout(() => setShouldRenderChat(true), 1200)
+        }
+
+        return () => {
+            if (timeoutId !== null) window.clearTimeout(timeoutId)
+            if (idleId !== null && idleWindow.cancelIdleCallback) idleWindow.cancelIdleCallback(idleId)
+        }
+    }, [])
+
+    useEffect(() => {
         captureAttributionFromCurrentPage()
 
-        fetch('/api/analytics/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                landingPageId: page.id,
-                eventType: 'view',
-                visitorId: getVisitorId(),
-                metadata: buildAdsMetadata('view'),
-            }),
-        }).catch(() => {})
+        trackAnalyticsEvent({
+            landingPageId: page.id,
+            eventType: 'view',
+            visitorId: getVisitorId(),
+            metadata: buildAdsMetadata('view'),
+        })
     }, [page.id])
 
     const handleCtaClick = () => {
-        fetch('/api/analytics/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                landingPageId: page.id,
-                eventType: 'cta_click',
-                visitorId: getVisitorId(),
-                metadata: buildAdsMetadata('cta_click'),
-            }),
-        }).catch(() => {})
+        trackAnalyticsEvent({
+            landingPageId: page.id,
+            eventType: 'cta_click',
+            visitorId: getVisitorId(),
+            metadata: buildAdsMetadata('cta_click'),
+        })
     }
 
     return (
         <div className={cn('min-h-screen bg-background text-foreground', isDark && 'dark')} style={shellStyle}>
-            <div className="min-h-screen bg-background text-foreground" style={shellStyle}>
+            <div className="min-h-screen bg-background text-foreground">
                 {hasSections ? (
                     <SectionRenderer
                         sections={config.sections}
@@ -173,16 +187,40 @@ export function LandingPageView({ page }: LandingPageViewProps) {
             </div>
 
             {/* Chat Widget */}
-            <ChatWidget
-                pageId={page.id}
-                chatbotName={page.chatbotName}
-                welcomeMessage={page.chatbotWelcomeMessage}
-                primaryColor={config.primaryColor}
-            />
+            {shouldRenderChat && (
+                <ChatWidget
+                    pageId={page.id}
+                    chatbotName={page.chatbotName}
+                    welcomeMessage={page.chatbotWelcomeMessage}
+                    primaryColor={config.primaryColor}
+                />
+            )}
 
             <ConsentBanner />
         </div>
     )
+}
+
+function trackAnalyticsEvent(payload: {
+    landingPageId: string
+    eventType: 'view' | 'cta_click'
+    visitorId: string
+    metadata: Record<string, unknown>
+}) {
+    const body = JSON.stringify(payload)
+
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        const blob = new Blob([body], { type: 'application/json' })
+        navigator.sendBeacon('/api/analytics/track', blob)
+        return
+    }
+
+    fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+    }).catch(() => {})
 }
 
 function resolveFontFamily(fontFamily: DesignSystem['fontFamily'] | undefined): string | undefined {
