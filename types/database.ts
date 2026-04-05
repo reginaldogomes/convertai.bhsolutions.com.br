@@ -226,6 +226,88 @@ export interface Database {
                     { foreignKeyName: 'automations_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
                 ]
             }
+            automation_execution_logs: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    automation_id: string
+                    trigger_event: string
+                    step_index: number
+                    step_type: string
+                    status: 'success' | 'error' | 'queued' | 'skipped'
+                    contact_id: string | null
+                    metadata_json: Json
+                    error_message: string | null
+                    executed_at: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    automation_id: string
+                    trigger_event: string
+                    step_index: number
+                    step_type: string
+                    status: 'success' | 'error' | 'queued' | 'skipped'
+                    contact_id?: string | null
+                    metadata_json?: Json
+                    error_message?: string | null
+                    executed_at?: string
+                    created_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['automation_execution_logs']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'automation_execution_logs_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'automation_execution_logs_automation_id_fkey'; columns: ['automation_id']; referencedRelation: 'automations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'automation_execution_logs_contact_id_fkey'; columns: ['contact_id']; referencedRelation: 'contacts'; referencedColumns: ['id'] }
+                ]
+            }
+            automation_job_queue: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    automation_id: string
+                    trigger_event: string
+                    contact_id: string | null
+                    source: string | null
+                    message: string | null
+                    metadata_json: Json
+                    steps_json: Json
+                    execute_after: string
+                    status: 'pending' | 'processing' | 'done' | 'failed'
+                    attempts: number
+                    max_attempts: number
+                    last_error: string | null
+                    locked_at: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    automation_id: string
+                    trigger_event: string
+                    contact_id?: string | null
+                    source?: string | null
+                    message?: string | null
+                    metadata_json?: Json
+                    steps_json: Json
+                    execute_after: string
+                    status?: 'pending' | 'processing' | 'done' | 'failed'
+                    attempts?: number
+                    max_attempts?: number
+                    last_error?: string | null
+                    locked_at?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['automation_job_queue']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'automation_job_queue_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'automation_job_queue_automation_id_fkey'; columns: ['automation_id']; referencedRelation: 'automations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'automation_job_queue_contact_id_fkey'; columns: ['contact_id']; referencedRelation: 'contacts'; referencedColumns: ['id'] }
+                ]
+            }
             landing_pages: {
                 Row: {
                     id: string

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { landingPageRepo, analyticsRepo, contactRepo } from '@/application/services/container'
 import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
+import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 
 const leadSchema = z.object({
     landingPageId: z.string().uuid('Landing page inválida'),
@@ -63,7 +64,29 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Erro ao registrar contato' }, { status: 500 })
             }
             contactId = newContact.id
+
+            void dispatchAutomationEvent({
+                orgId: page.organizationId,
+                event: 'new_contact',
+                context: {
+                    contactId,
+                    source: 'landing_form',
+                    message: message || '',
+                    metadata: { landingPageId },
+                },
+            })
         }
+
+        void dispatchAutomationEvent({
+            orgId: page.organizationId,
+            event: 'form_submitted',
+            context: {
+                contactId,
+                source: 'landing_form',
+                message: message || '',
+                metadata: { landingPageId },
+            },
+        })
 
         const leadMetadata = {
             contactId,

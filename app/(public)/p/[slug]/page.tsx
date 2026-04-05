@@ -32,6 +32,29 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     const description = getDescription(page)
     const image = getSeoImage(page.configJson.sections)
 
+    if (!isIndexable) {
+        return {
+            title: `${page.headline || page.name} | Preview`,
+            description,
+            robots: {
+                index: false,
+                follow: false,
+                noarchive: true,
+                nosnippet: true,
+                noimageindex: true,
+                nocache: true,
+                googleBot: {
+                    index: false,
+                    follow: false,
+                    noarchive: true,
+                    nosnippet: true,
+                    noimageindex: true,
+                    nocache: true,
+                },
+            },
+        }
+    }
+
     return {
         title: page.headline || page.name,
         description,
@@ -39,13 +62,11 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
             canonical: canonicalUrl,
         },
         robots: {
-            index: isIndexable,
-            follow: isIndexable,
-            nocache: isPreview,
+            index: true,
+            follow: true,
             googleBot: {
-                index: isIndexable,
-                follow: isIndexable,
-                noimageindex: !isIndexable,
+                index: true,
+                follow: true,
             },
         },
         openGraph: {
@@ -78,7 +99,8 @@ export default async function PublicLandingPage({
     // Allow preview for draft pages via ?preview=1 (used in the editor)
     if (!page.isPublished() && preview !== '1') notFound()
 
-    const structuredData = buildStructuredData(page)
+    const shouldExposeSeoSignals = page.isPublished() && preview !== '1'
+    const structuredData = shouldExposeSeoSignals ? buildStructuredData(page) : []
 
     return (
         <>

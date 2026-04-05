@@ -1,0 +1,63 @@
+name: Automation Queue Dispatch
+
+on:
+  schedule:
+    # Every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      APP_URL: ${{ secrets['APP_URL'] }}
+      AUTOMATION_QUEUE_CRON_SECRET: ${{ secrets['AUTOMATION_QUEUE_CRON_SECRET'] }}
+    steps:
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${APP_URL:-}" ]]; then
+            echo "APP_URL secret is not configured"
+            exit 1
+          fi
+
+          if [[ -z "${AUTOMATION_QUEUE_CRON_SECRET:-}" ]]; then
+            echo "AUTOMATION_QUEUE_CRON_SECRET secret is not configured"
+            exit 1
+          fi
+
+      - name: Trigger automation queue endpoint
+        run: |
+          set -euo pipefail
+
+          curl --fail --show-error --silent \
+            -X POST "${APP_URL%/}/api/automations/queue/dispatch" \
+            -H "Authorization: Bearer ${AUTOMATION_QUEUE_CRON_SECRET}" \
+            -H "Content-Type: application/json"
+
+      - name: Verify queue health
+        run: |
+          set -euo pipefail
+
+          RESPONSE="$(curl --fail --show-error --silent \
+            -X GET "${APP_URL%/}/api/automations/queue/health" \
+            -H "Authorization: Bearer ${AUTOMATION_QUEUE_CRON_SECRET}")"
+
+          echo "Queue health response: ${RESPONSE}"
+
+          OK="$(echo "${RESPONSE}" | jq -r '.ok')"
+          FAILED="$(echo "${RESPONSE}" | jq -r '.queue.counts.failed // 0')"
+
+          if [[ "${OK}" != "true" ]]; then
+            echo "Queue health returned ok=false"
+            exit 1
+          fi
+
+          if [[ "${FAILED}" != "0" ]]; then
+            echo "Queue has failed jobs: ${FAILED}"
+            exit 1
+          fi
+
+          echo "Queue health is OK and no failed jobs were found."

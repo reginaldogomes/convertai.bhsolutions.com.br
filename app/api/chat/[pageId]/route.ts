@@ -9,6 +9,7 @@ import {
     productRepo,
 } from '@/application/services/container'
 import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
+import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 
 export async function POST(
     req: Request,
@@ -111,6 +112,17 @@ export async function POST(
         })
         if (contact) {
             await chatSessionRepo.updateContactId(session.id, contact.id)
+            void dispatchAutomationEvent({
+                orgId: page.organizationId,
+                event: 'new_contact',
+                context: {
+                    contactId: contact.id,
+                    source: 'landing_chat',
+                    message,
+                    metadata: { landingPageId: pageId },
+                },
+            })
+
             const leadMetadata = {
                 contactId: contact.id,
                 attribution: attribution ?? {},

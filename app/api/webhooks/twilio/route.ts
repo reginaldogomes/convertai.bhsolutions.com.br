@@ -4,6 +4,7 @@ import { HandleInboundMessageUseCase } from '@/application/use-cases/messages/ha
 import { SupabaseMessageRepository } from '@/infrastructure/repositories/message-repository'
 import { SupabaseContactRepository } from '@/infrastructure/repositories/contact-repository'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN!
 
@@ -62,6 +63,30 @@ export async function POST(request: NextRequest) {
 
     if (!result) {
         return NextResponse.json({ error: 'Failed to process message' }, { status: 500 })
+    }
+
+    void dispatchAutomationEvent({
+        orgId,
+        event: 'message_received',
+        context: {
+            contactId: result.message.contactId,
+            source: 'twilio_whatsapp',
+            message: messageBody,
+            metadata: { messageSid },
+        },
+    })
+
+    if (result.contactCreated) {
+        void dispatchAutomationEvent({
+            orgId,
+            event: 'new_contact',
+            context: {
+                contactId: result.message.contactId,
+                source: 'twilio_whatsapp',
+                message: messageBody,
+                metadata: { messageSid },
+            },
+        })
     }
 
     // 5. Return TwiML empty response (no auto-reply)
