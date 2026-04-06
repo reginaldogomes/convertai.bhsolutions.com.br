@@ -2,9 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  serverActions: {
-    bodySizeLimit: '8mb',
-  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
@@ -12,6 +9,9 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    serverActions: {
+      bodySizeLimit: '8mb',
+    },
     optimizePackageImports: [
       'lucide-react',
       '@tiptap/react',

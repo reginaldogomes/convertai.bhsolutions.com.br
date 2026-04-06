@@ -48,6 +48,17 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
                 <Input value={content.heroImageUrl ?? ''} onChange={e => update('heroImageUrl', e.target.value || '')} placeholder="https://..." className="bg-background" />
             </div>
             <div className="space-y-1.5">
+                <Label className="text-xs">Layout do Hero</Label>
+                <select
+                    value={content.layout ?? 'split'}
+                    onChange={e => update('layout', e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                    <option value="split">Texto + imagem ao lado</option>
+                    <option value="background">Texto sobre imagem de fundo</option>
+                </select>
+            </div>
+            <div className="space-y-1.5">
                 <Label className="text-xs">Selos de confiança (1 por linha)</Label>
                 <Textarea
                     value={(content.trustBadges ?? []).join('\n')}

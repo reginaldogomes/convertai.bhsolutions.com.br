@@ -161,7 +161,7 @@ export default async function LandingPageDetailPage({
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">URL</span>
-                                <span className="font-mono text-xs">/p/{page.slug}</span>
+                                <span className="font-mono text-xs">{page.isPublished() ? `/p/${page.slug}` : `/p/${page.slug}?preview=1`}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Bot</span>

@@ -2,6 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+    const pathname = request.nextUrl.pathname
+
+    // Public landing routes and APIs must never require dashboard auth.
+    const isPublicLandingRoute = pathname.startsWith('/p/')
+    const isPublicLandingApi =
+        pathname.startsWith('/api/chat/') ||
+        pathname === '/api/analytics/track' ||
+        pathname === '/api/landing-pages/lead'
+
+    if (isPublicLandingRoute || isPublicLandingApi) {
+        return NextResponse.next({ request })
+    }
+
     let supabaseResponse = NextResponse.next({ request })
 
     const supabase = createServerClient(
@@ -63,6 +76,6 @@ export default proxy
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|api/webhooks).*)',
+        '/((?!_next/static|_next/image|favicon.ico|api/webhooks|p/|api/chat|api/analytics/track|api/landing-pages/lead).*)',
     ],
 }

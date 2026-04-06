@@ -27,6 +27,7 @@ export interface HeroContent {
     ctaUrl: string
     backgroundImageUrl: string | null
     heroImageUrl: string | null
+    layout: 'background' | 'split'
     trustBadges: string[]
     alignment: 'center' | 'left'
 }
@@ -178,6 +179,7 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
         ctaUrl: '#contato',
         backgroundImageUrl: null,
         heroImageUrl: null,
+        layout: 'split',
         trustBadges: ['Sem compromisso', 'Suporte especializado', 'Resultados mensuráveis'],
         alignment: 'center',
     },

@@ -3,7 +3,7 @@ import { useCases } from '@/application/services/container'
 import { CreateLandingPageButton } from '@/components/crm/CreateLandingPageButton'
 import { DeleteLandingPageButton } from '@/components/crm/DeleteLandingPageButton'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Globe, ExternalLink } from 'lucide-react'
+import { Globe, ExternalLink, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { PublishToggleButton } from '@/components/crm/PublishToggleButton'
 
@@ -54,6 +54,17 @@ export default async function LandingPagesPage() {
                                     </span>
                                     <PublishToggleButton pageId={page.id} isPublished={page.isPublished()} />
                                 </div>
+                                {!page.isPublished() && (
+                                    <a
+                                        href={`/p/${page.slug}?preview=1`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                        title="Pré-visualizar rascunho"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                    </a>
+                                )}
                                 {page.isPublished() && (
                                     <a
                                         href={`/p/${page.slug}`}

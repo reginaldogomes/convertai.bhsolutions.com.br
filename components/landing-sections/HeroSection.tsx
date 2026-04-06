@@ -18,15 +18,20 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
     const secondary = palette?.secondary ?? primaryColor
     const accent = palette?.accent ?? primaryColor
     const isCentered = !content.alignment || content.alignment === 'center'
+    const heroLayout = content.layout === 'background' ? 'background' : 'split'
+    const resolvedBackgroundImage = heroLayout === 'background'
+        ? (content.backgroundImageUrl || content.heroImageUrl)
+        : content.backgroundImageUrl
+    const showSideImage = heroLayout === 'split' && !!content.heroImageUrl
     const trustBadges = Array.isArray(content.trustBadges) ? content.trustBadges.filter(Boolean).slice(0, 4) : []
 
     return (
         <header className="relative overflow-hidden bg-background">
             {/* Background layers */}
-            {content.backgroundImageUrl ? (
+            {resolvedBackgroundImage ? (
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                    style={{ backgroundImage: `url(${content.backgroundImageUrl})` }}
+                    style={{ backgroundImage: `url(${resolvedBackgroundImage})` }}
                 >
                     <div className={`absolute inset-0 ${isDark ? 'bg-background/78' : 'bg-background/80'} backdrop-blur-sm`} />
                 </div>
@@ -56,7 +61,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
             {/* Content */}
             <Container
                 className={`relative z-10 grid gap-10 py-20 md:py-28 lg:py-32 ${
-                    content.heroImageUrl ? 'items-center lg:grid-cols-[1.05fr_0.95fr]' : ''
+                    showSideImage ? 'items-center lg:grid-cols-[1.05fr_0.95fr]' : ''
                 }`}
             >
                 <div className={isCentered ? 'text-center' : 'text-left'}>
@@ -130,7 +135,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
                     )}
                 </div>
 
-                {content.heroImageUrl && (
+                {showSideImage && content.heroImageUrl && (
                     <div className="relative mx-auto w-full max-w-xl">
                         <div
                             className="pointer-events-none absolute -inset-6 rounded-4xl blur-3xl"
