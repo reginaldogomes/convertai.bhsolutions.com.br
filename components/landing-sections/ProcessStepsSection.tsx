@@ -34,8 +34,8 @@ export function ProcessStepsSection({ content, primaryColor, palette, isDark }: 
                     {content.steps.slice(0, 5).map((step, index) => (
                         <li
                             key={`${step.title}-${index}`}
-                            className={`relative rounded-2xl border p-5 md:p-6 ${
-                                isDark ? 'border-white/10 bg-white/4' : 'border-black/8 bg-white/80'
+                            className={`surface-lift relative rounded-2xl p-5 md:p-6 ${
+                                isDark ? 'surface-glass border-white/12' : 'surface-glass border-black/8'
                             }`}
                         >
                             <div className="flex items-start gap-4">

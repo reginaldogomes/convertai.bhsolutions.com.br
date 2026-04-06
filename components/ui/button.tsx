@@ -5,12 +5,14 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 active:translate-y-[1px] active:scale-[0.99] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-primary text-white hover:bg-[hsl(var(--primary-hover))] shadow-sm hover:shadow-md",
-        primary: "bg-primary text-white hover:bg-[hsl(var(--primary-hover))] shadow-sm hover:shadow-md",
+        primary: "bg-linear-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary-hover))] text-white shadow-sm hover:shadow-md",
+        glass: "border border-white/20 bg-white/70 text-foreground backdrop-blur-md shadow-sm hover:bg-white/85 dark:border-white/15 dark:bg-white/8 dark:text-white dark:hover:bg-white/12",
+        elevated: "bg-card text-card-foreground border border-border shadow-md hover:shadow-lg hover:-translate-y-0.5",
         destructive:
           "bg-destructive text-white hover:brightness-110 shadow-sm focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:

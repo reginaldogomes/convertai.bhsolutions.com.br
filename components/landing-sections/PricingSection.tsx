@@ -19,7 +19,7 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
         <section className="relative bg-background-secondary py-24 overflow-hidden">
             {/* Decorative glow */}
             <div
-                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full blur-[180px] opacity-10"
+                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-125 w-125 rounded-full blur-[180px] opacity-10"
                 style={{ backgroundColor: secondary }}
                 aria-hidden
             />
@@ -49,13 +49,12 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
                             key={idx}
                             className={`relative flex flex-col rounded-2xl p-7 transition-all duration-300 ${
                                 tier.highlighted
-                                    ? `${isDark ? 'bg-white/[0.05] border-2' : 'bg-white border-2'} shadow-xl scale-[1.03]`
-                                    : `${isDark ? 'bg-white/[0.02] border border-white/[0.06]' : 'bg-white/60 border border-black/[0.04]'} hover:-translate-y-1`
+                                    ? `${isDark ? 'surface-glass border-2 border-white/15' : 'surface-glass border-2 border-black/10'} shadow-xl scale-[1.03]`
+                                    : `${isDark ? 'surface-glass border border-white/10' : 'surface-glass border border-black/6'} surface-lift`
                             }`}
                             style={{
                                 borderColor: tier.highlighted ? `${primaryColor}50` : undefined,
                                 boxShadow: tier.highlighted ? `0 20px 60px -12px ${primaryColor}20` : undefined,
-                                backdropFilter: 'blur(12px)',
                             }}
                         >
                             {tier.highlighted && (
@@ -105,7 +104,7 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
                                 className={`w-full rounded-xl py-3 text-sm font-bold transition-all duration-200 ${
                                     tier.highlighted
                                         ? 'text-white shadow-lg hover:shadow-xl hover:scale-[1.01]'
-                                        : `${isDark ? 'bg-white/[0.06] hover:bg-white/[0.1]' : 'bg-black/[0.04] hover:bg-black/[0.07]'} text-foreground`
+                                        : `${isDark ? 'bg-white/6 hover:bg-white/10' : 'bg-black/4 hover:bg-black/[0.07]'} text-foreground`
                                 }`}
                                 style={tier.highlighted ? {
                                     backgroundColor: primaryColor,

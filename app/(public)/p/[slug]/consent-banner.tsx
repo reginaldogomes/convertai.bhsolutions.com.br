@@ -24,7 +24,7 @@ export function ConsentBanner() {
     }
 
     return (
-        <div className="fixed bottom-4 left-1/2 z-60 w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 rounded-xl border border-border bg-card p-4 shadow-xl">
+        <div className="fixed bottom-4 left-1/2 z-70 w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 rounded-xl border border-border bg-[hsl(var(--card))] p-4 shadow-2xl">
             <p className="text-sm text-foreground">
                 Usamos cookies e identificadores de campanha para medir conversões e melhorar anúncios. Você autoriza o uso para fins de marketing?
             </p>

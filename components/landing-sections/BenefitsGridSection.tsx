@@ -42,10 +42,10 @@ export function BenefitsGridSection({ content, primaryColor, palette, isDark }: 
                     {content.items.slice(0, 6).map((item, index) => (
                         <article
                             key={`${item.title}-${index}`}
-                            className={`relative rounded-3xl border p-6 md:p-7 transition-all duration-300 hover:-translate-y-1 ${
+                            className={`surface-lift relative rounded-3xl p-6 md:p-7 ${
                                 isDark
-                                    ? 'border-white/10 bg-white/5 hover:bg-white/8'
-                                    : 'border-black/8 bg-white/85 hover:bg-white'
+                                    ? 'surface-glass border-white/12'
+                                    : 'surface-glass border-black/8'
                             }`}
                         >
                             <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${primaryColor}20` }}>

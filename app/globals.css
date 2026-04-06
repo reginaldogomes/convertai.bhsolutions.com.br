@@ -229,6 +229,22 @@
     box-shadow: 0 10px 30px -5px rgb(0 0 0 / 0.12), 0 4px 10px -6px rgb(0 0 0 / 0.08);
   }
 
+  .surface-glass {
+    background-color: hsl(var(--card) / 0.74);
+    border: 1px solid hsl(var(--border) / 0.6);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px -10px rgb(0 0 0 / 0.14);
+  }
+
+  .surface-lift {
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  }
+
+  .surface-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 42px -18px rgb(0 0 0 / 0.28);
+  }
+
   /* ── Interactive transition preset ── */
   .interactive {
     transition: background-color 150ms ease, color 150ms ease,

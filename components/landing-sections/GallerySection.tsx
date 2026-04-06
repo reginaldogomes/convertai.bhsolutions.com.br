@@ -28,7 +28,7 @@ export function GallerySection({ content, isDark }: GallerySectionProps) {
                     {content.images.map((img, idx) => (
                         <div
                             key={idx}
-                            className={`group rounded-2xl overflow-hidden aspect-video transition-all duration-300 hover:shadow-lg ${
+                            className={`group surface-lift rounded-2xl overflow-hidden aspect-video ${
                                 isDark ? 'ring-1 ring-white/6' : 'ring-1 ring-black/4'
                             }`}
                         >

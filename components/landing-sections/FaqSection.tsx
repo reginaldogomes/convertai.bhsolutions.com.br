@@ -42,14 +42,14 @@ export function FaqSection({ content, primaryColor, palette, isDark }: FaqSectio
                         return (
                             <div
                                 key={idx}
-                                className={`overflow-hidden rounded-2xl transition-all duration-300 ${
+                                className={`surface-lift overflow-hidden rounded-2xl transition-all duration-300 ${
                                     isOpen
                                         ? isDark
-                                            ? 'bg-white/5 border border-white/10'
-                                            : 'bg-white border border-black/6 shadow-sm'
+                                            ? 'surface-glass border-white/12'
+                                            : 'surface-glass border-black/8 shadow-sm'
                                         : isDark
-                                            ? 'bg-white/2 border border-white/4 hover:bg-white/4'
-                                            : 'bg-white/50 border border-black/3 hover:bg-white/80'
+                                            ? 'surface-glass border-white/6'
+                                            : 'surface-glass border-black/4'
                                 }`}
                                 style={{
                                     borderLeftColor: isOpen ? primaryColor : undefined,

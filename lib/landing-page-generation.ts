@@ -238,7 +238,7 @@ ${SECTION_LIST}
 6. Use "process_steps" para serviços com onboarding/implantação e "benefits_grid" para reforçar transformação
 7. "gallery" e "logo_cloud" são opcionais e devem aparecer apenas quando fizer sentido estratégico
 8. NÃO inclua "video" a menos que o usuário mencione vídeo explicitamente
-9. Evite frases genéricas; use linguagem orientada a resultado, clareza e confiança`
+9. Evite frases genéricas; use linguagem orientada a resultado, clareza e confiança
 
 ## Estrutura ideal de referência (quando aplicável):
 - Hero simples e claro com 1 CTA
@@ -254,7 +254,7 @@ ${SECTION_LIST}
 - Inclua FAQ com objeções reais (preço, risco, prazo, suporte) sempre que possível
 - Inclua ao menos um bloco de prova social (testimonials, stats ou logo_cloud)
 - Use CTA orientado a ação concreta (ex.: "Quero uma demonstração", "Falar com especialista")
-- Não gere mais de 1 CTA primário por seção
+- Não gere mais de 1 CTA primário por seção`
 
 export async function generateLandingPageSections(input: LandingPageGenerationInput): Promise<LandingPageGenerationOutput> {
     const prompt = input.prompt?.trim()

@@ -39,12 +39,11 @@ export function StatsSection({ content, primaryColor, palette, isDark }: StatsSe
                     {content.items.map((item, idx) => (
                         <div
                             key={idx}
-                            className={`flex flex-col items-center rounded-2xl px-6 py-8 text-center transition-all duration-300 hover:-translate-y-0.5 ${
+                            className={`surface-lift flex flex-col items-center rounded-2xl px-6 py-8 text-center ${
                                 isDark
-                                    ? 'bg-white/[0.03] border border-white/[0.06]'
-                                    : 'bg-white/70 border border-black/[0.04]'
+                                    ? 'surface-glass border-white/10'
+                                    : 'surface-glass border-black/6'
                             }`}
-                            style={{ backdropFilter: 'blur(12px)' }}
                         >
                             <span
                                 className="text-3xl font-black tracking-tight md:text-5xl"

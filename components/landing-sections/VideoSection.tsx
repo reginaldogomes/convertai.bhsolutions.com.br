@@ -36,8 +36,8 @@ export function VideoSection({ content, isDark, primaryColor }: VideoSectionProp
                     </h2>
                 )}
                 <div
-                    className={`relative rounded-2xl overflow-hidden shadow-2xl ${
-                        isDark ? 'ring-1 ring-white/[0.06]' : 'ring-1 ring-black/[0.04]'
+                    className={`surface-lift relative rounded-2xl overflow-hidden shadow-2xl ${
+                        isDark ? 'ring-1 ring-white/6' : 'ring-1 ring-black/4'
                     }`}
                     style={{
                         paddingBottom: '56.25%',

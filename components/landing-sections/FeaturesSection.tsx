@@ -30,7 +30,7 @@ export function FeaturesSection({ content, primaryColor, palette, isDark }: Feat
         <section className="relative bg-background-secondary py-24 overflow-hidden">
             {/* Decorative accent blob */}
             <div
-                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full blur-[160px] opacity-15"
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-105 w-105 rounded-full blur-[160px] opacity-15"
                 style={{ backgroundColor: secondary }}
                 aria-hidden
             />
@@ -52,21 +52,11 @@ export function FeaturesSection({ content, primaryColor, palette, isDark }: Feat
                         return (
                             <div
                                 key={idx}
-                                className={`group relative rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1.5 ${
+                                className={`group surface-lift relative rounded-2xl p-6 ${
                                     isDark
-                                        ? 'border-white/[0.06] bg-white/[0.03] backdrop-blur-md hover:border-white/[0.12] hover:bg-white/[0.05]'
-                                        : 'border-black/[0.04] bg-white/60 backdrop-blur-md hover:border-black/[0.08] hover:bg-white/80'
+                                        ? 'surface-glass border-white/12'
+                                        : 'surface-glass border-black/6'
                                 }`}
-                                style={{
-                                    boxShadow: `0 0 0 0 ${primaryColor}00`,
-                                    transition: 'transform 0.3s, border-color 0.3s, background-color 0.3s, box-shadow 0.3s',
-                                }}
-                                onMouseEnter={(e) => {
-                                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 40px -12px ${primaryColor}25`
-                                }}
-                                onMouseLeave={(e) => {
-                                    (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 0 ${primaryColor}00`
-                                }}
                             >
                                 {/* Icon with gradient bg */}
                                 <div

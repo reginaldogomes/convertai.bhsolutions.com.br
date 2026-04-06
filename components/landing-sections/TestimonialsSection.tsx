@@ -33,12 +33,11 @@ export function TestimonialsSection({ content, primaryColor, palette, isDark }: 
                     {content.items.map((item, idx) => (
                         <div
                             key={idx}
-                            className={`group relative flex flex-col rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 ${
+                            className={`group surface-lift relative flex flex-col rounded-2xl p-6 ${
                                 isDark
-                                    ? 'bg-white/3 border border-white/6 hover:bg-white/5 hover:border-white/10'
-                                    : 'bg-white/70 border border-black/4 hover:bg-white hover:border-black/8'
+                                    ? 'surface-glass border-white/10'
+                                    : 'surface-glass border-black/6'
                             }`}
-                            style={{ backdropFilter: 'blur(12px)' }}
                         >
                             {/* Stars */}
                             <div className="mb-5 flex items-center gap-1">

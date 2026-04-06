@@ -149,7 +149,7 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
                         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                         onClick={() => setDialogOpen(false)}
                     />
-                    <div className="relative w-full max-w-sm rounded-2xl bg-card border border-border shadow-2xl p-8 text-center">
+                    <div className="surface-glass relative w-full max-w-sm rounded-2xl border p-8 text-center shadow-2xl">
                         <button
                             onClick={() => setDialogOpen(false)}
                             className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
@@ -206,7 +206,7 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
                             <p className="text-lg font-semibold">{content.successMessage}</p>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                        <form onSubmit={handleSubmit} className="surface-glass space-y-4 rounded-2xl border p-5 md:p-6" noValidate>
                             {error && (
                                 <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
                                     {error}
