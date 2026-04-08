@@ -3,6 +3,7 @@ import { powerModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { z } from 'zod'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
+import { enforceAiUsagePolicy, recordAiUsageEvent } from '@/lib/ai-governance'
 
 const generateImagePromptSchema = z.object({
     topic: z.string().min(3).max(500),
@@ -13,9 +14,10 @@ const generateImagePromptSchema = z.object({
 
 export async function POST(request: Request) {
     const logger = createApiRequestLogger('instagram/generate-image-prompt')
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
 
     try {
-        await getAuthContext()
+        const { orgId, userId } = await getAuthContext()
         const parsed = generateImagePromptSchema.safeParse(await request.json())
 
         if (!parsed.success) {
@@ -36,6 +38,41 @@ export async function POST(request: Request) {
         }
 
         const { topic, contentType, style, targetAudience } = parsed.data
+
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'instagram/generate-image-prompt',
+            featureKey: 'instagram_image_prompt_generation',
+            model: 'gemini-2.5-pro',
+            provider: 'google',
+        }
+
+        const inputChars = `${topic}${contentType}${style}${targetAudience}`.length
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return Response.json(
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                {
+                    status: guard.status,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
 
         const result = streamText({
             model: powerModel,
@@ -61,6 +98,15 @@ Gere prompts detalhados e prontos para usar em ferramentas de geração de image
         })
 
         logger.log('generation_started', { contentType })
+
+        await recordAiUsageEvent(usageContext, {
+            status: 'started',
+            inputChars,
+            metadata: {
+                contentType,
+            },
+        })
+
         return result.toTextStreamResponse({
             headers: {
                 'x-request-id': logger.requestId,
@@ -68,6 +114,14 @@ Gere prompts detalhados e prontos para usar em ferramentas de geração de image
         })
     } catch (error) {
         logger.error('generation_failed', error)
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                errorCode: 'generation_failed',
+            })
+        }
+
         if (isAuthError(error)) {
             return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401, headers: { 'x-request-id': logger.requestId } })
         }

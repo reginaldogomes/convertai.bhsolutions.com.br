@@ -1,12 +1,14 @@
 import { streamText } from 'ai'
 import { geminiModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
+import { enforceAiUsagePolicy, recordAiUsageEvent } from '@/lib/ai-governance'
 import { z } from 'zod'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
 
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
 const CONTENT_TYPES: Record<string, string> = {
     post: 'Post para feed do Instagram (imagem estática com legenda)',
-    story: 'Story do Instagram (conteúdo efêmero, 24h)',
+        const { orgId, userId } = await getAuthContext()
     reel: 'Reel do Instagram (vídeo curto vertical, até 90 segundos)',
     carousel: 'Carrossel do Instagram (múltiplas imagens/slides com legenda)',
 }
@@ -40,6 +42,41 @@ const generateCaptionSchema = z.object({
 })
 
 export async function POST(request: Request) {
+
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'instagram/generate-caption',
+            featureKey: 'instagram_caption_generation',
+            model: 'gemini-2.5-flash',
+            provider: 'google',
+        }
+
+        const inputChars = `${topic}${details}${targetAudience}`.length
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return Response.json(
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                {
+                    status: guard.status,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
     const logger = createApiRequestLogger('instagram/generate-caption')
 
     try {
@@ -74,6 +111,18 @@ export async function POST(request: Request) {
             includeEmojis,
         } = parsed.data
 
+
+        await recordAiUsageEvent(usageContext, {
+            status: 'started',
+            inputChars,
+            metadata: {
+                contentType,
+                objective,
+                tone,
+                includeHashtags,
+                includeEmojis,
+            },
+        })
         const typeDesc = CONTENT_TYPES[contentType] ?? contentType
         const objectiveDesc = OBJECTIVES[objective] ?? objective
         const toneDesc = TONES[tone] ?? tone
@@ -82,6 +131,14 @@ export async function POST(request: Request) {
             model: geminiModel,
             system: `Você é um especialista em marketing digital e criação de conteúdo para Instagram.
 Sua tarefa é gerar conteúdo otimizado para Instagram que maximiza engajamento e alcance.
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                errorCode: 'generation_failed',
+            })
+        }
+
 
 ## Regras:
 1. Gere APENAS o texto da legenda (caption). Não inclua descrição de imagem.

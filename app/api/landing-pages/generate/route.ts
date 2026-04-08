@@ -3,13 +3,17 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { generateLandingPageSections } from '@/lib/landing-page-generation'
 import { useCases, ragService } from '@/application/services/container'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
+import { enforceAiUsagePolicy, recordAiUsageEvent, estimateCostCents } from '@/lib/ai-governance'
 
 export async function POST(request: Request) {
     const logger = createApiRequestLogger('landing-pages/generate')
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
+    let requestInputChars = 0
+    const startedAt = Date.now()
 
     try {
         logger.log('request_received')
-        const { orgId } = await getAuthContext()
+        const { orgId, userId } = await getAuthContext()
 
         const body = await request.json()
         const { prompt, pageContext, productContext, productId, imageGeneration } = body as {
@@ -21,6 +25,16 @@ export async function POST(request: Request) {
                 enabled?: boolean
                 model?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
             }
+        }
+
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'landing-pages/generate',
+            featureKey: 'landing_page_sections',
+            model: 'gemini-2.5-pro',
+            provider: 'google',
         }
 
         if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 10) {
@@ -60,6 +74,37 @@ export async function POST(request: Request) {
             }
         }
 
+        requestInputChars = [
+            prompt,
+            pageContext?.name,
+            pageContext?.headline,
+            pageContext?.subheadline,
+            resolvedProductContext,
+            knowledgeBaseContext,
+        ].filter(Boolean).join('\n').length
+
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars: requestInputChars,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                { status: guard.status }
+            )
+        }
+
         const generated = await generateLandingPageSections({
             prompt,
             pageContext,
@@ -75,6 +120,21 @@ export async function POST(request: Request) {
             visible: true,
         }))
 
+        const outputChars = JSON.stringify(sections).length + JSON.stringify(generated.designSystem).length
+        const estimatedCostCents = estimateCostCents('gemini-2.5-pro', requestInputChars, outputChars)
+
+        await recordAiUsageEvent(usageContext, {
+            status: 'success',
+            inputChars: requestInputChars,
+            outputChars,
+            estimatedCostCents,
+            durationMs: Date.now() - startedAt,
+            metadata: {
+                hasProductId: Boolean(productId),
+                imageGenerationEnabled: Boolean(imageGeneration?.enabled),
+            },
+        })
+
         logger.log('generation_succeeded', {
             sectionsCount: sections.length,
             hasProductId: Boolean(productId),
@@ -83,6 +143,15 @@ export async function POST(request: Request) {
         return jsonWithRequestId(logger.requestId, { sections, designSystem: generated.designSystem })
     } catch (error) {
         logger.error('generation_failed', error)
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                inputChars: requestInputChars,
+                durationMs: Date.now() - startedAt,
+                errorCode: 'generation_failed',
+            })
+        }
 
         if (isAuthError(error)) {
             return jsonWithRequestId(logger.requestId, { error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })

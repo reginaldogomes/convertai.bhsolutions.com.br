@@ -4,6 +4,7 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { instagramAutoConfigRepo } from '@/application/services/container'
 import { z } from 'zod'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
+import { enforceAiUsagePolicy, recordAiUsageEvent } from '@/lib/ai-governance'
 
 const autoContentSchema = z.object({
     weeks: z.number().int().min(1).max(12).optional().default(1),
@@ -11,9 +12,10 @@ const autoContentSchema = z.object({
 
 export async function POST(request: Request) {
     const logger = createApiRequestLogger('instagram/generate-auto-content')
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
 
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId, userId } = await getAuthContext()
         const parsed = autoContentSchema.safeParse(await request.json())
 
         if (!parsed.success) {
@@ -34,6 +36,40 @@ export async function POST(request: Request) {
         }
 
         const { weeks } = parsed.data
+
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'instagram/generate-auto-content',
+            featureKey: 'instagram_auto_content_generation',
+            model: 'gemini-2.5-flash',
+            provider: 'google',
+        }
+
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars: String(weeks).length,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return Response.json(
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                {
+                    status: guard.status,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
 
         const config = await instagramAutoConfigRepo.findByOrgId(orgId)
         if (!config || !config.niche) {
@@ -87,6 +123,31 @@ Garanta variedade nos temas e formatos. Alterne entre conteúdo educacional, ent
         })
 
         logger.log('generation_started', { weeks, orgId })
+
+        const inputChars = [
+            config.niche,
+            config.brand_description,
+            config.target_audience,
+            config.tone,
+            config.content_types.join(','),
+            config.objectives.join(','),
+            config.visual_style,
+            config.avoid_topics,
+            String(config.posts_per_week),
+            String(weeks),
+        ].filter(Boolean).join('\n').length
+
+        await recordAiUsageEvent(usageContext, {
+            status: 'started',
+            inputChars,
+            metadata: {
+                weeks,
+                postsPerWeek: config.posts_per_week,
+                contentTypesCount: config.content_types.length,
+                objectivesCount: config.objectives.length,
+            },
+        })
+
         return result.toTextStreamResponse({
             headers: {
                 'x-request-id': logger.requestId,
@@ -94,6 +155,14 @@ Garanta variedade nos temas e formatos. Alterne entre conteúdo educacional, ent
         })
     } catch (error) {
         logger.error('generation_failed', error)
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                errorCode: 'generation_failed',
+            })
+        }
+
         if (isAuthError(error)) {
             return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401, headers: { 'x-request-id': logger.requestId } })
         }

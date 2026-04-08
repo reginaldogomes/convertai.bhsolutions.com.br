@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 import { z } from 'zod'
+import { getAuthContext } from '@/infrastructure/auth'
+import { enforceAiUsagePolicy, recordAiUsageEvent, estimateCostCents } from '@/lib/ai-governance'
 
 const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY! })
 
@@ -38,8 +40,12 @@ const imageGenerationSchema = z.object({
 
 export async function POST(request: Request) {
     const logger = createApiRequestLogger('instagram/generate-image')
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
+    let requestInputChars = 0
+    const startedAt = Date.now()
 
     try {
+        const { orgId, userId } = await getAuthContext()
         const parsed = imageGenerationSchema.safeParse(await request.json())
         if (!parsed.success) {
             return jsonWithRequestId(
@@ -57,6 +63,38 @@ export async function POST(request: Request) {
         }
 
         const { model, prompt, aspectRatio, imageSize } = parsed.data
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'instagram/generate-image',
+            featureKey: 'instagram_image_generation',
+            model,
+            provider: 'google',
+        }
+        requestInputChars = prompt.length
+
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars: requestInputChars,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                { status: guard.status }
+            )
+        }
 
         const imageConfig: Record<string, string> = {}
 
@@ -109,9 +147,33 @@ export async function POST(request: Request) {
             hasImageSize: Boolean(imageConfig.imageSize),
         })
 
+        const outputChars = JSON.stringify(images).length
+        await recordAiUsageEvent(usageContext, {
+            status: 'success',
+            inputChars: requestInputChars,
+            outputChars,
+            estimatedCostCents: estimateCostCents(model, requestInputChars, outputChars),
+            durationMs: Date.now() - startedAt,
+            metadata: {
+                imagesCount: images.length,
+                hasAspectRatio: Boolean(imageConfig.aspectRatio),
+                hasImageSize: Boolean(imageConfig.imageSize),
+            },
+        })
+
         return jsonWithRequestId(logger.requestId, { images })
     } catch (error) {
         logger.error('generation_failed', error)
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                inputChars: requestInputChars,
+                durationMs: Date.now() - startedAt,
+                errorCode: 'generation_failed',
+            })
+        }
+
         return jsonWithRequestId(
             logger.requestId,
             { error: 'Erro ao gerar imagem', requestId: logger.requestId },

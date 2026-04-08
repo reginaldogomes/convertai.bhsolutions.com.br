@@ -4,6 +4,7 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import type { CrmContext } from '@/application/use-cases/campaigns/get-crm-context'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
+import { enforceAiUsagePolicy, recordAiUsageEvent } from '@/lib/ai-governance'
 
 const OBJECTIVES: Record<string, string> = {
     promocao: 'Campanha promocional com ofertas, descontos ou lançamento de produto/serviço',
@@ -38,6 +39,7 @@ ${ctx.pastCampaigns.length > 0 ? `\n## Campanhas enviadas anteriormente (para re
 
 export async function POST(request: Request) {
     const logger = createApiRequestLogger('campaigns/generate')
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
 
     try {
         logger.log('request_received')
@@ -66,6 +68,37 @@ export async function POST(request: Request) {
 
         const objectiveDesc = OBJECTIVES[objective] ?? objective
         const toneDesc = TONES[tone] ?? tone
+
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'campaigns/generate',
+            featureKey: 'email_campaign_html',
+            model: 'gemini-2.5-flash',
+            provider: 'google',
+        }
+
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars: `${audience ?? ''}${details ?? ''}${campaignName ?? ''}${campaignSubject ?? ''}`.length,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return Response.json(
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                { status: guard.status, headers: { 'x-request-id': logger.requestId } }
+            )
+        }
 
         const result = streamText({
             model: geminiModel,
@@ -108,6 +141,15 @@ Gere um email HTML profissional, responsivo e visualmente atraente.`,
             hasDetails: Boolean(details),
         })
 
+        await recordAiUsageEvent(usageContext, {
+            status: 'started',
+            inputChars: `${audience ?? ''}${details ?? ''}${campaignName ?? ''}${campaignSubject ?? ''}`.length,
+            metadata: {
+                objective,
+                tone,
+            },
+        })
+
         return result.toTextStreamResponse({
             headers: {
                 'x-request-id': logger.requestId,
@@ -115,6 +157,13 @@ Gere um email HTML profissional, responsivo e visualmente atraente.`,
         })
     } catch (error) {
         logger.error('generation_failed', error)
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                errorCode: 'generation_failed',
+            })
+        }
 
         if (isAuthError(error)) {
             return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })

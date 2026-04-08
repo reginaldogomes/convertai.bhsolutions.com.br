@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { powerModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
+import { enforceAiUsagePolicy, recordAiUsageEvent, estimateCostCents } from '@/lib/ai-governance'
 
 const productAISchema = z.object({
     shortDescription: z.string().describe('Descrição curta e persuasiva do produto, 1-2 frases'),
@@ -47,16 +48,29 @@ DIRETRIZES:
 
 export async function POST(request: NextRequest) {
     const logger = createApiRequestLogger('products/generate')
+    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
+    let requestInputChars = 0
+    const startedAt = Date.now()
 
     try {
         logger.log('request_received')
-        await getAuthContext()
+        const { orgId, userId } = await getAuthContext()
 
         const body = await request.json()
         const { name, type, context } = body as {
             name: string
             type: 'product' | 'service'
             context?: string
+        }
+
+        usageContext = {
+            organizationId: orgId,
+            userId,
+            requestId: logger.requestId,
+            routeScope: 'products/generate',
+            featureKey: 'product_content_generation',
+            model: 'gemini-2.5-pro',
+            provider: 'google',
         }
 
         if (!name || !type) {
@@ -74,6 +88,30 @@ export async function POST(request: NextRequest) {
             `\nGere conteúdo rico, persuasivo e detalhado. O slug deve ser baseado no nome.`,
         ].filter(Boolean).join('\n')
 
+        requestInputChars = prompt.length + SYSTEM_PROMPT.length
+
+        const guard = await enforceAiUsagePolicy(usageContext)
+        if (!guard.allowed) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'blocked',
+                inputChars: requestInputChars,
+                errorCode: guard.status === 429 ? 'daily_limit_reached' : 'monthly_budget_reached',
+            })
+
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    error: guard.error,
+                    requestId: logger.requestId,
+                    limits: {
+                        dailyRequestsLimit: guard.policy.dailyRequestsLimit,
+                        monthlyBudgetCents: guard.policy.monthlyBudgetCents,
+                    },
+                },
+                { status: guard.status }
+            )
+        }
+
         const { object } = await generateObject({
             model: powerModel,
             schema: productAISchema,
@@ -81,6 +119,22 @@ export async function POST(request: NextRequest) {
             prompt,
             temperature: 0.6,
             maxOutputTokens: 8192,
+        })
+
+        const responseSnapshot = JSON.stringify(object)
+        const outputChars = responseSnapshot.length
+        const estimatedCostCents = estimateCostCents('gemini-2.5-pro', requestInputChars, outputChars)
+
+        await recordAiUsageEvent(usageContext, {
+            status: 'success',
+            inputChars: requestInputChars,
+            outputChars,
+            estimatedCostCents,
+            durationMs: Date.now() - startedAt,
+            metadata: {
+                type,
+                hasContext: Boolean(context),
+            },
         })
 
         logger.log('generation_succeeded', {
@@ -93,6 +147,15 @@ export async function POST(request: NextRequest) {
         return jsonWithRequestId(logger.requestId, object)
     } catch (error) {
         logger.error('generation_failed', error)
+
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                inputChars: requestInputChars,
+                durationMs: Date.now() - startedAt,
+                errorCode: 'generation_failed',
+            })
+        }
 
         if (isAuthError(error)) {
             return jsonWithRequestId(logger.requestId, { error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })
