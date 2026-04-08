@@ -8,7 +8,7 @@ export type { IWhatsAppService, SendWhatsAppInput, SendWhatsAppResult } from './
 export type { IEmailService, SendEmailInput, SendBatchEmailInput, SendEmailResult } from './email-service'
 export type { ISmsService, SendSmsInput, SendSmsResult } from './sms-service'
 export type { ILandingPageRepository, CreateLandingPageInput, UpdateLandingPageInput } from './landing-page-repository'
-export type { IKnowledgeBaseRepository, CreateKnowledgeBaseInput, KnowledgeBaseMatch } from './knowledge-base-repository'
+export type { IKnowledgeBaseRepository, CreateKnowledgeBaseInput, KnowledgeBaseMatch, RagSearchFilters } from './knowledge-base-repository'
 export type { IChatSessionRepository, CreateChatSessionInput, CreateChatMessageInput } from './chat-session-repository'
 export type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from './analytics-repository'
 export type { IInstagramContentRepository, IInstagramAccountRepository, IInstagramService, IInstagramAutoConfigRepository, CreateInstagramContentInput, UpdateInstagramContentInput } from './instagram-repository'

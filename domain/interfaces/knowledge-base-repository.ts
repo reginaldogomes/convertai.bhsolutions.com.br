@@ -7,11 +7,20 @@ export interface CreateKnowledgeBaseInput {
     content: string
 }
 
+export interface RagSearchFilters {
+    niche?: string
+    targetAudience?: string
+    brandName?: string
+    locale?: string
+    intentKeywords?: string[]
+}
+
 export interface KnowledgeBaseMatch {
     id: string
     title: string
     content: string
     similarity: number
+    metadataJson?: Record<string, unknown>
 }
 
 export interface IKnowledgeBaseRepository {
@@ -20,5 +29,12 @@ export interface IKnowledgeBaseRepository {
     create(input: CreateKnowledgeBaseInput): Promise<KnowledgeBase | null>
     updateEmbedding(id: string, embedding: number[]): Promise<boolean>
     delete(id: string, orgId: string): Promise<boolean>
-    searchSimilar(embedding: number[], orgId: string, pageId?: string, threshold?: number, limit?: number): Promise<KnowledgeBaseMatch[]>
+    searchSimilar(
+        embedding: number[],
+        orgId: string,
+        pageId?: string,
+        threshold?: number,
+        limit?: number,
+        filters?: RagSearchFilters,
+    ): Promise<KnowledgeBaseMatch[]>
 }

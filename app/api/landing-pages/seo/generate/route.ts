@@ -3,8 +3,9 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 import { getAuthContext } from '@/infrastructure/auth'
 import { agentModel } from '@/lib/ai'
-import { useCases } from '@/application/services/container'
+import { ragService, useCases } from '@/application/services/container'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
+import type { RagSearchFilters } from '@/domain/interfaces'
 
 const schema = z.object({
     title: z.string().min(10).max(70),
@@ -28,6 +29,21 @@ Regras:
 - Não use clickbait enganoso.
 - Evite aspas desnecessárias e excesso de pontuação.`
 
+function extractIntentKeywords(input: string): string[] {
+    const stopwords = new Set([
+        'para', 'com', 'sem', 'uma', 'uns', 'umas', 'dos', 'das', 'por', 'que', 'como', 'mais', 'menos', 'sobre',
+        'de', 'do', 'da', 'e', 'o', 'a', 'os', 'as', 'em', 'no', 'na', 'nos', 'nas', 'um', 'ao', 'aos',
+    ])
+
+    return Array.from(new Set(
+        input
+            .toLowerCase()
+            .split(/[^a-z0-9áàâãéèêíïóôõöúçñ]+/i)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 4 && !stopwords.has(token))
+    )).slice(0, 12)
+}
+
 export async function POST(req: NextRequest) {
     const logger = createApiRequestLogger('landing-pages/seo/generate')
 
@@ -35,8 +51,10 @@ export async function POST(req: NextRequest) {
         logger.log('request_received')
         const { orgId } = await getAuthContext()
 
-        const body = await req.json() as { pageId?: string }
+        const body = await req.json() as { pageId?: string; focusNiche?: string; focusLocale?: string }
         const pageId = body.pageId
+        const focusNiche = (body.focusNiche || '').trim().slice(0, 140)
+        const focusLocale = (body.focusLocale || '').trim().slice(0, 140)
 
         if (!pageId) {
             return jsonWithRequestId(logger.requestId, { error: 'pageId é obrigatório', requestId: logger.requestId }, { status: 400 })
@@ -52,6 +70,53 @@ export async function POST(req: NextRequest) {
         }
 
         const page = pageResult.value
+        let productName = ''
+        let targetAudience = ''
+
+        if (page.productId) {
+            const productResult = await useCases.getProduct().execute(orgId, page.productId)
+            if (productResult.ok) {
+                productName = productResult.value.name
+                targetAudience = productResult.value.targetAudience || ''
+            }
+        }
+
+        const intentKeywords = extractIntentKeywords([
+            page.name,
+            page.headline,
+            page.subheadline,
+            page.ctaText,
+            productName,
+            targetAudience,
+            focusNiche,
+            focusLocale,
+        ].filter(Boolean).join(' '))
+
+        const ragFilters: RagSearchFilters = {
+            brandName: page.name,
+            niche: focusNiche || productName || undefined,
+            targetAudience: targetAudience || undefined,
+            locale: focusLocale || undefined,
+            intentKeywords,
+        }
+
+        const ragMatches = await ragService.search(
+            `${page.name}. ${page.headline}. ${page.subheadline}. ${page.ctaText}`,
+            orgId,
+            undefined,
+            ragFilters,
+        )
+
+        const ragContext = ragMatches
+            .slice(0, 5)
+            .map((doc, index) => {
+                const metadata = doc.metadataJson && Object.keys(doc.metadataJson).length > 0
+                    ? `\nmetadata: ${JSON.stringify(doc.metadataJson)}`
+                    : ''
+                return `[${index + 1}] ${doc.title}\n${doc.content}${metadata}`
+            })
+            .join('\n\n---\n\n')
+
         const sections = page.configJson.sections ?? []
         const sectionSummary = sections
             .slice(0, 8)
@@ -69,9 +134,16 @@ export async function POST(req: NextRequest) {
             `Headline: ${page.headline}`,
             `Subheadline: ${page.subheadline}`,
             `CTA: ${page.ctaText}`,
+            (focusNiche || productName) ? `Nicho principal: ${focusNiche || productName}` : '',
+            focusLocale ? `Localidade foco: ${focusLocale}` : '',
+            targetAudience ? `Publico alvo: ${targetAudience}` : '',
+            intentKeywords.length > 0 ? `Keywords de intencao: ${intentKeywords.join(', ')}` : '',
             '',
             'Resumo das seções:',
             sectionSummary || 'Sem seções relevantes.',
+            '',
+            'Contexto RAG (priorize termos, dores e beneficios reais):',
+            ragContext || 'Sem contexto RAG disponivel.',
             '',
             'Gere metatags SEO completas para esta landing page.',
         ].join('\n')

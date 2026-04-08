@@ -4,6 +4,22 @@ import { generateLandingPageSections } from '@/lib/landing-page-generation'
 import { useCases, ragService } from '@/application/services/container'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 import { enforceAiUsagePolicy, recordAiUsageEvent, estimateCostCents } from '@/lib/ai-governance'
+import type { RagSearchFilters } from '@/domain/interfaces'
+
+function extractIntentKeywords(input: string): string[] {
+    const stopwords = new Set([
+        'para', 'com', 'sem', 'uma', 'uns', 'umas', 'dos', 'das', 'por', 'que', 'como', 'mais', 'menos', 'sobre',
+        'de', 'do', 'da', 'e', 'o', 'a', 'os', 'as', 'em', 'no', 'na', 'nos', 'nas', 'um', 'ao', 'aos',
+    ])
+
+    return Array.from(new Set(
+        input
+            .toLowerCase()
+            .split(/[^a-z0-9áàâãéèêíïóôõöúçñ]+/i)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 4 && !stopwords.has(token))
+    )).slice(0, 10)
+}
 
 export async function POST(request: Request) {
     const logger = createApiRequestLogger('landing-pages/generate')
@@ -48,16 +64,30 @@ export async function POST(request: Request) {
         let resolvedProductContext = productContext
         let knowledgeBaseContext = ''
 
+        const ragFilters: RagSearchFilters = {
+            brandName: pageContext?.name,
+            intentKeywords: extractIntentKeywords(prompt),
+        }
+
+        let productNameForSeo = ''
+        let productAudienceForSeo = ''
+
         if (productId) {
             const productResult = await useCases.getProduct().execute(orgId, productId)
             if (productResult.ok) {
                 const product = productResult.value
+                productNameForSeo = product.name
+                productAudienceForSeo = product.targetAudience ?? ''
+
                 if (!resolvedProductContext) {
                     resolvedProductContext = product.toAIContext()
                 }
 
+                ragFilters.niche = product.name
+                ragFilters.targetAudience = product.targetAudience ?? undefined
+
                 // RAG retrieval over org knowledge base, then prioritize docs related to selected product.
-                const ragMatches = await ragService.search(prompt, orgId)
+                const ragMatches = await ragService.search(prompt, orgId, undefined, ragFilters)
                 const productName = product.name.toLowerCase()
                 const relatedMatches = ragMatches.filter((match) => {
                     const title = match.title.toLowerCase()
@@ -71,6 +101,14 @@ export async function POST(request: Request) {
                         .map((doc, index) => `[${index + 1}] ${doc.title}\n${doc.content}`)
                         .join('\n\n---\n\n')
                 }
+            }
+        } else {
+            const ragMatches = await ragService.search(prompt, orgId, undefined, ragFilters)
+            const prioritized = ragMatches.slice(0, 5)
+            if (prioritized.length > 0) {
+                knowledgeBaseContext = prioritized
+                    .map((doc, index) => `[${index + 1}] ${doc.title}\n${doc.content}`)
+                    .join('\n\n---\n\n')
             }
         }
 
@@ -110,6 +148,11 @@ export async function POST(request: Request) {
             pageContext,
             productContext: resolvedProductContext,
             knowledgeBaseContext,
+            seoContext: {
+                primaryTopic: productNameForSeo || pageContext?.name || undefined,
+                targetAudience: productAudienceForSeo || undefined,
+                intentKeywords: ragFilters.intentKeywords,
+            },
             imageGeneration,
         })
 

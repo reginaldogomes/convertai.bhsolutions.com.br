@@ -29,6 +29,15 @@ type AiUsageEventView = {
     errorCode: string | null
 }
 
+type KnowledgeBaseEntryView = {
+    id: string
+    title: string
+    createdAt: string
+    content: string
+    preview: string
+    tags: string[]
+}
+
 async function loadAiGovernance(orgId: string): Promise<AiGovernanceView> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,11 +153,37 @@ async function loadAiUsageEvents(orgId: string): Promise<AiUsageEventView[]> {
     }
 }
 
+async function loadKnowledgeBaseEntries(orgId: string): Promise<KnowledgeBaseEntryView[]> {
+    try {
+        const entries = await useCases.listKnowledgeBase().execute(orgId)
+
+        return entries
+            .filter((entry) => entry.landingPageId === null)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 8)
+            .map((entry) => ({
+                id: entry.id,
+                title: entry.title,
+                createdAt: entry.createdAt,
+                content: entry.content,
+                preview: entry.content.slice(0, 180),
+                tags: Array.isArray(entry.metadataJson?.tags)
+                    ? (entry.metadataJson.tags as unknown[])
+                        .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
+                        .slice(0, 24)
+                    : [],
+            }))
+    } catch {
+        return []
+    }
+}
+
 export default async function SettingsPage() {
     const auth = await tryGetAuthContext()
     const profileWithOrg = auth ? await useCases.getUserSettings().execute(auth.userId) : null
     const aiGovernance = auth ? await loadAiGovernance(auth.orgId) : null
     const aiUsageEvents = auth ? await loadAiUsageEvents(auth.orgId) : []
+    const knowledgeBaseEntries = auth ? await loadKnowledgeBaseEntries(auth.orgId) : []
 
     const integrations = {
         sendgrid: !!process.env.SENDGRID_API_KEY,
@@ -165,6 +200,7 @@ export default async function SettingsPage() {
                 integrations={integrations}
                 aiGovernance={aiGovernance}
                 aiUsageEvents={aiUsageEvents}
+                knowledgeBaseEntries={knowledgeBaseEntries}
             />
         </div>
     )

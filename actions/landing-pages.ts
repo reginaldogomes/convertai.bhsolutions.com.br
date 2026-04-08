@@ -9,6 +9,22 @@ import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 import { generateLandingPageSections } from '@/lib/landing-page-generation'
 import type { Product } from '@/domain/entities/product'
+import type { RagSearchFilters } from '@/domain/interfaces'
+
+function extractIntentKeywords(input: string): string[] {
+    const stopwords = new Set([
+        'para', 'com', 'sem', 'uma', 'uns', 'umas', 'dos', 'das', 'por', 'que', 'como', 'mais', 'menos', 'sobre',
+        'de', 'do', 'da', 'e', 'o', 'a', 'os', 'as', 'em', 'no', 'na', 'nos', 'nas', 'um', 'ao', 'aos',
+    ])
+
+    return Array.from(new Set(
+        input
+            .toLowerCase()
+            .split(/[^a-z0-9áàâãéèêíïóôõöúçñ]+/i)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 4 && !stopwords.has(token))
+    )).slice(0, 10)
+}
 
 export async function createLandingPage(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
@@ -86,7 +102,14 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 : productFallbackPrompt
 
             let knowledgeBaseContext = ''
-            const ragMatches = await ragService.search(generationPrompt, orgId)
+            const ragFilters: RagSearchFilters = {
+                brandName: (formData.get('name') as string) || linkedProduct?.name || undefined,
+                niche: linkedProduct?.name || undefined,
+                targetAudience: linkedProduct?.targetAudience || undefined,
+                intentKeywords: extractIntentKeywords(generationPrompt),
+            }
+
+            const ragMatches = await ragService.search(generationPrompt, orgId, undefined, ragFilters)
             const prioritizedMatches = linkedProduct
                 ? (() => {
                     const productName = linkedProduct.name.toLowerCase()
@@ -114,6 +137,11 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 },
                 productContext,
                 knowledgeBaseContext,
+                seoContext: {
+                    primaryTopic: linkedProduct?.name || (formData.get('name') as string) || undefined,
+                    targetAudience: linkedProduct?.targetAudience || undefined,
+                    intentKeywords: ragFilters.intentKeywords,
+                },
                 imageGeneration: {
                     enabled: generateVisuals,
                     model: imageModel as 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview',

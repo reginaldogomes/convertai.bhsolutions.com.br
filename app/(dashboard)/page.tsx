@@ -6,6 +6,7 @@ import {
     Users, MessageSquare, Mail, TrendingUp, Globe, Zap, Instagram, Bot,
     Eye, MousePointer, ArrowUpRight, CheckCircle2,
     FileText,
+    BarChart3,
     type LucideIcon,
 } from 'lucide-react'
 
@@ -127,6 +128,18 @@ const moduleCards: ModuleCard[] = [
         color: 'text-cyan-400',
         bgColor: 'bg-cyan-400/10',
         metrics: [],
+    },
+    {
+        href: '/analytics',
+        label: 'Analytics',
+        icon: BarChart3,
+        color: 'text-indigo-400',
+        bgColor: 'bg-indigo-400/10',
+        metrics: [
+            { key: 'landingPageViews', label: 'Impressões' },
+            { key: 'landingPageLeads', label: 'Leads' },
+            { key: 'conversionRate', label: 'Conversão', suffix: '%' },
+        ],
     },
     {
         href: '/release-notes',

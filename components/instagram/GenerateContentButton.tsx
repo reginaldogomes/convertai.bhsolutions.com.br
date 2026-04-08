@@ -73,7 +73,12 @@ export function GenerateContentButton() {
                     details,
                     targetAudience,
                     includeHashtags,
-                        {generationError && <InlineError message={generationError} size="sm" />}
+                    includeEmojis,
+                }),
+            })
+
+            if (!response.ok) {
+                const apiError = await parseApiError(response)
                 setGenerationError(formatErrorWithRequestId(apiError.message, apiError.requestId))
                 return
             }

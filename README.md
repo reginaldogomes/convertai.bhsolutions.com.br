@@ -40,6 +40,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 - API hardening checklist: `docs/operations/sprint-1-api-hardening-checklist.md`
 - UI feedback guidelines: `docs/operations/ui-feedback-guidelines.md`
+- RAG + SEO indexation checklist: `docs/operations/rag-seo-indexation-checklist.md`
 - Changelog (hardening + UX): `docs/operations/changelog-2026-04-08.md`
 
 ## Chatbox Debug E Health

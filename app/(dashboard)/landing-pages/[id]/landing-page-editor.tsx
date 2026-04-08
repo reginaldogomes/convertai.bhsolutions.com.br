@@ -54,6 +54,8 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
     const [seoOgDescription, setSeoOgDescription] = useState(page.seoOgDescription || '')
     const [seoOgImageUrl, setSeoOgImageUrl] = useState(page.seoOgImageUrl || '')
     const [seoCanonicalUrl, setSeoCanonicalUrl] = useState(page.seoCanonicalUrl || '')
+    const [seoFocusNiche, setSeoFocusNiche] = useState('')
+    const [seoFocusLocale, setSeoFocusLocale] = useState('')
 
     const boundAction = useCallback(
         (state: { error: string; success: boolean }, formData: FormData) =>
@@ -89,7 +91,11 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
             const response = await fetch('/api/landing-pages/seo/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pageId: page.id }),
+                body: JSON.stringify({
+                    pageId: page.id,
+                    focusNiche: seoFocusNiche,
+                    focusLocale: seoFocusLocale,
+                }),
             })
 
             if (!response.ok) {
@@ -125,7 +131,7 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
         } finally {
             setIsGeneratingSeo(false)
         }
-    }, [page.id])
+    }, [page.id, seoFocusLocale, seoFocusNiche])
 
     return (
         <form action={action} className="space-y-6">
@@ -187,6 +193,27 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                         <Sparkles className="w-4 h-4" />
                         {isGeneratingSeo ? 'Gerando...' : 'Gerar SEO com IA'}
                     </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="seoFocusNiche">Foco de Nicho (opcional)</Label>
+                        <Input
+                            id="seoFocusNiche"
+                            value={seoFocusNiche}
+                            onChange={(e) => setSeoFocusNiche(e.target.value)}
+                            placeholder="Ex.: contabilidade para ecommerce"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="seoFocusLocale">Foco de Cidade/Região (opcional)</Label>
+                        <Input
+                            id="seoFocusLocale"
+                            value={seoFocusLocale}
+                            onChange={(e) => setSeoFocusLocale(e.target.value)}
+                            placeholder="Ex.: Belo Horizonte, MG"
+                        />
+                    </div>
                 </div>
 
                 {seoGenerationWarning && (

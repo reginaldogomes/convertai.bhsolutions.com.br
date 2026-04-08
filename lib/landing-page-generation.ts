@@ -11,6 +11,12 @@ export interface LandingPageGenerationInput {
     pageContext?: { name?: string; headline?: string; subheadline?: string }
     productContext?: string
     knowledgeBaseContext?: string
+    seoContext?: {
+        primaryTopic?: string
+        targetAudience?: string
+        locale?: string
+        intentKeywords?: string[]
+    }
     imageGeneration?: {
         enabled?: boolean
         model?: NanoBananaModelId
@@ -281,6 +287,21 @@ export async function generateLandingPageSections(input: LandingPageGenerationIn
     if (input.knowledgeBaseContext && typeof input.knowledgeBaseContext === 'string') {
         contextParts.push('IMPORTANTE: Use a base de conhecimento abaixo como contexto de verdade para definir as seções mais relevantes e a copy final.')
         contextParts.push(`\n--- BASE DE CONHECIMENTO RELACIONADA ---\n${input.knowledgeBaseContext}\n--- FIM DA BASE DE CONHECIMENTO ---`)
+    }
+
+    if (input.seoContext) {
+        const seoHints: string[] = []
+        if (input.seoContext.primaryTopic) seoHints.push(`Tópico principal para SEO: ${input.seoContext.primaryTopic}`)
+        if (input.seoContext.targetAudience) seoHints.push(`Público-alvo principal: ${input.seoContext.targetAudience}`)
+        if (input.seoContext.locale) seoHints.push(`Localidade prioritária: ${input.seoContext.locale}`)
+        if (input.seoContext.intentKeywords && input.seoContext.intentKeywords.length > 0) {
+            seoHints.push(`Palavras-chave de intenção: ${input.seoContext.intentKeywords.slice(0, 10).join(', ')}`)
+        }
+
+        if (seoHints.length > 0) {
+            contextParts.push('Diretrizes de indexação orgânica: use as palavras-chave de forma natural em headlines/subheadlines/FAQ, sem keyword stuffing, com foco em clareza e intenção de busca.')
+            contextParts.push(seoHints.join('\n'))
+        }
     }
 
     if (input.imageGeneration?.enabled) {

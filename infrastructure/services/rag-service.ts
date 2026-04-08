@@ -1,6 +1,6 @@
 import { embed } from 'ai'
 import { google } from '@ai-sdk/google'
-import type { IKnowledgeBaseRepository, KnowledgeBaseMatch, IRagService } from '@/domain/interfaces'
+import type { IKnowledgeBaseRepository, KnowledgeBaseMatch, IRagService, RagSearchFilters } from '@/domain/interfaces'
 
 export class RagService implements IRagService {
     constructor(private knowledgeBaseRepo: IKnowledgeBaseRepository) {}
@@ -18,9 +18,9 @@ export class RagService implements IRagService {
         return this.knowledgeBaseRepo.updateEmbedding(id, embedding)
     }
 
-    async search(query: string, orgId: string, pageId?: string): Promise<KnowledgeBaseMatch[]> {
+    async search(query: string, orgId: string, pageId?: string, filters?: RagSearchFilters): Promise<KnowledgeBaseMatch[]> {
         const embedding = await this.generateEmbedding(query)
-        return this.knowledgeBaseRepo.searchSimilar(embedding, orgId, pageId, 0.6, 5)
+        return this.knowledgeBaseRepo.searchSimilar(embedding, orgId, pageId, 0.6, 8, filters)
     }
 
     formatContextForLLM(matches: KnowledgeBaseMatch[]): string {
