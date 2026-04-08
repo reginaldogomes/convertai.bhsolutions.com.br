@@ -176,6 +176,8 @@ export async function createLandingPage(prevState: { error: string; success: boo
         if (!result.ok) return { error: result.error.message, success: false }
 
         revalidatePath('/landing-pages')
+        revalidatePath(`/p/${result.value.slug}`)
+        revalidatePath('/sitemap.xml')
         return { error: '', success: true }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
@@ -338,6 +340,42 @@ export async function updateLandingPage(pageId: string, prevState: { error: stri
         if (formData.get('theme')) configJson.theme = formData.get('theme') as string
         if (formData.get('primaryColor')) configJson.primaryColor = formData.get('primaryColor') as string
 
+        const seoTitle = ((formData.get('seoTitle') as string) || '').trim()
+        const seoDescription = ((formData.get('seoDescription') as string) || '').trim()
+        const seoKeywordsRaw = ((formData.get('seoKeywords') as string) || '').trim()
+        const seoOgTitle = ((formData.get('seoOgTitle') as string) || '').trim()
+        const seoOgDescription = ((formData.get('seoOgDescription') as string) || '').trim()
+        const seoOgImageUrl = ((formData.get('seoOgImageUrl') as string) || '').trim()
+        const seoCanonicalUrl = ((formData.get('seoCanonicalUrl') as string) || '').trim()
+
+        const seoKeywords = seoKeywordsRaw
+            .split(',')
+            .map((keyword) => keyword.trim())
+            .filter(Boolean)
+            .slice(0, 15)
+
+        const hasSeoInput = Boolean(
+            seoTitle
+            || seoDescription
+            || seoKeywords.length > 0
+            || seoOgTitle
+            || seoOgDescription
+            || seoOgImageUrl
+            || seoCanonicalUrl
+        )
+
+        if (hasSeoInput) {
+            configJson.seo = {
+                title: seoTitle || undefined,
+                description: seoDescription || undefined,
+                keywords: seoKeywords.length > 0 ? seoKeywords : undefined,
+                ogTitle: seoOgTitle || undefined,
+                ogDescription: seoOgDescription || undefined,
+                ogImageUrl: seoOgImageUrl || undefined,
+                canonicalUrl: seoCanonicalUrl || undefined,
+            }
+        }
+
         // Parse design system from serialized JSON
         const designSystemRaw = formData.get('designSystem') as string | null
         if (designSystemRaw) {
@@ -371,6 +409,8 @@ export async function updateLandingPage(pageId: string, prevState: { error: stri
 
         revalidatePath('/landing-pages')
         revalidatePath(`/landing-pages/${pageId}`)
+        revalidatePath(`/p/${result.value.slug}`)
+        revalidatePath('/sitemap.xml')
         return { error: '', success: true }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
@@ -380,12 +420,17 @@ export async function updateLandingPage(pageId: string, prevState: { error: stri
 export async function publishLandingPage(pageId: string, publish: boolean) {
     try {
         const { orgId } = await getAuthContext()
+        const pageResult = await useCases.getLandingPage().execute(orgId, pageId)
+        if (!pageResult.ok) return { error: pageResult.error.message, success: false }
+
         const result = await useCases.publishLandingPage().execute(orgId, pageId, publish)
 
         if (!result.ok) return { error: result.error.message, success: false }
 
         revalidatePath('/landing-pages')
         revalidatePath(`/landing-pages/${pageId}`)
+        revalidatePath(`/p/${pageResult.value.slug}`)
+        revalidatePath('/sitemap.xml')
         return { error: '', success: true }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
@@ -478,11 +523,16 @@ export async function syncProductKnowledgeBase(pageId: string) {
 export async function deleteLandingPage(pageId: string) {
     try {
         const { orgId } = await getAuthContext()
+        const pageResult = await useCases.getLandingPage().execute(orgId, pageId)
+        if (!pageResult.ok) return { error: pageResult.error.message, success: false }
+
         const result = await useCases.deleteLandingPage().execute(orgId, pageId)
 
         if (!result.ok) return { error: result.error.message, success: false }
 
         revalidatePath('/landing-pages')
+        revalidatePath(`/p/${pageResult.value.slug}`)
+        revalidatePath('/sitemap.xml')
         return { error: '', success: true }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
@@ -516,6 +566,8 @@ export async function updateLandingPageSections(pageId: string, sections: Landin
 
         revalidatePath('/landing-pages')
         revalidatePath(`/landing-pages/${pageId}`)
+        revalidatePath(`/p/${pageResult.value.slug}`)
+        revalidatePath('/sitemap.xml')
         return { error: '', success: true }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }

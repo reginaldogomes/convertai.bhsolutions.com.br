@@ -11,164 +11,228 @@ import {
 import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
 import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 
+const CHAT_DEBUG = process.env.CHAT_DEBUG === 'true'
+
+function logChatServer(event: string, payload: Record<string, unknown>) {
+    if (!CHAT_DEBUG) return
+    console.info(`[chat-api] ${event}`, payload)
+}
+
 export async function POST(
     req: Request,
     { params }: { params: Promise<{ pageId: string }> }
 ) {
-    const { pageId } = await params
-    const body = await req.json()
-    const { message, visitorId, sessionId: existingSessionId, attribution, eventId } = body as {
-        message: string
-        visitorId: string
-        sessionId?: string
-        attribution?: Record<string, unknown>
-        eventId?: string
-    }
+    const requestId = crypto.randomUUID()
+    const startedAt = Date.now()
 
-    if (!message || !visitorId) {
-        return Response.json({ error: 'message and visitorId are required' }, { status: 400 })
-    }
+    try {
+        const { pageId } = await params
+        const body = await req.json()
+        const { message, visitorId, sessionId: existingSessionId, attribution, eventId } = body as {
+            message: string
+            visitorId: string
+            sessionId?: string
+            attribution?: Record<string, unknown>
+            eventId?: string
+        }
 
-    // 1. Load landing page
-    const page = await landingPageRepo.findById(pageId)
-    if (!page || !page.isPublished()) {
-        return Response.json({ error: 'Page not found' }, { status: 404 })
-    }
+        if (!message || !visitorId) {
+            return Response.json({ error: 'message and visitorId are required', requestId }, { status: 400 })
+        }
 
-    // 2. Get or create chat session
-    let session = existingSessionId
-        ? await chatSessionRepo.findById(existingSessionId)
-        : await chatSessionRepo.findByVisitor(pageId, visitorId)
+        logChatServer('request_received', {
+            requestId,
+            pageId,
+            visitorId,
+            hasSessionId: Boolean(existingSessionId),
+            messageLength: message.length,
+        })
 
-    if (!session) {
-        session = await chatSessionRepo.create({ landingPageId: pageId, visitorId })
+        // 1. Load landing page
+        const page = await landingPageRepo.findById(pageId)
+        if (!page || !page.isPublished()) {
+            return Response.json({ error: 'Page not found', requestId }, { status: 404 })
+        }
+
+        // 2. Get or create chat session
+        let session = existingSessionId
+            ? await chatSessionRepo.findById(existingSessionId)
+            : null
+
+        // Ignore stale/mismatched session id sent by client and fallback to visitor lookup.
+        if (session && (session.landingPageId !== pageId || session.visitorId !== visitorId)) {
+            session = null
+        }
+
         if (!session) {
-            return Response.json({ error: 'Failed to create session' }, { status: 500 })
-        }
-        const chatStartEventId = eventId ?? crypto.randomUUID()
-        const chatStartMetadata = {
-            attribution: attribution ?? {},
-            eventId: chatStartEventId,
+            session = await chatSessionRepo.findByVisitor(pageId, visitorId)
         }
 
-        // Track chat_start event
-        await analyticsRepo.track({
-            landingPageId: pageId,
-            eventType: 'chat_start',
-            sessionId: session.id,
-            visitorId,
-            metadata: chatStartMetadata,
-        })
-
-        await enqueueAdsConversion({
-            landingPageId: pageId,
-            eventType: 'chat_start',
-            sessionId: session.id,
-            visitorId,
-            metadata: chatStartMetadata,
-        })
-
-        void flushAdsConversionOutbox({ limit: 10, requestHeaders: req.headers })
-    }
-
-    // 3. Save the user message
-    await chatSessionRepo.addMessage({
-        sessionId: session.id,
-        role: 'user',
-        content: message,
-    })
-
-    // 4. RAG — search knowledge base for relevant context
-    const ragMatches = await ragService.search(message, page.organizationId, pageId)
-    const ragContext = ragService.formatContextForLLM(ragMatches)
-
-    // 4b. Fetch linked product for rich context enrichment
-    let productContext = ''
-    if (page.productId) {
-        const product = await productRepo.findById(page.productId)
-        if (product) {
-            productContext = product.toAIContext()
-        }
-    }
-
-    // 5. Get conversation history
-    const history = await chatSessionRepo.getMessages(session.id)
-    const conversationMessages = history.slice(-20).map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-    }))
-
-    // 6. Detect lead info in message (name + email pattern)
-    const leadInfo = extractLeadInfo(message)
-    if (leadInfo && !session.hasLead()) {
-        const contact = await contactRepo.create({
-            organizationId: page.organizationId,
-            name: leadInfo.name,
-            email: leadInfo.email,
-            phone: leadInfo.phone,
-            company: null,
-            tags: ['landing-page', page.slug],
-            notes: `Lead capturado via landing page: ${page.name}\nAtribuição: ${JSON.stringify(attribution ?? {})}`,
-        })
-        if (contact) {
-            await chatSessionRepo.updateContactId(session.id, contact.id)
-            void dispatchAutomationEvent({
-                orgId: page.organizationId,
-                event: 'new_contact',
-                context: {
-                    contactId: contact.id,
-                    source: 'landing_chat',
-                    message,
-                    metadata: { landingPageId: pageId },
-                },
-            })
-
-            const leadMetadata = {
-                contactId: contact.id,
+        if (!session) {
+            session = await chatSessionRepo.create({ landingPageId: pageId, visitorId })
+            if (!session) {
+                return Response.json({ error: 'Failed to create session', requestId }, { status: 500 })
+            }
+            const chatStartEventId = eventId ?? crypto.randomUUID()
+            const chatStartMetadata = {
                 attribution: attribution ?? {},
-                eventId: crypto.randomUUID(),
+                eventId: chatStartEventId,
             }
 
+            // Track chat_start event
             await analyticsRepo.track({
                 landingPageId: pageId,
-                eventType: 'lead_captured',
+                eventType: 'chat_start',
                 sessionId: session.id,
                 visitorId,
-                metadata: leadMetadata,
+                metadata: chatStartMetadata,
             })
 
             await enqueueAdsConversion({
                 landingPageId: pageId,
-                eventType: 'lead_captured',
+                eventType: 'chat_start',
                 sessionId: session.id,
                 visitorId,
-                metadata: leadMetadata,
+                metadata: chatStartMetadata,
             })
 
             void flushAdsConversionOutbox({ limit: 10, requestHeaders: req.headers })
         }
-    }
 
-    // 7. Build the system prompt with RAG context + product data
-    const systemPrompt = buildSystemPrompt(page, ragContext, productContext, !session.hasLead() && !leadInfo)
+        // 3. Save the user message
+        await chatSessionRepo.addMessage({
+            sessionId: session.id,
+            role: 'user',
+            content: message,
+        })
 
-    // 8. Stream the response
-    const result = await streamText({
-        model: agentModel,
-        system: systemPrompt,
-        messages: conversationMessages,
-        async onFinish({ text }) {
-            if (text) {
-                await chatSessionRepo.addMessage({
-                    sessionId: session!.id,
-                    role: 'assistant',
-                    content: text,
+        // 4. RAG — search knowledge base for relevant context
+        const ragMatches = await ragService.search(message, page.organizationId, pageId)
+        const ragContext = ragService.formatContextForLLM(ragMatches)
+
+        logChatServer('context_resolved', {
+            requestId,
+            sessionId: session.id,
+            ragMatches: ragMatches.length,
+            elapsedMs: Date.now() - startedAt,
+        })
+
+        // 4b. Fetch linked product for rich context enrichment
+        let productContext = ''
+        if (page.productId) {
+            const product = await productRepo.findById(page.productId)
+            if (product) {
+                productContext = product.toAIContext()
+            }
+        }
+
+        // 5. Get conversation history
+        const history = await chatSessionRepo.getMessages(session.id)
+        const conversationMessages = history.slice(-20).map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+        }))
+
+        // 6. Detect lead info in message (name + email pattern)
+        const leadInfo = extractLeadInfo(message)
+        if (leadInfo && !session.hasLead()) {
+            const contact = await contactRepo.create({
+                organizationId: page.organizationId,
+                name: leadInfo.name,
+                email: leadInfo.email,
+                phone: leadInfo.phone,
+                company: null,
+                tags: ['landing-page', page.slug],
+                notes: `Lead capturado via landing page: ${page.name}\nAtribuição: ${JSON.stringify(attribution ?? {})}`,
+            })
+            if (contact) {
+                await chatSessionRepo.updateContactId(session.id, contact.id)
+                void dispatchAutomationEvent({
+                    orgId: page.organizationId,
+                    event: 'new_contact',
+                    context: {
+                        contactId: contact.id,
+                        source: 'landing_chat',
+                        message,
+                        metadata: { landingPageId: pageId },
+                    },
+                })
+
+                const leadMetadata = {
+                    contactId: contact.id,
+                    attribution: attribution ?? {},
+                    eventId: crypto.randomUUID(),
+                }
+
+                await analyticsRepo.track({
+                    landingPageId: pageId,
+                    eventType: 'lead_captured',
+                    sessionId: session.id,
+                    visitorId,
+                    metadata: leadMetadata,
+                })
+
+                await enqueueAdsConversion({
+                    landingPageId: pageId,
+                    eventType: 'lead_captured',
+                    sessionId: session.id,
+                    visitorId,
+                    metadata: leadMetadata,
+                })
+
+                void flushAdsConversionOutbox({ limit: 10, requestHeaders: req.headers })
+
+                logChatServer('lead_captured', {
+                    requestId,
+                    sessionId: session.id,
+                    contactId: contact.id,
                 })
             }
-        },
-    })
+        }
 
-    return result.toTextStreamResponse()
+        // 7. Build the system prompt with RAG context + product data
+        const systemPrompt = buildSystemPrompt(page, ragContext, productContext, !session.hasLead() && !leadInfo)
+
+        // 8. Stream the response
+        const result = await streamText({
+            model: agentModel,
+            system: systemPrompt,
+            messages: conversationMessages,
+            async onFinish({ text }) {
+                if (text) {
+                    await chatSessionRepo.addMessage({
+                        sessionId: session!.id,
+                        role: 'assistant',
+                        content: text,
+                    })
+                }
+
+                logChatServer('stream_finished', {
+                    requestId,
+                    sessionId: session!.id,
+                    responseLength: text?.length ?? 0,
+                    elapsedMs: Date.now() - startedAt,
+                })
+            },
+        })
+
+        return result.toTextStreamResponse({
+            headers: {
+                'x-chat-session-id': session.id,
+                'x-chat-request-id': requestId,
+            },
+        })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown chat error'
+
+        logChatServer('request_failed', {
+            requestId,
+            error: message,
+            elapsedMs: Date.now() - startedAt,
+        })
+
+        return Response.json({ error: 'Chat processing failed', requestId }, { status: 500 })
+    }
 }
 
 function buildSystemPrompt(

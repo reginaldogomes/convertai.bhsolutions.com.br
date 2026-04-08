@@ -23,6 +23,13 @@ interface Message {
     content: string
 }
 
+const CHAT_DEBUG = process.env.NEXT_PUBLIC_CHAT_DEBUG === 'true'
+
+function logChatClient(event: string, payload: Record<string, unknown>) {
+    if (!CHAT_DEBUG) return
+    console.debug(`[chat-widget] ${event}`, payload)
+}
+
 function TypingDots() {
     return (
         <span className="inline-flex items-center gap-1 py-0.5">
@@ -44,6 +51,7 @@ function getVisitorId(): string {
 }
 
 export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }: ChatWidgetProps) {
+    const sessionStorageKey = `ag_chat_session_${pageId}`
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState<Message[]>([
         { id: 'welcome', role: 'assistant', content: welcomeMessage },
@@ -70,11 +78,20 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
         captureAttributionFromCurrentPage()
     }, [])
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const storedSessionId = localStorage.getItem(sessionStorageKey)
+        if (storedSessionId) {
+            setSessionId(storedSessionId)
+        }
+    }, [sessionStorageKey])
+
     const sendMessage = async () => {
         const text = input.trim()
         if (!text || isLoading) return
 
         const visitorId = getVisitorId()
+        const startedAt = performance.now()
         const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: text }
         setMessages(prev => [...prev, userMsg])
         setInput('')
@@ -95,13 +112,33 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                 }),
             })
 
-            if (!res.ok) throw new Error('Chat error')
+            const responseSessionId = res.headers.get('x-chat-session-id')
+            const requestId = res.headers.get('x-chat-request-id')
+            if (responseSessionId) {
+                setSessionId(responseSessionId)
+                localStorage.setItem(sessionStorageKey, responseSessionId)
+            }
+
+            logChatClient('request_started', {
+                requestId,
+                pageId,
+                hasSession: Boolean(sessionId || responseSessionId),
+                visitorId,
+                status: res.status,
+            })
+
+            if (!res.ok) {
+                const errorText = await res.text()
+                throw new Error(errorText || 'Chat error')
+            }
 
             // Read streaming response
             const reader = res.body?.getReader()
             const decoder = new TextDecoder()
             const assistantId = crypto.randomUUID()
             let assistantContent = ''
+            let buffer = ''
+            let isDataProtocol = false
 
             setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }])
 
@@ -111,11 +148,19 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                     if (done) break
 
                     const chunk = decoder.decode(value, { stream: true })
-                    // Parse Vercel AI SDK data stream format
-                    const lines = chunk.split('\n')
-                    for (const line of lines) {
-                        if (line.startsWith('0:')) {
-                            // Text delta
+                    buffer += chunk
+
+                    if (!isDataProtocol && /(^|\n)0:/.test(buffer)) {
+                        isDataProtocol = true
+                    }
+
+                    if (isDataProtocol) {
+                        const lines = buffer.split('\n')
+                        buffer = lines.pop() ?? ''
+
+                        for (const line of lines) {
+                            if (!line.startsWith('0:')) continue
+
                             try {
                                 const textContent = JSON.parse(line.slice(2))
                                 assistantContent += textContent
@@ -126,18 +171,75 @@ export function ChatWidget({ pageId, chatbotName, welcomeMessage, primaryColor }
                                             : m
                                     )
                                 )
-                            } catch { /* skip unparseable chunks */ }
+                            } catch {
+                                // Skip malformed chunks
+                            }
                         }
+                    } else {
+                        assistantContent += chunk
+                        setMessages(prev =>
+                            prev.map(m =>
+                                m.id === assistantId
+                                    ? { ...m, content: assistantContent }
+                                    : m
+                            )
+                        )
                     }
                 }
-            }
 
-            // Extract sessionId from cookie or response header if available
-            if (!sessionId) {
-                // The session will be tracked server-side; we just keep the conversation going
-                setSessionId(assistantId) // placeholder — real session is server-managed
+                const finalChunk = decoder.decode()
+                if (finalChunk) {
+                    if (isDataProtocol) {
+                        buffer += finalChunk
+                    } else {
+                        assistantContent += finalChunk
+                    }
+                }
+
+                if (isDataProtocol && buffer.startsWith('0:')) {
+                    try {
+                        const textContent = JSON.parse(buffer.slice(2))
+                        assistantContent += textContent
+                    } catch {
+                        // Ignore trailing malformed chunk
+                    }
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === assistantId
+                                ? { ...m, content: assistantContent }
+                                : m
+                        )
+                    )
+                }
+
+                logChatClient('stream_completed', {
+                    requestId,
+                    responseLength: assistantContent.length,
+                    protocol: isDataProtocol ? 'data' : 'text',
+                    elapsedMs: Math.round(performance.now() - startedAt),
+                })
+            } else {
+                const textResponse = await res.text()
+                assistantContent = textResponse
+                setMessages(prev =>
+                    prev.map(m =>
+                        m.id === assistantId
+                            ? { ...m, content: assistantContent }
+                            : m
+                    )
+                )
+
+                logChatClient('text_completed', {
+                    requestId,
+                    responseLength: assistantContent.length,
+                    elapsedMs: Math.round(performance.now() - startedAt),
+                })
             }
         } catch {
+            logChatClient('request_failed', {
+                pageId,
+                elapsedMs: Math.round(performance.now() - startedAt),
+            })
             setMessages(prev => [
                 ...prev,
                 { id: crypto.randomUUID(), role: 'assistant', content: 'Desculpe, houve um erro. Tente novamente.' },

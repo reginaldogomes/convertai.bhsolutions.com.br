@@ -10,6 +10,7 @@ import { DesignSystemPicker } from '@/components/crm/DesignSystemPicker'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { DEFAULT_DESIGN_SYSTEM, designSystemFromPrimaryColor } from '@/domain/value-objects/design-system'
+import { Sparkles } from 'lucide-react'
 
 interface LandingPageEditorProps {
     page: {
@@ -22,6 +23,13 @@ interface LandingPageEditorProps {
         chatbotName: string
         chatbotWelcomeMessage: string
         chatbotSystemPrompt: string
+        seoTitle?: string
+        seoDescription?: string
+        seoKeywords?: string[]
+        seoOgTitle?: string
+        seoOgDescription?: string
+        seoOgImageUrl?: string
+        seoCanonicalUrl?: string
         theme: string
         primaryColor: string
         designSystem?: DesignSystem
@@ -35,6 +43,15 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
 
     const [designSystem, setDesignSystem] = useState<DesignSystem>(initialDesignSystem)
     const [designSystemAlert, setDesignSystemAlert] = useState('')
+    const [isGeneratingSeo, setIsGeneratingSeo] = useState(false)
+
+    const [seoTitle, setSeoTitle] = useState(page.seoTitle || '')
+    const [seoDescription, setSeoDescription] = useState(page.seoDescription || '')
+    const [seoKeywords, setSeoKeywords] = useState((page.seoKeywords ?? []).join(', '))
+    const [seoOgTitle, setSeoOgTitle] = useState(page.seoOgTitle || '')
+    const [seoOgDescription, setSeoOgDescription] = useState(page.seoOgDescription || '')
+    const [seoOgImageUrl, setSeoOgImageUrl] = useState(page.seoOgImageUrl || '')
+    const [seoCanonicalUrl, setSeoCanonicalUrl] = useState(page.seoCanonicalUrl || '')
 
     const boundAction = useCallback(
         (state: { error: string; success: boolean }, formData: FormData) =>
@@ -59,6 +76,44 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
             setDesignSystemAlert('Design System salvo com sucesso.')
         }
     }, [state.success])
+
+    const handleGenerateSeo = useCallback(async () => {
+        setIsGeneratingSeo(true)
+        setDesignSystemAlert('Gerando metatags SEO com IA...')
+
+        try {
+            const response = await fetch('/api/landing-pages/seo/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pageId: page.id }),
+            })
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: 'Falha ao gerar SEO com IA' }))
+                throw new Error(error.error || 'Falha ao gerar SEO com IA')
+            }
+
+            const data = await response.json() as {
+                title: string
+                description: string
+                keywords: string[]
+                ogTitle: string
+                ogDescription: string
+            }
+
+            setSeoTitle(data.title || '')
+            setSeoDescription(data.description || '')
+            setSeoKeywords(Array.isArray(data.keywords) ? data.keywords.join(', ') : '')
+            setSeoOgTitle(data.ogTitle || '')
+            setSeoOgDescription(data.ogDescription || '')
+
+            setDesignSystemAlert('SEO gerado com IA. Revise e salve as alterações.')
+        } catch (error) {
+            setDesignSystemAlert(error instanceof Error ? error.message : 'Erro ao gerar SEO com IA')
+        } finally {
+            setIsGeneratingSeo(false)
+        }
+    }, [page.id])
 
     return (
         <form action={action} className="space-y-6">
@@ -103,6 +158,106 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
             <div className="space-y-2">
                 <Label htmlFor="chatbotSystemPrompt">Instruções do Bot</Label>
                 <Textarea id="chatbotSystemPrompt" name="chatbotSystemPrompt" defaultValue={page.chatbotSystemPrompt} rows={4} />
+            </div>
+
+            {/* SEO */}
+            <div className="space-y-4 pt-2 border-t border-border">
+                <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">SEO & Metatags</h3>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateSeo}
+                        disabled={isGeneratingSeo}
+                        className="gap-2"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        {isGeneratingSeo ? 'Gerando...' : 'Gerar SEO com IA'}
+                    </Button>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="seoTitle">Meta Title</Label>
+                    <Input
+                        id="seoTitle"
+                        name="seoTitle"
+                        value={seoTitle}
+                        onChange={(e) => setSeoTitle(e.target.value)}
+                        maxLength={70}
+                        placeholder="Titulo SEO (ideal 50-65 caracteres)"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="seoDescription">Meta Description</Label>
+                    <Textarea
+                        id="seoDescription"
+                        name="seoDescription"
+                        value={seoDescription}
+                        onChange={(e) => setSeoDescription(e.target.value)}
+                        rows={3}
+                        maxLength={170}
+                        placeholder="Descricao SEO (ideal 140-160 caracteres)"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="seoKeywords">Keywords (separadas por virgula)</Label>
+                    <Input
+                        id="seoKeywords"
+                        name="seoKeywords"
+                        value={seoKeywords}
+                        onChange={(e) => setSeoKeywords(e.target.value)}
+                        placeholder="crm, automacao, ia para vendas"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="seoOgTitle">Open Graph Title</Label>
+                        <Input
+                            id="seoOgTitle"
+                            name="seoOgTitle"
+                            value={seoOgTitle}
+                            onChange={(e) => setSeoOgTitle(e.target.value)}
+                            maxLength={70}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="seoCanonicalUrl">Canonical URL</Label>
+                        <Input
+                            id="seoCanonicalUrl"
+                            name="seoCanonicalUrl"
+                            value={seoCanonicalUrl}
+                            onChange={(e) => setSeoCanonicalUrl(e.target.value)}
+                            placeholder="https://seu-dominio.com/p/sua-pagina"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="seoOgDescription">Open Graph Description</Label>
+                    <Textarea
+                        id="seoOgDescription"
+                        name="seoOgDescription"
+                        value={seoOgDescription}
+                        onChange={(e) => setSeoOgDescription(e.target.value)}
+                        rows={3}
+                        maxLength={200}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="seoOgImageUrl">Open Graph Image URL</Label>
+                    <Input
+                        id="seoOgImageUrl"
+                        name="seoOgImageUrl"
+                        value={seoOgImageUrl}
+                        onChange={(e) => setSeoOgImageUrl(e.target.value)}
+                        placeholder="https://.../imagem-og.jpg"
+                    />
+                </div>
             </div>
 
             {/* Design System */}

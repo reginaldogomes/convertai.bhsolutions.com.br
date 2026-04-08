@@ -1,27 +1,82 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { landingPageRepo } from '@/application/services/container'
-import type { LandingPage } from '@/domain/entities'
+import { createAdminClient } from '@/lib/supabase/admin'
+import type { LandingPageConfig, LandingPageProps } from '@/domain/entities'
 import type { FaqContent, HeroContent, LandingPageSection } from '@/domain/entities'
 import { BRAND } from '@/lib/brand'
 import { toAbsoluteUrl } from '@/lib/site-url'
 import { LandingPageView } from './landing-page-view'
 
-export const revalidate = 300
+export const revalidate = 1800
+export const dynamicParams = true
 
-const getLandingPageBySlug = cache(async (slug: string) => landingPageRepo.findBySlug(slug))
+const STATIC_PRE_RENDER_LIMIT = 200
+const DEFAULT_CONFIG: LandingPageConfig = {
+    theme: 'dark',
+    primaryColor: '#6366f1',
+    logoUrl: null,
+    sections: [],
+}
+
+const getLandingPageBySlugCached = unstable_cache(
+    async (slug: string) => {
+        const page = await landingPageRepo.findBySlug(slug)
+        return page?.props ?? null
+    },
+    ['landing-page-public-by-slug'],
+    { revalidate }
+)
+
+const getLandingPageBySlug = cache(async (slug: string, options?: { bypassCache?: boolean }) => {
+    if (options?.bypassCache) {
+        const page = await landingPageRepo.findBySlug(slug)
+        return normalizeLandingPageProps(page?.props)
+    }
+
+    const cached = await getLandingPageBySlugCached(slug)
+    return normalizeLandingPageProps(cached)
+})
 
 type PageProps = {
     params: Promise<{ slug: string }>
     searchParams: Promise<{ preview?: string }>
 }
 
+export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
+    try {
+        const supabase = createAdminClient()
+        const { data, error } = await supabase
+            .from('landing_pages')
+            .select('slug')
+            .eq('status', 'published')
+            .order('updated_at', { ascending: false })
+            .limit(STATIC_PRE_RENDER_LIMIT)
+
+        if (error) {
+            console.warn('[landing-public] generateStaticParams failed to load slugs', { message: error.message })
+            return []
+        }
+
+        return (data ?? [])
+            .map((item) => item.slug)
+            .filter((slug): slug is string => Boolean(slug && typeof slug === 'string'))
+            .map((slug) => ({ slug }))
+    } catch (error) {
+        console.warn('[landing-public] generateStaticParams unexpected error', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+        })
+        return []
+    }
+}
+
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
     const { slug } = await params
     const { preview } = await searchParams
     const isPreview = preview === '1'
-    const page = await getLandingPageBySlug(slug)
+    const page = await getLandingPageBySlug(slug, { bypassCache: isPreview })
 
     if (!page) {
         return {
@@ -30,11 +85,16 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
         }
     }
 
-    const isIndexable = page.isPublished() && !isPreview
-    const canonicalUrl = toAbsoluteUrl(`/p/${page.slug}`)
-    const description = getDescription(page)
+    const isIndexable = isPagePublished(page) && !isPreview
+    const seo = page.configJson.seo
+    const canonicalUrl = sanitizeCanonicalUrl(seo?.canonicalUrl) || toAbsoluteUrl(`/p/${page.slug}`)
+    const title = seo?.title?.trim() || page.headline || page.name
+    const description = seo?.description?.trim() || getDescription(page)
     const safeSections = sanitizeSections(page.configJson.sections)
-    const image = getSeoImage(safeSections)
+    const image = getSeoImageFromConfigOrSections(seo?.ogImageUrl, safeSections)
+    const keywords = (seo?.keywords && seo.keywords.length > 0) ? seo.keywords : getKeywords(page, safeSections)
+    const ogTitle = seo?.ogTitle?.trim() || title
+    const ogDescription = seo?.ogDescription?.trim() || description
 
     if (!isIndexable) {
         return {
@@ -60,32 +120,46 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     }
 
     return {
-        title: page.headline || page.name,
+        title,
         description,
+        keywords,
+        category: 'business',
         alternates: {
             canonical: canonicalUrl,
         },
         robots: {
             index: true,
             follow: true,
+            nocache: false,
+            maxSnippet: -1,
+            maxImagePreview: 'large',
+            maxVideoPreview: -1,
             googleBot: {
                 index: true,
                 follow: true,
+                maxSnippet: -1,
+                maxImagePreview: 'large',
+                maxVideoPreview: -1,
             },
         },
         openGraph: {
             type: 'website',
             locale: 'pt_BR',
-            title: page.headline || page.name,
-            description,
+            title: ogTitle,
+            description: ogDescription,
             url: canonicalUrl,
             siteName: BRAND.fullName,
-            images: image ? [{ url: image }] : undefined,
+            images: image
+                ? [{
+                    url: image,
+                    alt: page.headline || page.name,
+                }]
+                : undefined,
         },
         twitter: {
             card: image ? 'summary_large_image' : 'summary',
-            title: page.headline || page.name,
-            description,
+            title: ogTitle,
+            description: ogDescription,
             images: image ? [image] : undefined,
         },
     }
@@ -97,17 +171,16 @@ export default async function PublicLandingPage({
 }: PageProps) {
     const { slug } = await params
     const { preview } = await searchParams
-    const page = await getLandingPageBySlug(slug)
+    const isPreview = preview === '1'
+    const page = await getLandingPageBySlug(slug, { bypassCache: isPreview })
 
     if (!page) {
         console.warn('[landing-public] page not found', { slug, preview })
         notFound()
     }
 
-    const isPreview = preview === '1'
-
     // Allow preview for draft pages via ?preview=1 (used in the editor)
-    if (!page.isPublished() && !isPreview) {
+    if (!isPagePublished(page) && !isPreview) {
         console.warn('[landing-public] draft page accessed without preview token', {
             slug,
             status: page.status,
@@ -121,7 +194,7 @@ export default async function PublicLandingPage({
         sections: safeSections,
     }
 
-    const shouldExposeSeoSignals = page.isPublished() && !isPreview
+    const shouldExposeSeoSignals = isPagePublished(page) && !isPreview
     const structuredData = shouldExposeSeoSignals ? buildStructuredData(page, safeSections) : []
 
     if (safeSections.length === 0) {
@@ -157,7 +230,79 @@ export default async function PublicLandingPage({
     )
 }
 
-function getDescription(page: LandingPage): string {
+function isPagePublished(page: LandingPageProps): boolean {
+    return page.status === 'published'
+}
+
+function normalizeLandingPageProps(input: unknown): LandingPageProps | null {
+    if (!input || typeof input !== 'object') return null
+
+    // Cached entities can come as plain props or wrapped as { props: ... }.
+    const maybe = input as Partial<LandingPageProps> & { props?: Partial<LandingPageProps> }
+    const raw = (maybe.props && typeof maybe.props === 'object') ? maybe.props : maybe
+
+    if (!raw.id || !raw.slug || !raw.name) return null
+
+    return {
+        id: raw.id,
+        organizationId: raw.organizationId ?? '',
+        productId: raw.productId ?? null,
+        name: raw.name,
+        slug: raw.slug,
+        headline: raw.headline ?? raw.name,
+        subheadline: raw.subheadline ?? '',
+        ctaText: raw.ctaText ?? 'Fale conosco',
+        configJson: normalizeLandingPageConfig(raw.configJson),
+        chatbotName: raw.chatbotName ?? 'Assistente',
+        chatbotWelcomeMessage: raw.chatbotWelcomeMessage ?? 'Olá! Como posso ajudar?',
+        chatbotSystemPrompt: raw.chatbotSystemPrompt ?? '',
+        status: raw.status ?? 'draft',
+        createdAt: raw.createdAt ?? new Date(0).toISOString(),
+        updatedAt: raw.updatedAt ?? new Date(0).toISOString(),
+    }
+}
+
+function normalizeLandingPageConfig(config: unknown): LandingPageConfig {
+    if (!config || typeof config !== 'object') return DEFAULT_CONFIG
+
+    const raw = config as Partial<LandingPageConfig>
+    return {
+        theme: raw.theme === 'light' ? 'light' : 'dark',
+        primaryColor: typeof raw.primaryColor === 'string' ? raw.primaryColor : DEFAULT_CONFIG.primaryColor,
+        designSystem: raw.designSystem,
+        logoUrl: typeof raw.logoUrl === 'string' || raw.logoUrl === null ? raw.logoUrl : DEFAULT_CONFIG.logoUrl,
+        sections: sanitizeSections(raw.sections),
+    }
+}
+
+function getKeywords(page: LandingPageProps, sections: LandingPageSection[]): string[] {
+    const keywords = new Set<string>()
+
+    const pushTokens = (value: string | undefined) => {
+        if (!value) return
+        const cleaned = value.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+        for (const token of cleaned.split(/\s+/)) {
+            const t = token.trim()
+            if (t.length >= 4) keywords.add(t)
+            if (keywords.size >= 20) return
+        }
+    }
+
+    pushTokens(page.name)
+    pushTokens(page.headline)
+    pushTokens(page.subheadline)
+
+    const featureSection = sections.find((section) => section.type === 'features')
+    const featureItems = (featureSection?.content as { items?: Array<{ title?: string }> } | undefined)?.items ?? []
+    for (const item of featureItems.slice(0, 5)) {
+        pushTokens(item.title)
+        if (keywords.size >= 20) break
+    }
+
+    return Array.from(keywords)
+}
+
+function getDescription(page: LandingPageProps): string {
     return page.subheadline?.trim() || `Conheca ${page.name} na ${BRAND.name}.`
 }
 
@@ -176,6 +321,22 @@ function getSeoImage(sections: LandingPageSection[]): string | undefined {
         if (firstImage && isSeoSafeImageUrl(firstImage)) return firstImage
     }
 
+    return undefined
+}
+
+function getSeoImageFromConfigOrSections(
+    candidate: string | undefined,
+    sections: LandingPageSection[],
+): string | undefined {
+    if (candidate && isSeoSafeImageUrl(candidate)) return candidate
+    return getSeoImage(sections)
+}
+
+function sanitizeCanonicalUrl(value: string | undefined): string | undefined {
+    if (!value) return undefined
+    const normalized = value.trim()
+    if (!normalized) return undefined
+    if (/^https?:\/\//i.test(normalized)) return normalized
     return undefined
 }
 
@@ -281,8 +442,17 @@ function isAllowedSectionType(value: string): value is LandingPageSection['type'
     ].includes(value)
 }
 
-function buildStructuredData(page: LandingPage, sections: LandingPageSection[]): Array<Record<string, unknown>> {
+function buildStructuredData(page: LandingPageProps, sections: LandingPageSection[]): Array<Record<string, unknown>> {
     const pageUrl = toAbsoluteUrl(`/p/${page.slug}`)
+    const siteUrl = toAbsoluteUrl('/')
+
+    const organizationData: Record<string, unknown> = {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: BRAND.fullName,
+        url: siteUrl,
+    }
+
     const webPageData: Record<string, unknown> = {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
@@ -293,29 +463,122 @@ function buildStructuredData(page: LandingPage, sections: LandingPageSection[]):
         publisher: {
             '@type': 'Organization',
             name: BRAND.fullName,
-            url: toAbsoluteUrl('/'),
+            url: siteUrl,
         },
     }
 
+    const breadcrumbData: Record<string, unknown> = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Inicio',
+                item: siteUrl,
+            },
+            {
+                '@type': 'ListItem',
+                position: 2,
+                name: page.headline || page.name,
+                item: pageUrl,
+            },
+        ],
+    }
+
+    const graph: Array<Record<string, unknown>> = [organizationData, webPageData, breadcrumbData]
+
+    const productData = buildProductStructuredData(page, sections, pageUrl)
+    if (productData) graph.push(productData)
+
     const faqSection = sections.find((section) => section.type === 'faq')
-    if (!faqSection) return [webPageData]
+    if (!faqSection) return graph
 
     const faqContent = faqSection.content as FaqContent
     const hasFaq = Array.isArray(faqContent.items) && faqContent.items.length > 0
-    if (!hasFaq) return [webPageData]
+    if (!hasFaq) return graph
 
     const faqData = {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
-        mainEntity: faqContent.items.map((item) => ({
+        mainEntity: faqContent.items
+            .filter((item) => item.question?.trim() && item.answer?.trim())
+            .slice(0, 10)
+            .map((item) => ({
             '@type': 'Question',
             name: item.question,
             acceptedAnswer: {
                 '@type': 'Answer',
                 text: item.answer,
             },
-        })),
+            })),
     }
 
-    return [webPageData, faqData]
+    graph.push(faqData)
+    return graph
+}
+
+function buildProductStructuredData(
+    page: LandingPageProps,
+    sections: LandingPageSection[],
+    pageUrl: string,
+): Record<string, unknown> | null {
+    const pricingSection = sections.find((section) => section.type === 'pricing')
+    const featureSection = sections.find((section) => section.type === 'features')
+
+    const features = ((featureSection?.content as { items?: Array<{ title?: string }> } | undefined)?.items ?? [])
+        .map((item) => item.title?.trim())
+        .filter((value): value is string => Boolean(value))
+        .slice(0, 8)
+
+    const firstTier = ((pricingSection?.content as { tiers?: Array<Record<string, unknown>> } | undefined)?.tiers ?? [])[0]
+    const rawPrice = typeof firstTier?.price === 'string' ? firstTier.price : undefined
+    const parsedPrice = parseBrazilianPrice(rawPrice)
+
+    const productData: Record<string, unknown> = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: page.headline || page.name,
+        description: getDescription(page),
+        url: pageUrl,
+        brand: {
+            '@type': 'Brand',
+            name: BRAND.fullName,
+        },
+        category: 'SoftwareApplication',
+    }
+
+    if (features.length > 0) {
+        productData.additionalProperty = features.map((feature) => ({
+            '@type': 'PropertyValue',
+            name: 'feature',
+            value: feature,
+        }))
+    }
+
+    if (parsedPrice !== null) {
+        productData.offers = {
+            '@type': 'Offer',
+            url: pageUrl,
+            priceCurrency: 'BRL',
+            price: parsedPrice,
+            availability: 'https://schema.org/InStock',
+        }
+    }
+
+    return productData
+}
+
+function parseBrazilianPrice(value: string | undefined): number | null {
+    if (!value) return null
+    const cleaned = value
+        .replace(/R\$\s?/gi, '')
+        .replace(/\./g, '')
+        .replace(',', '.')
+        .replace(/[^\d.]/g, '')
+
+    if (!cleaned) return null
+    const parsed = Number.parseFloat(cleaned)
+    if (!Number.isFinite(parsed) || parsed <= 0) return null
+    return Number(parsed.toFixed(2))
 }

@@ -20,7 +20,7 @@ export class SupabaseChatSessionRepository implements IChatSessionRepository {
             .select('*')
             .eq('landing_page_id', landingPageId)
             .eq('visitor_id', visitorId)
-            .eq('status', 'active')
+            .in('status', ['active', 'lead_captured'])
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
