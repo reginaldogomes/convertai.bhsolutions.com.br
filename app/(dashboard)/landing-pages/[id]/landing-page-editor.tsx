@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DesignSystemPicker } from '@/components/crm/DesignSystemPicker'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
-import { DEFAULT_DESIGN_SYSTEM, designSystemFromPrimaryColor } from '@/domain/value-objects/design-system'
+import { designSystemFromPrimaryColor } from '@/domain/value-objects/design-system'
 import { Sparkles } from 'lucide-react'
 
 interface LandingPageEditorProps {
@@ -44,6 +44,8 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
     const [designSystem, setDesignSystem] = useState<DesignSystem>(initialDesignSystem)
     const [designSystemAlert, setDesignSystemAlert] = useState('')
     const [isGeneratingSeo, setIsGeneratingSeo] = useState(false)
+    const [seoGenerationWarning, setSeoGenerationWarning] = useState('')
+    const [seoGenerationRequestId, setSeoGenerationRequestId] = useState('')
 
     const [seoTitle, setSeoTitle] = useState(page.seoTitle || '')
     const [seoDescription, setSeoDescription] = useState(page.seoDescription || '')
@@ -79,6 +81,8 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
 
     const handleGenerateSeo = useCallback(async () => {
         setIsGeneratingSeo(true)
+        setSeoGenerationWarning('')
+        setSeoGenerationRequestId('')
         setDesignSystemAlert('Gerando metatags SEO com IA...')
 
         try {
@@ -99,6 +103,8 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                 keywords: string[]
                 ogTitle: string
                 ogDescription: string
+                warning?: string
+                requestId?: string
             }
 
             setSeoTitle(data.title || '')
@@ -107,7 +113,13 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
             setSeoOgTitle(data.ogTitle || '')
             setSeoOgDescription(data.ogDescription || '')
 
-            setDesignSystemAlert('SEO gerado com IA. Revise e salve as alterações.')
+            if (data.warning) {
+                setSeoGenerationWarning(data.warning)
+                setSeoGenerationRequestId(data.requestId || '')
+                setDesignSystemAlert('SEO gerado com fallback. Você pode tentar novamente para obter uma versão 100% IA.')
+            } else {
+                setDesignSystemAlert('SEO gerado com IA. Revise e salve as alterações.')
+            }
         } catch (error) {
             setDesignSystemAlert(error instanceof Error ? error.message : 'Erro ao gerar SEO com IA')
         } finally {
@@ -176,6 +188,27 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                         {isGeneratingSeo ? 'Gerando...' : 'Gerar SEO com IA'}
                     </Button>
                 </div>
+
+                {seoGenerationWarning && (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        <p className="font-semibold">Geração com fallback</p>
+                        <p className="mt-1">{seoGenerationWarning}</p>
+                        {seoGenerationRequestId && (
+                            <p className="mt-1 font-mono">requestId: {seoGenerationRequestId}</p>
+                        )}
+                        <div className="mt-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleGenerateSeo}
+                                disabled={isGeneratingSeo}
+                            >
+                                Tentar novamente
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <Label htmlFor="seoTitle">Meta Title</Label>
