@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
+import { z } from 'zod'
 
 interface GoogleAdsWebhookEvent {
     event_name: string
@@ -21,8 +23,29 @@ interface GoogleAdsWebhookEvent {
     }
 }
 
-function unauthorized() {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+const googleAdsWebhookEventSchema = z.object({
+    event_name: z.string().min(1),
+    event_time: z.number().int().positive(),
+    event_id: z.string().min(1),
+    landing_page_id: z.string().uuid(),
+    session_id: z.string().optional(),
+    page_url: z.string().url().optional(),
+    attribution: z.record(z.string(), z.unknown()).optional(),
+    click_ids: z.object({
+        gclid: z.string().optional(),
+        gbraid: z.string().optional(),
+        wbraid: z.string().optional(),
+        msclkid: z.string().optional(),
+    }),
+    user: z.object({
+        external_id_hash: z.string().optional(),
+        client_ip_address: z.string().optional(),
+        client_user_agent: z.string().optional(),
+    }),
+})
+
+function unauthorized(requestId: string) {
+    return jsonWithRequestId(requestId, { error: 'Unauthorized', requestId }, { status: 401 })
 }
 
 function formatGoogleDateTime(epochSeconds: number): string {
@@ -68,14 +91,33 @@ async function getGoogleAccessToken(): Promise<string> {
 }
 
 export async function POST(req: Request) {
+    const logger = createApiRequestLogger('ads/google-conversions')
+
     try {
         const secret = process.env.GOOGLE_ADS_WEBHOOK_SECRET
         if (secret) {
             const headerSecret = req.headers.get('x-ads-webhook-secret')
-            if (headerSecret !== secret) return unauthorized()
+            if (headerSecret !== secret) return unauthorized(logger.requestId)
         }
 
-        const event = await req.json() as GoogleAdsWebhookEvent
+        const parsed = googleAdsWebhookEventSchema.safeParse(await req.json())
+        if (!parsed.success) {
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    ok: false,
+                    error: 'Invalid payload',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                { status: 400 }
+            )
+        }
+
+        const event: GoogleAdsWebhookEvent = parsed.data
 
         const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID
         const conversionActionId = process.env.GOOGLE_ADS_CONVERSION_ACTION_ID
@@ -83,12 +125,12 @@ export async function POST(req: Request) {
         const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID
 
         if (!customerId || !conversionActionId || !developerToken) {
-            return NextResponse.json({ ok: true, skipped: true, reason: 'Google Ads env not configured' })
+            return jsonWithRequestId(logger.requestId, { ok: true, skipped: true, reason: 'Google Ads env not configured' })
         }
 
         const hasClickId = !!(event.click_ids.gclid || event.click_ids.gbraid || event.click_ids.wbraid)
         if (!hasClickId) {
-            return NextResponse.json({ ok: true, skipped: true, reason: 'No Google click id in payload' })
+            return jsonWithRequestId(logger.requestId, { ok: true, skipped: true, reason: 'No Google click id in payload' })
         }
 
         const accessToken = await getGoogleAccessToken()
@@ -121,16 +163,21 @@ export async function POST(req: Request) {
         const resultText = await response.text()
 
         if (!response.ok) {
-            return NextResponse.json(
-                { ok: false, error: `Google Ads API error: ${response.status}`, details: resultText },
+            logger.error('google_ads_api_failed', `status ${response.status}`)
+            return jsonWithRequestId(
+                logger.requestId,
+                { ok: false, error: `Google Ads API error: ${response.status}`, details: resultText, requestId: logger.requestId },
                 { status: 502 }
             )
         }
 
-        return NextResponse.json({ ok: true, result: resultText })
+        logger.log('conversion_uploaded', { eventName: event.event_name })
+        return jsonWithRequestId(logger.requestId, { ok: true, result: resultText })
     } catch (error) {
-        return NextResponse.json(
-            { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
+        logger.error('request_failed', error)
+        return jsonWithRequestId(
+            logger.requestId,
+            { ok: false, error: 'Unknown error', requestId: logger.requestId },
             { status: 500 }
         )
     }

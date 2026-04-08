@@ -1,5 +1,6 @@
 import { useCallback, useReducer, useRef } from 'react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
 
 const GENERATION_CACHE_TTL_MS = 10 * 60 * 1000
 const GENERATION_CACHE_MAX_ENTRIES = 20
@@ -183,13 +184,14 @@ export function useGenerateSections() {
                 body: JSON.stringify(payload),
                 signal: controller.signal,
             })
-
-            const data = await response.json()
             if (requestId !== requestIdRef.current) return null
 
             if (!response.ok) {
-                throw new Error(data.error || `Erro ${response.status}`)
+                const apiError = await parseApiError(response, `Erro ${response.status}`)
+                throw new Error(formatErrorWithRequestId(apiError.message, apiError.requestId))
             }
+
+            const data = await response.json()
 
             if (!Array.isArray(data.sections) || data.sections.length === 0) {
                 throw new Error('A IA não retornou seções válidas. Tente descrever com mais detalhes.')

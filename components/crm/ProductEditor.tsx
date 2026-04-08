@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { InlineError } from '@/components/ui/inline-error'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import {
     Select,
     SelectContent,
@@ -299,16 +301,10 @@ export function ProductEditor({ product }: ProductEditorProps) {
 
             {/* Feedback */}
             {state.error && (
-                <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-4 py-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                    {state.error}
-                </div>
+                <InlineError message={state.error} />
             )}
             {state.success && (
-                <div className="flex items-center gap-2 text-sm text-[hsl(var(--success))] bg-[hsl(var(--success-subtle))] border border-[hsl(var(--success))]/20 rounded-(--radius) px-4 py-3">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    Produto atualizado com sucesso!
-                </div>
+                <InlineNotice variant="success" message="Produto atualizado com sucesso!" />
             )}
 
             <Button type="submit" disabled={isPending} className="w-full h-10">

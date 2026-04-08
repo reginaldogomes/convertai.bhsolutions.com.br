@@ -1,6 +1,8 @@
 import { streamText } from 'ai'
-import { geminiModel, powerModel } from '@/lib/ai'
+import { geminiModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
+import { z } from 'zod'
+import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
 
 const CONTENT_TYPES: Record<string, string> = {
     post: 'Post para feed do Instagram (imagem estática com legenda)',
@@ -26,37 +28,59 @@ const TONES: Record<string, string> = {
     urgente: 'Tom de urgência e escassez',
 }
 
+const generateCaptionSchema = z.object({
+    contentType: z.string().min(1),
+    objective: z.string().min(1),
+    tone: z.string().min(1),
+    topic: z.string().min(3).max(500),
+    details: z.string().max(4000).optional().default(''),
+    targetAudience: z.string().max(500).optional().default(''),
+    includeHashtags: z.boolean().default(true),
+    includeEmojis: z.boolean().default(true),
+})
+
 export async function POST(request: Request) {
-    await getAuthContext()
-    const body = await request.json()
+    const logger = createApiRequestLogger('instagram/generate-caption')
 
-    const {
-        contentType,
-        objective,
-        tone,
-        topic,
-        details,
-        targetAudience,
-        includeHashtags,
-        includeEmojis,
-    } = body as {
-        contentType: string
-        objective: string
-        tone: string
-        topic: string
-        details: string
-        targetAudience: string
-        includeHashtags: boolean
-        includeEmojis: boolean
-    }
+    try {
+        await getAuthContext()
+        const parsed = generateCaptionSchema.safeParse(await request.json())
 
-    const typeDesc = CONTENT_TYPES[contentType] ?? contentType
-    const objectiveDesc = OBJECTIVES[objective] ?? objective
-    const toneDesc = TONES[tone] ?? tone
+        if (!parsed.success) {
+            return Response.json(
+                {
+                    error: 'Payload inválido para geração de legenda',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                {
+                    status: 400,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
 
-    const result = streamText({
-        model: geminiModel,
-        system: `Você é um especialista em marketing digital e criação de conteúdo para Instagram.
+        const {
+            contentType,
+            objective,
+            tone,
+            topic,
+            details,
+            targetAudience,
+            includeHashtags,
+            includeEmojis,
+        } = parsed.data
+
+        const typeDesc = CONTENT_TYPES[contentType] ?? contentType
+        const objectiveDesc = OBJECTIVES[objective] ?? objective
+        const toneDesc = TONES[tone] ?? tone
+
+        const result = streamText({
+            model: geminiModel,
+            system: `Você é um especialista em marketing digital e criação de conteúdo para Instagram.
 Sua tarefa é gerar conteúdo otimizado para Instagram que maximiza engajamento e alcance.
 
 ## Regras:
@@ -74,7 +98,7 @@ Sua tarefa é gerar conteúdo otimizado para Instagram que maximiza engajamento 
 
 ## Formato de resposta:
 Retorne APENAS o texto da legenda pronto para copiar e colar.`,
-        prompt: `Crie uma legenda para Instagram com as seguintes especificações:
+            prompt: `Crie uma legenda para Instagram com as seguintes especificações:
 
 **Tipo de conteúdo**: ${typeDesc}
 **Objetivo**: ${objectiveDesc}
@@ -84,7 +108,21 @@ Retorne APENAS o texto da legenda pronto para copiar e colar.`,
 ${details ? `**Detalhes adicionais**: ${details}` : ''}
 
 Gere o conteúdo otimizado para máximo engajamento e alcance orgânico.`,
-    })
+        })
 
-    return result.toTextStreamResponse()
+        logger.log('generation_started', { contentType, objective, tone })
+
+        return result.toTextStreamResponse({
+            headers: {
+                'x-request-id': logger.requestId,
+            },
+        })
+    } catch (error) {
+        logger.error('generation_failed', error)
+        if (isAuthError(error)) {
+            return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401, headers: { 'x-request-id': logger.requestId } })
+        }
+
+        return Response.json({ error: 'Erro ao gerar legenda', requestId: logger.requestId }, { status: 500, headers: { 'x-request-id': logger.requestId } })
+    }
 }

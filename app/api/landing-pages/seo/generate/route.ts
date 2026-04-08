@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { getAuthContext } from '@/infrastructure/auth'
 import { agentModel } from '@/lib/ai'
 import { useCases } from '@/application/services/container'
-import { NotAuthenticatedError, OrganizationNotFoundError } from '@/domain/errors'
+import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 
 const schema = z.object({
     title: z.string().min(10).max(70),
@@ -29,21 +29,26 @@ Regras:
 - Evite aspas desnecessárias e excesso de pontuação.`
 
 export async function POST(req: NextRequest) {
-    const requestId = crypto.randomUUID()
+    const logger = createApiRequestLogger('landing-pages/seo/generate')
 
     try {
+        logger.log('request_received')
         const { orgId } = await getAuthContext()
 
         const body = await req.json() as { pageId?: string }
         const pageId = body.pageId
 
         if (!pageId) {
-            return NextResponse.json({ error: 'pageId é obrigatório' }, { status: 400 })
+            return jsonWithRequestId(logger.requestId, { error: 'pageId é obrigatório', requestId: logger.requestId }, { status: 400 })
         }
 
         const pageResult = await useCases.getLandingPage().execute(orgId, pageId)
         if (!pageResult.ok) {
-            return NextResponse.json({ error: pageResult.error.message }, { status: 404 })
+            return jsonWithRequestId(
+                logger.requestId,
+                { error: pageResult.error.message, requestId: logger.requestId },
+                { status: 404 }
+            )
         }
 
         const page = pageResult.value
@@ -81,27 +86,25 @@ export async function POST(req: NextRequest) {
                 maxOutputTokens: 800,
             })
 
-            return NextResponse.json({ ...object, requestId })
+            logger.log('seo_generated', { keywordsCount: object.keywords.length })
+            return jsonWithRequestId(logger.requestId, { ...object, requestId: logger.requestId })
         } catch (aiError) {
             const fallback = buildFallbackSeo(page)
-            return NextResponse.json({
+            logger.error('seo_fallback_used', aiError)
+            return jsonWithRequestId(logger.requestId, {
                 ...fallback,
-                requestId,
+                requestId: logger.requestId,
                 warning: aiError instanceof Error ? aiError.message : 'IA indisponível. Resultado fallback aplicado.',
             })
         }
     } catch (error) {
-        if (error instanceof NotAuthenticatedError || error instanceof OrganizationNotFoundError) {
-            return NextResponse.json(
-                { error: 'Não autenticado', requestId },
-                { status: 401 }
-            )
+        logger.error('request_failed', error)
+
+        if (isAuthError(error)) {
+            return jsonWithRequestId(logger.requestId, { error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })
         }
 
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Erro ao gerar SEO com IA', requestId },
-            { status: 500 }
-        )
+        return jsonWithRequestId(logger.requestId, { error: 'Erro ao gerar SEO com IA', requestId: logger.requestId }, { status: 500 })
     }
 }
 

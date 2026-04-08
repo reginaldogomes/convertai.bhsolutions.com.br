@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
+import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
+import { z } from 'zod'
 
 const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY! })
 
@@ -21,18 +23,40 @@ const SUPPORTS_IMAGE_SIZE = new Set([
     'gemini-3.1-flash-image-preview',
 ])
 
+const imageGenerationSchema = z.object({
+    model: z.enum([
+        'gemini-2.5-flash-image',
+        'gemini-3-pro-image-preview',
+        'gemini-3.1-flash-image-preview',
+    ]),
+    prompt: z.string().trim().min(1).max(4000),
+    aspectRatio: z
+        .enum(['1:1', '9:16', '16:9', '4:5', '5:4', '3:4', '4:3', '2:3', '3:2'])
+        .optional(),
+    imageSize: z.enum(['512', '1K', '2K', '4K']).optional(),
+})
+
 export async function POST(request: Request) {
+    const logger = createApiRequestLogger('instagram/generate-image')
+
     try {
-        const body = await request.json()
-        const { model, prompt, aspectRatio, imageSize } = body
-
-        if (!model || !VALID_MODELS.has(model)) {
-            return NextResponse.json({ error: 'Modelo inválido' }, { status: 400 })
+        const parsed = imageGenerationSchema.safeParse(await request.json())
+        if (!parsed.success) {
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    error: 'Payload inválido para geração de imagem',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                { status: 400 }
+            )
         }
 
-        if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0 || prompt.length > 4000) {
-            return NextResponse.json({ error: 'Prompt inválido (máx. 4000 caracteres)' }, { status: 400 })
-        }
+        const { model, prompt, aspectRatio, imageSize } = parsed.data
 
         const imageConfig: Record<string, string> = {}
 
@@ -68,16 +92,30 @@ export async function POST(request: Request) {
         }
 
         if (images.length === 0) {
-            return NextResponse.json(
-                { error: 'Nenhuma imagem gerada. O modelo pode ter bloqueado o conteúdo. Tente um prompt diferente.' },
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    error: 'Nenhuma imagem gerada. O modelo pode ter bloqueado o conteúdo. Tente um prompt diferente.',
+                    requestId: logger.requestId,
+                },
                 { status: 422 },
             )
         }
 
-        return NextResponse.json({ images })
+        logger.log('images_generated', {
+            model,
+            imagesCount: images.length,
+            hasAspectRatio: Boolean(imageConfig.aspectRatio),
+            hasImageSize: Boolean(imageConfig.imageSize),
+        })
+
+        return jsonWithRequestId(logger.requestId, { images })
     } catch (error) {
-        console.error('[generate-image] Error:', error)
-        const message = error instanceof Error ? error.message : 'Erro ao gerar imagem'
-        return NextResponse.json({ error: message }, { status: 500 })
+        logger.error('generation_failed', error)
+        return jsonWithRequestId(
+            logger.requestId,
+            { error: 'Erro ao gerar imagem', requestId: logger.requestId },
+            { status: 500 }
+        )
     }
 }

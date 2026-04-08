@@ -11,6 +11,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import { useRouter } from 'next/navigation'
 
 interface ResendCampaignButtonProps {
@@ -63,23 +64,20 @@ export function ResendCampaignButton({ campaignId, campaignName, recipientCount,
                         </div>
 
                         {failedCount > 0 && (
-                            <div className="bg-[hsl(var(--destructive-subtle))] border border-destructive p-3 flex items-start gap-2 rounded-(--radius)">
-                                <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-destructive text-xs font-bold uppercase tracking-wider mb-1">Falhas no envio anterior</p>
-                                    <p className="text-destructive text-xs">
-                                        {failedCount} emails falharam no envio anterior. O reenvio tentará enviar novamente para todos os contatos.
-                                    </p>
-                                </div>
-                            </div>
+                            <InlineNotice
+                                variant="destructive"
+                                title="Falhas no envio anterior"
+                                size="sm"
+                                message={`${failedCount} emails falharam no envio anterior. O reenvio tentará enviar novamente para todos os contatos.`}
+                            />
                         )}
 
-                        <div className="bg-[hsl(var(--warning))]/5 border border-[hsl(var(--warning))]/20 p-3 rounded-(--radius)">
-                            <p className="text-[hsl(var(--warning))] text-xs font-bold uppercase tracking-wider mb-1">Atenção</p>
-                            <p className="text-[hsl(var(--warning))]/80 text-xs">
-                                Contatos que já receberam o email anteriormente receberão novamente. Use com cuidado.
-                            </p>
-                        </div>
+                        <InlineNotice
+                            variant="warning"
+                            title="Atenção"
+                            size="sm"
+                            message="Contatos que já receberam o email anteriormente receberão novamente. Use com cuidado."
+                        />
 
                         <div className="flex justify-end gap-3 pt-2">
                             <Button

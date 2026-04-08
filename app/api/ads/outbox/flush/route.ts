@@ -1,28 +1,55 @@
 import { NextResponse } from 'next/server'
 import { flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
+import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
+import { z } from 'zod'
 
-function unauthorized() {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+const flushSchema = z.object({
+    limit: z.number().int().min(1).max(500).optional(),
+})
+
+function unauthorized(requestId: string) {
+    return jsonWithRequestId(requestId, { ok: false, error: 'Unauthorized', requestId }, { status: 401 })
 }
 
 export async function POST(req: Request) {
+    const logger = createApiRequestLogger('ads/outbox/flush')
+
     try {
         const cronSecret = process.env.ADS_OUTBOX_CRON_SECRET
         if (cronSecret) {
             const headerSecret = req.headers.get('x-ads-outbox-secret')
-            if (headerSecret !== cronSecret) return unauthorized()
+            if (headerSecret !== cronSecret) return unauthorized(logger.requestId)
         }
 
-        const body = await req.json().catch(() => ({})) as { limit?: number }
+        const parsed = flushSchema.safeParse(await req.json().catch(() => ({})))
+        if (!parsed.success) {
+            return jsonWithRequestId(
+                logger.requestId,
+                {
+                    ok: false,
+                    error: 'Invalid payload',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                { status: 400 }
+            )
+        }
+
         const sent = await flushAdsConversionOutbox({
-            limit: body.limit,
+            limit: parsed.data.limit,
             requestHeaders: req.headers,
         })
 
-        return NextResponse.json({ ok: true, sent })
+        logger.log('flush_completed', { sent })
+        return jsonWithRequestId(logger.requestId, { ok: true, sent })
     } catch (error) {
-        return NextResponse.json(
-            { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
+        logger.error('flush_failed', error)
+        return jsonWithRequestId(
+            logger.requestId,
+            { ok: false, error: 'Unknown error', requestId: logger.requestId },
             { status: 500 }
         )
     }

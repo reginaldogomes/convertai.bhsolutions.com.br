@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, X, AlertTriangle } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { deleteLandingPage } from '@/actions/landing-pages'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import { DangerConfirmationHeader } from '@/components/ui/danger-confirmation-header'
 
 interface DeleteLandingPageButtonProps {
     pageId: string
@@ -60,16 +61,8 @@ export function DeleteLandingPageButton({ pageId, pageName, redirectAfterDelete 
                             <X className="w-4 h-4" />
                         </button>
 
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                                <AlertTriangle className="w-5 h-5 text-destructive" />
-                            </div>
-                            <div>
-                                <h3 id="del-lp-title" className="text-foreground font-black text-base tracking-tight">
-                                    Apagar landing page?
-                                </h3>
-                                <p className="text-muted-foreground text-xs mt-0.5">Esta ação não pode ser desfeita.</p>
-                            </div>
+                        <div className="mb-4">
+                            <DangerConfirmationHeader titleId="del-lp-title" title="Apagar landing page?" />
                         </div>
 
                         <p className="text-foreground-secondary text-sm leading-relaxed mb-6">

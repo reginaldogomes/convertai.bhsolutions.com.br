@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 
-function unauthorized() {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+function unauthorized(requestId: string) {
+    return jsonWithRequestId(requestId, { ok: false, error: 'Unauthorized', requestId }, { status: 401 })
 }
 
 function authorize(req: Request): boolean {
@@ -31,7 +32,8 @@ function isMissingQueueTableError(error: unknown): boolean {
 }
 
 export async function GET(req: Request) {
-    if (!authorize(req)) return unauthorized()
+    const logger = createApiRequestLogger('automations/queue/health')
+    if (!authorize(req)) return unauthorized(logger.requestId)
 
     try {
         const supabase = createAdminClient()
@@ -74,8 +76,9 @@ export async function GET(req: Request) {
 
         if (firstError) {
             if (isMissingQueueTableError(firstError)) {
-                return NextResponse.json({
+                return jsonWithRequestId(logger.requestId, {
                     ok: false,
+                    requestId: logger.requestId,
                     queue: {
                         tableAvailable: false,
                         code: 'PGRST205',
@@ -84,8 +87,9 @@ export async function GET(req: Request) {
                 })
             }
 
-            return NextResponse.json({
+            return jsonWithRequestId(logger.requestId, {
                 ok: false,
+                requestId: logger.requestId,
                 error: firstError.message,
                 queue: {
                     tableAvailable: true,
@@ -93,7 +97,7 @@ export async function GET(req: Request) {
             }, { status: 500 })
         }
 
-        return NextResponse.json({
+        return jsonWithRequestId(logger.requestId, {
             ok: true,
             queue: {
                 tableAvailable: true,
@@ -109,8 +113,10 @@ export async function GET(req: Request) {
             },
         })
     } catch (error) {
-        return NextResponse.json(
-            { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
+        logger.error('health_failed', error)
+        return jsonWithRequestId(
+            logger.requestId,
+            { ok: false, error: 'Unknown error', requestId: logger.requestId },
             { status: 500 }
         )
     }

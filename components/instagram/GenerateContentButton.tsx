@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useCompletion } from '@ai-sdk/react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sparkles, Copy, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 const CONTENT_TYPES = [
     { value: 'post', label: 'Post' },
@@ -46,28 +47,52 @@ export function GenerateContentButton() {
     const [targetAudience, setTargetAudience] = useState('')
     const [includeHashtags, setIncludeHashtags] = useState(true)
     const [includeEmojis, setIncludeEmojis] = useState(true)
-
-    const { completion, isLoading, complete } = useCompletion({
-        api: '/api/instagram/generate-caption',
-    })
+    const [completion, setCompletion] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [generationError, setGenerationError] = useState('')
 
     const handleGenerate = async () => {
         if (!topic.trim()) {
             toast.error('Digite o tema do conteúdo')
             return
         }
-        await complete('', {
-            body: {
-                contentType,
-                objective,
-                tone,
-                topic,
-                details,
-                targetAudience,
-                includeHashtags,
-                includeEmojis,
-            },
-        })
+
+        setIsLoading(true)
+        setGenerationError('')
+        setCompletion('')
+
+        try {
+            const response = await fetch('/api/instagram/generate-caption', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contentType,
+                    objective,
+                    tone,
+                    topic,
+                    details,
+                    targetAudience,
+                    includeHashtags,
+                        {generationError && <InlineError message={generationError} size="sm" />}
+                setGenerationError(formatErrorWithRequestId(apiError.message, apiError.requestId))
+                return
+            }
+
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let fullText = ''
+
+            for (;;) {
+                const { done, value } = await reader.read()
+                if (done) break
+                fullText += decoder.decode(value, { stream: true })
+                setCompletion(fullText)
+            }
+        } catch {
+            setGenerationError('Erro de conexão. Tente novamente.')
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleCopy = async () => {
@@ -242,6 +267,7 @@ export function GenerateContentButton() {
                                 </div>
                             )}
                         </div>
+                        {generationError && <InlineError message={generationError} size="sm" />}
                     </div>
                 </div>
             </DialogContent>

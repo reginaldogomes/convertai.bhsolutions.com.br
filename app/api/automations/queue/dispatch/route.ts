@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { processAutomationQueue } from '@/lib/automation-dispatcher'
+import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 
-function unauthorized() {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+function unauthorized(requestId: string) {
+    return jsonWithRequestId(requestId, { ok: false, error: 'Unauthorized', requestId }, { status: 401 })
 }
 
 function authorize(req: Request): boolean {
@@ -22,16 +23,25 @@ function authorize(req: Request): boolean {
 }
 
 export async function POST(req: Request) {
-    if (!authorize(req)) return unauthorized()
+    const logger = createApiRequestLogger('automations/queue/dispatch')
+
+    if (!authorize(req)) return unauthorized(logger.requestId)
 
     try {
         const processed = await processAutomationQueue({ limit: 50 })
-        return NextResponse.json({ ok: true, processed: processed.processed })
+        logger.log('queue_processed', { processed: processed.processed })
+        return jsonWithRequestId(logger.requestId, { ok: true, processed: processed.processed })
     } catch (error) {
-        return NextResponse.json({
-            ok: false,
-            error: error instanceof Error ? error.message : 'Unknown queue error',
-        }, { status: 500 })
+        logger.error('dispatch_failed', error)
+        return jsonWithRequestId(
+            logger.requestId,
+            {
+                ok: false,
+                error: 'Unknown queue error',
+                requestId: logger.requestId,
+            },
+            { status: 500 }
+        )
     }
 }
 

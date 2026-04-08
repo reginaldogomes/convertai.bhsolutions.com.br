@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { InlineError } from '@/components/ui/inline-error'
 import { Plus } from 'lucide-react'
 import {
     Dialog,
@@ -84,7 +85,7 @@ export function AddContactButton() {
                     </div>
 
                     {state?.error && (
-                        <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-(--radius)">{state.error}</p>
+                        <InlineError message={state.error} size="sm" />
                     )}
 
                     <Button type="submit" className="w-full bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs">

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { InlineError } from '@/components/ui/inline-error'
 import { Save, Code, Eye, Type, MessageSquare, Mail, Phone } from 'lucide-react'
 import { GenerateCampaignAI } from './GenerateCampaignAI'
 import { HtmlPreview } from './HtmlPreview'
@@ -164,7 +165,7 @@ export function CampaignEditor({ campaignId, name, subject, body, channel = 'ema
                                 rows={20}
                                 value={currentBody}
                                 onChange={(e) => setCurrentBody(e.target.value)}
-                                className="bg-secondary border-border text-foreground rounded-(--radius) text-sm focus:border-primary resize-none font-mono text-xs leading-relaxed"
+                                className="bg-secondary border-border text-foreground rounded-(--radius) focus:border-primary resize-none font-mono text-xs leading-relaxed"
                             />
                         )}
 
@@ -183,7 +184,7 @@ export function CampaignEditor({ campaignId, name, subject, body, channel = 'ema
                                     <Eye className="w-3.5 h-3.5" />
                                     Preview — como o destinatário verá o email
                                 </div>
-                                <div className="max-w-[640px] mx-auto shadow-lg rounded-(--radius) overflow-hidden">
+                                <div className="max-w-160 mx-auto shadow-lg rounded-(--radius) overflow-hidden">
                                     <HtmlPreview html={currentBody} />
                                 </div>
                             </div>
@@ -218,7 +219,7 @@ export function CampaignEditor({ campaignId, name, subject, body, channel = 'ema
             </div>
 
             {state?.error && (
-                <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-(--radius)">{state.error}</p>
+                <InlineError message={state.error} size="sm" />
             )}
 
             <div className="flex justify-end">

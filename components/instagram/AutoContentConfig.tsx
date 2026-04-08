@@ -2,11 +2,12 @@
 
 import { useState, useActionState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { useCompletion } from '@ai-sdk/react'
 import { saveAutoContentConfig, toggleAutoContentConfig } from '@/actions/instagram'
 import { toast } from 'sonner'
 import { Sparkles, Loader2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import type { InstagramAutoConfigRow, HashtagStrategy } from '@/types/instagram'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 const CONTENT_TYPES = [
     { value: 'post', label: 'Post' },
@@ -81,10 +82,9 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
     const [referenceProfiles, setReferenceProfiles] = useState(config?.reference_profiles?.join(', ') || '')
 
     const [state, action, isPending] = useActionState(saveAutoContentConfig, { error: '', success: false })
-
-    const { completion, isLoading: isGenerating, complete } = useCompletion({
-        api: '/api/instagram/generate-auto-content',
-    })
+    const [completion, setCompletion] = useState('')
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [generationError, setGenerationError] = useState('')
 
     useEffect(() => {
         if (state.success) {
@@ -126,7 +126,38 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
             return
         }
         setShowGeneration(true)
-        await complete('', { body: { weeks: 1 } })
+        setIsGenerating(true)
+        setGenerationError('')
+        setCompletion('')
+
+        try {
+            const response = await fetch('/api/instagram/generate-auto-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ weeks: 1 }),
+            })
+
+            if (!response.ok || !response.body) {
+                const apiError = await parseApiError(response, 'Erro ao gerar conteúdo automático')
+                setGenerationError(formatErrorWithRequestId(apiError.message, apiError.requestId))
+                return
+            }
+
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let fullText = ''
+
+            for (;;) {
+                const { done, value } = await reader.read()
+                if (done) break
+                fullText += decoder.decode(value, { stream: true })
+                setCompletion(fullText)
+            }
+        } catch {
+            setGenerationError('Erro de conexão. Tente novamente.')
+        } finally {
+            setIsGenerating(false)
+        }
     }
 
     async function handleCopy() {
@@ -210,6 +241,12 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
                         <div className="bg-muted border border-border rounded-(--radius) p-4 max-h-96 overflow-y-auto">
                             <pre className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{completion}</pre>
                         </div>
+                    </div>
+                )}
+
+                {showGeneration && generationError && (
+                    <div className="border-t border-border pt-4">
+                        <InlineError message={generationError} size="sm" />
                     </div>
                 )}
             </div>

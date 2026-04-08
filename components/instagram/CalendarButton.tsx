@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useCompletion } from '@ai-sdk/react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CalendarDays, Loader2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 export function CalendarButton() {
     const [open, setOpen] = useState(false)
@@ -23,10 +24,9 @@ export function CalendarButton() {
     const [trafegoChecked, setTrafegoChecked] = useState(false)
     const [vendasChecked, setVendasChecked] = useState(false)
     const [autoridadeChecked, setAutoridadeChecked] = useState(true)
-
-    const { completion, isLoading, complete } = useCompletion({
-        api: '/api/instagram/generate-calendar',
-    })
+    const [completion, setCompletion] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [generationError, setGenerationError] = useState('')
 
     const handleGenerate = async () => {
         if (!niche.trim()) {
@@ -48,14 +48,43 @@ export function CalendarButton() {
             autoridadeChecked && 'autoridade',
         ].filter(Boolean) as string[]
 
-        await complete('', {
-            body: {
-                niche,
-                days: Number(days),
-                contentTypes,
-                objectives,
-            },
-        })
+        setIsLoading(true)
+        setGenerationError('')
+        setCompletion('')
+
+        try {
+            const response = await fetch('/api/instagram/generate-calendar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    niche,
+                    days: Number(days),
+                    contentTypes,
+                    objectives,
+                }),
+            })
+
+            if (!response.ok || !response.body) {
+                const apiError = await parseApiError(response, 'Erro ao gerar calendário')
+                setGenerationError(formatErrorWithRequestId(apiError.message, apiError.requestId))
+                return
+            }
+
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let fullText = ''
+
+            for (;;) {
+                const { done, value } = await reader.read()
+                if (done) break
+                fullText += decoder.decode(value, { stream: true })
+                setCompletion(fullText)
+            }
+        } catch {
+            setGenerationError('Erro de conexão. Tente novamente.')
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleCopy = async () => {
@@ -206,6 +235,7 @@ export function CalendarButton() {
                                 </div>
                             )}
                         </div>
+                        {generationError && <InlineError message={generationError} size="sm" />}
                     </div>
                 </div>
             </DialogContent>

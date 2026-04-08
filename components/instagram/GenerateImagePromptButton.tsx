@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useCompletion } from '@ai-sdk/react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Palette, Loader2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 const VISUAL_STYLES = [
     { value: 'moderno', label: 'Moderno & Minimalista' },
@@ -28,19 +29,48 @@ export function GenerateImagePromptButton() {
     const [contentType, setContentType] = useState('post')
     const [style, setStyle] = useState('moderno')
     const [targetAudience, setTargetAudience] = useState('')
-
-    const { completion, isLoading, complete } = useCompletion({
-        api: '/api/instagram/generate-image-prompt',
-    })
+    const [completion, setCompletion] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [generationError, setGenerationError] = useState('')
 
     const handleGenerate = async () => {
         if (!topic.trim()) {
             toast.error('Digite o tema do visual')
             return
         }
-        await complete('', {
-            body: { topic, contentType, style, targetAudience },
-        })
+
+        setIsLoading(true)
+        setGenerationError('')
+        setCompletion('')
+
+        try {
+            const response = await fetch('/api/instagram/generate-image-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic, contentType, style, targetAudience }),
+            })
+
+            if (!response.ok || !response.body) {
+                const apiError = await parseApiError(response, 'Erro ao gerar prompt visual')
+                setGenerationError(formatErrorWithRequestId(apiError.message, apiError.requestId))
+                return
+            }
+
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let fullText = ''
+
+            for (;;) {
+                const { done, value } = await reader.read()
+                if (done) break
+                fullText += decoder.decode(value, { stream: true })
+                setCompletion(fullText)
+            }
+        } catch {
+            setGenerationError('Erro de conexão. Tente novamente.')
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleCopy = async () => {
@@ -170,6 +200,7 @@ export function GenerateImagePromptButton() {
                                 </div>
                             )}
                         </div>
+                        {generationError && <InlineError message={generationError} size="sm" />}
                         <p className="text-[10px] text-muted-foreground">
                             Use este prompt em ferramentas como DALL-E, Midjourney ou Gemini para gerar a imagem.
                         </p>

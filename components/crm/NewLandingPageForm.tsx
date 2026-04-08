@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { InlineError } from '@/components/ui/inline-error'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import {
     Globe, Package, Sparkles, Bot, Wand2, CheckCircle2, Loader2, Save,
     Check, Palette, FileText, MessageSquare, Zap,
@@ -544,10 +546,7 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                         </div>
 
                         {aiError && (
-                            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-3 py-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                                {aiError}
-                            </div>
+                            <InlineError message={aiError} />
                         )}
 
                         {isGenerating && (
@@ -757,24 +756,21 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
 
                         {/* Submit */}
                         {state.error && (
-                            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-3 py-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                                {state.error}
-                            </div>
+                            <InlineError message={state.error} />
                         )}
 
                         {isMissingRequiredAiSections && (
-                            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-(--radius) px-3 py-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
-                                Aguarde a IA gerar as seções com os dados do produto antes de criar a landing page.
-                            </div>
+                            <InlineNotice
+                                variant="warning"
+                                message="Aguarde a IA gerar as seções com os dados do produto antes de criar a landing page."
+                            />
                         )}
 
                         {aiGenerated && !shouldSendSectionsJson && (
-                            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-(--radius) px-3 py-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
-                                Conteúdo visual grande detectado. As seções serão regeneradas no servidor no momento do salvamento para evitar erro de limite de payload.
-                            </div>
+                            <InlineNotice
+                                variant="warning"
+                                message="Conteúdo visual grande detectado. As seções serão regeneradas no servidor no momento do salvamento para evitar erro de limite de payload."
+                            />
                         )}
 
                         <Button type="submit" disabled={submitDisabled} className="w-full h-11 text-sm font-bold">

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, X, AlertTriangle } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { deleteContact } from '@/actions/contacts'
 import { Button } from '@/components/ui/button'
+import { DangerConfirmationHeader } from '@/components/ui/danger-confirmation-header'
 
 interface DeleteContactButtonProps {
     contactId: string
@@ -54,16 +55,8 @@ export function DeleteContactButton({ contactId, contactName }: DeleteContactBut
                             <X className="w-4 h-4" />
                         </button>
 
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                                <AlertTriangle className="w-5 h-5 text-destructive" />
-                            </div>
-                            <div>
-                                <h3 id="del-contact-title" className="text-foreground font-black text-base tracking-tight">
-                                    Apagar contato?
-                                </h3>
-                                <p className="text-muted-foreground text-xs mt-0.5">Esta ação não pode ser desfeita.</p>
-                            </div>
+                        <div className="mb-4">
+                            <DangerConfirmationHeader titleId="del-contact-title" title="Apagar contato?" />
                         </div>
 
                         <p className="text-foreground-secondary text-sm leading-relaxed mb-6">

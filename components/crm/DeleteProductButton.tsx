@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, AlertTriangle, Loader2 } from 'lucide-react'
+import { Trash2, Loader2 } from 'lucide-react'
 import { deleteProduct } from '@/actions/products'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +14,7 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
+import { DangerConfirmationHeader } from '@/components/ui/danger-confirmation-header'
 
 interface DeleteProductButtonProps {
     productId: string
@@ -49,19 +50,7 @@ export function DeleteProductButton({ productId, productName, redirectAfterDelet
             </DialogTrigger>
             <DialogContent className="max-w-sm bg-card border-border p-0 gap-0">
                 <DialogHeader className="p-6 pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                            <AlertTriangle className="w-5 h-5 text-destructive" />
-                        </div>
-                        <div>
-                            <DialogTitle className="text-foreground font-black text-base tracking-tight">
-                                Apagar produto?
-                            </DialogTitle>
-                            <DialogDescription className="text-muted-foreground text-xs mt-0.5">
-                                Esta ação não pode ser desfeita.
-                            </DialogDescription>
-                        </div>
-                    </div>
+                    <DangerConfirmationHeader title="Apagar produto?" />
                 </DialogHeader>
 
                 <div className="px-6 pb-4">

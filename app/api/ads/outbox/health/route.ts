@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 
-function unauthorized() {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+function unauthorized(requestId: string) {
+    return jsonWithRequestId(requestId, { ok: false, error: 'Unauthorized', requestId }, { status: 401 })
 }
 
 function isMissingOutboxTableError(error: unknown): boolean {
@@ -15,11 +16,13 @@ function isMissingOutboxTableError(error: unknown): boolean {
 }
 
 export async function GET(req: Request) {
+    const logger = createApiRequestLogger('ads/outbox/health')
+
     try {
         const cronSecret = process.env.ADS_OUTBOX_CRON_SECRET
         if (cronSecret) {
             const headerSecret = req.headers.get('x-ads-outbox-secret')
-            if (headerSecret !== cronSecret) return unauthorized()
+            if (headerSecret !== cronSecret) return unauthorized(logger.requestId)
         }
 
         const supabase = createAdminClient()
@@ -29,7 +32,7 @@ export async function GET(req: Request) {
             .limit(1)
 
         if (!error) {
-            return NextResponse.json({
+            return jsonWithRequestId(logger.requestId, {
                 ok: true,
                 outbox: {
                     tableAvailable: true,
@@ -38,8 +41,9 @@ export async function GET(req: Request) {
         }
 
         if (isMissingOutboxTableError(error)) {
-            return NextResponse.json({
+            return jsonWithRequestId(logger.requestId, {
                 ok: false,
+                requestId: logger.requestId,
                 outbox: {
                     tableAvailable: false,
                     code: error.code ?? 'PGRST205',
@@ -48,8 +52,9 @@ export async function GET(req: Request) {
             })
         }
 
-        return NextResponse.json({
+        return jsonWithRequestId(logger.requestId, {
             ok: false,
+            requestId: logger.requestId,
             outbox: {
                 tableAvailable: false,
                 code: error.code ?? 'UNKNOWN',
@@ -57,8 +62,10 @@ export async function GET(req: Request) {
             },
         }, { status: 500 })
     } catch (error) {
-        return NextResponse.json(
-            { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
+        logger.error('health_failed', error)
+        return jsonWithRequestId(
+            logger.requestId,
+            { ok: false, error: 'Unknown error', requestId: logger.requestId },
             { status: 500 }
         )
     }

@@ -12,9 +12,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react'
+import { Sparkles, Loader2 } from 'lucide-react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { IMAGE_MODELS, type ImageModelId } from '@/lib/ai'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 interface GenerateSectionsAIProps {
     onGenerated: (sections: LandingPageSection[], designSystem?: DesignSystem) => void
@@ -65,25 +67,28 @@ export function GenerateSectionsAI({ onGenerated, pageContext }: GenerateSection
                 }),
             })
 
-            const data = await res.json()
-
             if (!res.ok) {
-                setError(data.error || 'Erro ao gerar. Tente novamente.')
+                const apiError = await parseApiError(res, 'Erro ao gerar. Tente novamente.')
+                setError(formatErrorWithRequestId(apiError.message, apiError.requestId))
                 return
             }
+
+            const data = await res.json()
 
             if (!data.sections || !Array.isArray(data.sections) || data.sections.length === 0) {
                 setError('A IA não retornou seções válidas. Tente descrever com mais detalhes.')
                 return
             }
 
-            console.log('[GenerateSectionsAI] Received', data.sections.length, 'sections:', data.sections.map((s: { type: string }) => s.type))
-
             onGenerated(data.sections as LandingPageSection[], data.designSystem as DesignSystem | undefined)
             setGenerated(true)
             setTimeout(() => setOpen(false), 1500)
             setPrompt('')
-        } catch {
+        } catch (error) {
+            if (error instanceof Error) {
+                setError(error.message)
+                return
+            }
             setError('Erro de conexão. Tente novamente.')
         } finally {
             setLoading(false)
@@ -167,12 +172,7 @@ export function GenerateSectionsAI({ onGenerated, pageContext }: GenerateSection
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-                            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                            {error}
-                        </div>
-                    )}
+                    {error && <InlineError message={error} />}
 
                     {generated && (
                         <div className="flex items-start gap-2 text-sm text-[hsl(var(--success))] bg-[hsl(var(--success))]/10 border border-[hsl(var(--success))]/20 rounded-md px-3 py-2">

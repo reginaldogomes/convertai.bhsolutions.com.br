@@ -18,6 +18,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 const OBJECTIVES = [
     { value: 'promocao', label: 'Promoção / Oferta' },
@@ -48,6 +50,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
     const [audience, setAudience] = useState('')
     const [details, setDetails] = useState('')
     const [completion, setCompletion] = useState('')
+    const [generationError, setGenerationError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const abortRef = useRef<AbortController | null>(null)
 
@@ -56,6 +59,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
 
         setIsLoading(true)
         setCompletion('')
+        setGenerationError('')
 
         const controller = new AbortController()
         abortRef.current = controller
@@ -76,7 +80,8 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
             })
 
             if (!response.ok || !response.body) {
-                throw new Error('Erro ao gerar campanha')
+                const apiError = await parseApiError(response, 'Erro ao gerar campanha')
+                throw new Error(formatErrorWithRequestId(apiError.message, apiError.requestId))
             }
 
             const reader = response.body.getReader()
@@ -95,7 +100,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
             setOpen(false)
         } catch (err) {
             if (err instanceof DOMException && err.name === 'AbortError') return
-            setCompletion('Erro ao gerar HTML. Tente novamente.')
+            setGenerationError(err instanceof Error ? err.message : 'Erro ao gerar HTML. Tente novamente.')
         } finally {
             setIsLoading(false)
             abortRef.current = null
@@ -140,7 +145,7 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                             </div>
 
                             <div className="bg-secondary border border-border rounded-(--radius) p-4 max-h-64 overflow-auto">
-                                <pre className="text-foreground-secondary text-xs font-mono whitespace-pre-wrap break-words">
+                                <pre className="text-foreground-secondary text-xs font-mono whitespace-pre-wrap wrap-break-word">
                                     {completion || 'Aguardando resposta do Gemini...'}
                                 </pre>
                             </div>
@@ -235,6 +240,8 @@ export function GenerateCampaignAI({ campaignName, campaignSubject, onGenerated 
                                     Variáveis <code className="text-primary font-mono">{'{{nome}}'}</code> e <code className="text-primary font-mono">{'{{email}}'}</code> serão incluídas automaticamente.
                                 </p>
                             </div>
+
+                            {generationError && <InlineError message={generationError} />}
 
                             <div className="flex justify-end gap-3 pt-2">
                                 <Button

@@ -18,6 +18,8 @@ import {
     Star,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 const ASPECT_RATIOS = [
     { value: '1:1', label: '1:1', desc: 'Quadrado', icon: '⬜' },
@@ -90,12 +92,13 @@ export function CreativeGenerator() {
                 }),
             })
 
-            const data = await res.json()
-
             if (!res.ok) {
-                setError(data.error || 'Erro ao gerar imagem')
+                const apiError = await parseApiError(res, 'Erro ao gerar imagem')
+                setError(formatErrorWithRequestId(apiError.message, apiError.requestId))
                 return
             }
+
+            const data = await res.json()
 
             setImages(data.images)
             setHistory(prev => [{ prompt: prompt.trim(), images: data.images, model }, ...prev].slice(0, 10))
@@ -283,11 +286,7 @@ export function CreativeGenerator() {
                     </button>
 
                     {/* Error */}
-                    {error && (
-                        <div className="p-3 border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive-subtle))] text-[hsl(var(--destructive))] text-xs rounded-(--radius)">
-                            {error}
-                        </div>
-                    )}
+                    {error && <InlineError message={error} size="sm" />}
 
                     {/* Generated Images */}
                     {images.length > 0 && (

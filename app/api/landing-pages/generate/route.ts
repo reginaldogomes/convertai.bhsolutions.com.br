@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server'
 import { getAuthContext } from '@/infrastructure/auth'
 import { generateLandingPageSections } from '@/lib/landing-page-generation'
 import { useCases, ragService } from '@/application/services/container'
+import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 
 export async function POST(request: Request) {
+    const logger = createApiRequestLogger('landing-pages/generate')
+
     try {
+        logger.log('request_received')
         const { orgId } = await getAuthContext()
 
         const body = await request.json()
@@ -20,8 +24,9 @@ export async function POST(request: Request) {
         }
 
         if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 10) {
-            return NextResponse.json(
-                { error: 'Descrição muito curta. Descreva o negócio com pelo menos 10 caracteres.' },
+            return jsonWithRequestId(
+                logger.requestId,
+                { error: 'Descrição muito curta. Descreva o negócio com pelo menos 10 caracteres.', requestId: logger.requestId },
                 { status: 400 }
             )
         }
@@ -70,10 +75,19 @@ export async function POST(request: Request) {
             visible: true,
         }))
 
-        return NextResponse.json({ sections, designSystem: generated.designSystem })
+        logger.log('generation_succeeded', {
+            sectionsCount: sections.length,
+            hasProductId: Boolean(productId),
+        })
+
+        return jsonWithRequestId(logger.requestId, { sections, designSystem: generated.designSystem })
     } catch (error) {
-        console.error('[generate] FATAL:', error)
-        const message = error instanceof Error ? error.message : 'Erro ao gerar landing page'
-        return NextResponse.json({ error: message }, { status: 500 })
+        logger.error('generation_failed', error)
+
+        if (isAuthError(error)) {
+            return jsonWithRequestId(logger.requestId, { error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })
+        }
+
+        return jsonWithRequestId(logger.requestId, { error: 'Erro ao gerar landing page', requestId: logger.requestId }, { status: 500 })
     }
 }

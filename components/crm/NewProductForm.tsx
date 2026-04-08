@@ -20,6 +20,8 @@ import {
     Plus, X, Save, Loader2, Bot, Wand2, CheckCircle2, ArrowLeft,
 } from 'lucide-react'
 import type { ProductFeature, ProductBenefit, ProductFaq } from '@/domain/entities'
+import { formatErrorWithRequestId, parseApiError } from '@/lib/client-api-error'
+import { InlineError } from '@/components/ui/inline-error'
 
 /* ─── Helpers ─── */
 
@@ -144,8 +146,8 @@ export function NewProductForm() {
             })
 
             if (!res.ok) {
-                const data = await res.json().catch(() => ({}))
-                throw new Error(data.error || `Erro ${res.status}`)
+                const apiError = await parseApiError(res, `Erro ${res.status}`)
+                throw new Error(formatErrorWithRequestId(apiError.message, apiError.requestId))
             }
 
             const data = await res.json()
@@ -263,12 +265,7 @@ export function NewProductForm() {
                             )}
                         </div>
 
-                        {aiError && (
-                            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-3 py-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                                {aiError}
-                            </div>
-                        )}
+                        {aiError && <InlineError message={aiError} />}
                     </div>
                 </div>
 
@@ -547,10 +544,7 @@ export function NewProductForm() {
 
                         {/* Form feedback */}
                         {state.error && (
-                            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-(--radius) px-4 py-3">
-                                <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                                {state.error}
-                            </div>
+                            <InlineError message={state.error} />
                         )}
 
                         {/* Submit */}

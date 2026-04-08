@@ -36,6 +36,12 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # convertai.bhsolutions.com.br
 
+## Operacoes E Padroes Internos
+
+- API hardening checklist: `docs/operations/sprint-1-api-hardening-checklist.md`
+- UI feedback guidelines: `docs/operations/ui-feedback-guidelines.md`
+- Changelog (hardening + UX): `docs/operations/changelog-2026-04-08.md`
+
 ## Chatbox Debug E Health
 
 ### Variaveis De Ambiente
@@ -94,6 +100,26 @@ curl -s \
 A rota de chat retorna o header `x-chat-request-id` para correlacionar eventos do frontend com logs do backend.
 
 Tambem retorna `x-chat-session-id` para manter continuidade da conversa no cliente.
+
+### Request Id Padrao Nas APIs
+
+Rotas criticas de geracao, webhooks e analytics retornam o header `x-request-id`.
+
+Esse id tambem pode aparecer no corpo da resposta como `requestId` para facilitar depuracao no frontend.
+
+Fluxo recomendado de suporte:
+
+1. Capturar o valor de `x-request-id` no cliente (ou em tools como Postman/cURL).
+2. Buscar esse id nos logs do servidor, no escopo da rota (`[api:<escopo>]`).
+3. Correlacionar com o tempo de execucao (`elapsedMs`) e o evento de falha (`*_failed`).
+
+Exemplo com cURL exibindo headers:
+
+```bash
+curl -i -X POST http://localhost:3000/api/analytics/track \
+	-H 'Content-Type: application/json' \
+	-d '{"landingPageId":"<id>","eventType":"view","visitorId":"<visitor>"}'
+```
 
 ### Runbook De Incidentes (Chat)
 

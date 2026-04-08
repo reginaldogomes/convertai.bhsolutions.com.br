@@ -3,6 +3,7 @@ import { geminiModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import type { CrmContext } from '@/application/use-cases/campaigns/get-crm-context'
+import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
 
 const OBJECTIVES: Record<string, string> = {
     promocao: 'Campanha promocional com ofertas, descontos ou lançamento de produto/serviço',
@@ -36,34 +37,39 @@ ${ctx.pastCampaigns.length > 0 ? `\n## Campanhas enviadas anteriormente (para re
 }
 
 export async function POST(request: Request) {
-    const { orgId, userId } = await getAuthContext()
-    const body = await request.json()
+    const logger = createApiRequestLogger('campaigns/generate')
 
-    const {
-        objective,
-        tone,
-        audience,
-        details,
-        campaignName,
-        campaignSubject,
-    } = body as {
-        objective: string
-        tone: string
-        audience: string
-        details: string
-        campaignName: string
-        campaignSubject: string
-    }
+    try {
+        logger.log('request_received')
 
-    const ctx = await useCases.getCrmContext().execute(orgId, userId)
-    const crmContext = buildCrmPromptContext(ctx)
+        const { orgId, userId } = await getAuthContext()
+        const body = await request.json()
 
-    const objectiveDesc = OBJECTIVES[objective] ?? objective
-    const toneDesc = TONES[tone] ?? tone
+        const {
+            objective,
+            tone,
+            audience,
+            details,
+            campaignName,
+            campaignSubject,
+        } = body as {
+            objective: string
+            tone: string
+            audience: string
+            details: string
+            campaignName: string
+            campaignSubject: string
+        }
 
-    const result = streamText({
-        model: geminiModel,
-        system: `Você é um especialista em email marketing e design de emails HTML responsivos.
+        const ctx = await useCases.getCrmContext().execute(orgId, userId)
+        const crmContext = buildCrmPromptContext(ctx)
+
+        const objectiveDesc = OBJECTIVES[objective] ?? objective
+        const toneDesc = TONES[tone] ?? tone
+
+        const result = streamText({
+            model: geminiModel,
+            system: `Você é um especialista em email marketing e design de emails HTML responsivos.
 Sua tarefa é gerar o HTML completo de um email de campanha.
 
 ## Regras obrigatórias de HTML para email:
@@ -83,7 +89,7 @@ Sua tarefa é gerar o HTML completo de um email de campanha.
 ${crmContext}
 
 Retorne APENAS o código HTML, sem explicações, sem markdown, sem blocos de código.`,
-        prompt: `Gere o HTML de uma campanha de email com as seguintes especificações:
+            prompt: `Gere o HTML de uma campanha de email com as seguintes especificações:
 
 **Nome da campanha:** ${campaignName || 'Não definido'}
 **Assunto:** ${campaignSubject || 'Não definido'}
@@ -93,7 +99,27 @@ Retorne APENAS o código HTML, sem explicações, sem markdown, sem blocos de c�
 **Detalhes adicionais:** ${details || 'Nenhum detalhe adicional'}
 
 Gere um email HTML profissional, responsivo e visualmente atraente.`,
-    })
+        })
 
-    return result.toTextStreamResponse()
+        logger.log('generation_started', {
+            objective,
+            tone,
+            hasAudience: Boolean(audience),
+            hasDetails: Boolean(details),
+        })
+
+        return result.toTextStreamResponse({
+            headers: {
+                'x-request-id': logger.requestId,
+            },
+        })
+    } catch (error) {
+        logger.error('generation_failed', error)
+
+        if (isAuthError(error)) {
+            return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })
+        }
+
+        return Response.json({ error: 'Erro ao gerar campanha', requestId: logger.requestId }, { status: 500 })
+    }
 }

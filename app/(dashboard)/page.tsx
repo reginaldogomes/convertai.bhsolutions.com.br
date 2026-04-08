@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
     Users, MessageSquare, Mail, TrendingUp, Globe, Zap, Instagram, Bot,
     Eye, MousePointer, ArrowUpRight, CheckCircle2,
+    FileText,
     type LucideIcon,
 } from 'lucide-react'
 
@@ -125,6 +126,14 @@ const moduleCards: ModuleCard[] = [
         icon: Bot,
         color: 'text-cyan-400',
         bgColor: 'bg-cyan-400/10',
+        metrics: [],
+    },
+    {
+        href: '/release-notes',
+        label: 'Release Notes',
+        icon: FileText,
+        color: 'text-slate-300',
+        bgColor: 'bg-slate-300/10',
         metrics: [],
     },
 ]

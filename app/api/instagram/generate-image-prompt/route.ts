@@ -1,21 +1,45 @@
 import { streamText } from 'ai'
 import { powerModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
+import { z } from 'zod'
+import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
+
+const generateImagePromptSchema = z.object({
+    topic: z.string().min(3).max(500),
+    contentType: z.string().min(1).max(60),
+    style: z.string().max(500).optional().default(''),
+    targetAudience: z.string().max(500).optional().default(''),
+})
 
 export async function POST(request: Request) {
-    await getAuthContext()
-    const body = await request.json()
+    const logger = createApiRequestLogger('instagram/generate-image-prompt')
 
-    const { topic, contentType, style, targetAudience } = body as {
-        topic: string
-        contentType: string
-        style: string
-        targetAudience: string
-    }
+    try {
+        await getAuthContext()
+        const parsed = generateImagePromptSchema.safeParse(await request.json())
 
-    const result = streamText({
-        model: powerModel,
-        system: `Você é um especialista em criação de conteúdo visual para Instagram e direção de arte.
+        if (!parsed.success) {
+            return Response.json(
+                {
+                    error: 'Payload inválido para geração de prompt de imagem',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                {
+                    status: 400,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
+
+        const { topic, contentType, style, targetAudience } = parsed.data
+
+        const result = streamText({
+            model: powerModel,
+            system: `Você é um especialista em criação de conteúdo visual para Instagram e direção de arte.
 Sua tarefa é gerar prompts detalhados para geração de imagens com IA (como DALL-E, Midjourney ou Gemini).
 
 ## Regras:
@@ -34,7 +58,20 @@ Sua tarefa é gerar prompts detalhados para geração de imagens com IA (como DA
 **Público-alvo**: ${targetAudience || 'Geral'}
 
 Gere prompts detalhados e prontos para usar em ferramentas de geração de imagem por IA.`,
-    })
+        })
 
-    return result.toTextStreamResponse()
+        logger.log('generation_started', { contentType })
+        return result.toTextStreamResponse({
+            headers: {
+                'x-request-id': logger.requestId,
+            },
+        })
+    } catch (error) {
+        logger.error('generation_failed', error)
+        if (isAuthError(error)) {
+            return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401, headers: { 'x-request-id': logger.requestId } })
+        }
+
+        return Response.json({ error: 'Erro ao gerar prompt de imagem', requestId: logger.requestId }, { status: 500, headers: { 'x-request-id': logger.requestId } })
+    }
 }

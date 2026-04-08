@@ -1,21 +1,45 @@
 import { streamText } from 'ai'
 import { powerModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
+import { z } from 'zod'
+import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
+
+const generateCalendarSchema = z.object({
+    niche: z.string().min(2).max(300),
+    days: z.number().int().min(1).max(31),
+    contentTypes: z.array(z.string().min(1)).min(1).max(10),
+    objectives: z.array(z.string().min(1)).min(1).max(10),
+})
 
 export async function POST(request: Request) {
-    await getAuthContext()
-    const body = await request.json()
+    const logger = createApiRequestLogger('instagram/generate-calendar')
 
-    const { niche, days, contentTypes, objectives } = body as {
-        niche: string
-        days: number
-        contentTypes: string[]
-        objectives: string[]
-    }
+    try {
+        await getAuthContext()
+        const parsed = generateCalendarSchema.safeParse(await request.json())
 
-    const result = streamText({
-        model: powerModel,
-        system: `Você é um estrategista de conteúdo para Instagram especializado em crescimento orgânico.
+        if (!parsed.success) {
+            return Response.json(
+                {
+                    error: 'Payload inválido para geração de calendário',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                {
+                    status: 400,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
+
+        const { niche, days, contentTypes, objectives } = parsed.data
+
+        const result = streamText({
+            model: powerModel,
+            system: `Você é um estrategista de conteúdo para Instagram especializado em crescimento orgânico.
 Sua tarefa é criar um calendário editorial completo e estratégico.
 
 ## Regras:
@@ -45,7 +69,20 @@ Sua tarefa é criar um calendário editorial completo e estratégico.
 **Objetivos**: ${objectives.join(', ')}
 
 Gere um plano detalhado, estratégico e pronto para execução.`,
-    })
+        })
 
-    return result.toTextStreamResponse()
+        logger.log('generation_started', { days, niche })
+        return result.toTextStreamResponse({
+            headers: {
+                'x-request-id': logger.requestId,
+            },
+        })
+    } catch (error) {
+        logger.error('generation_failed', error)
+        if (isAuthError(error)) {
+            return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401, headers: { 'x-request-id': logger.requestId } })
+        }
+
+        return Response.json({ error: 'Erro ao gerar calendário', requestId: logger.requestId }, { status: 500, headers: { 'x-request-id': logger.requestId } })
+    }
 }

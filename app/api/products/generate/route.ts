@@ -3,6 +3,7 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 import { powerModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
+import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 
 const productAISchema = z.object({
     shortDescription: z.string().describe('Descrição curta e persuasiva do produto, 1-2 frases'),
@@ -45,7 +46,10 @@ DIRETRIZES:
 - A descrição completa deve ser rica o suficiente para alimentar o RAG`
 
 export async function POST(request: NextRequest) {
+    const logger = createApiRequestLogger('products/generate')
+
     try {
+        logger.log('request_received')
         await getAuthContext()
 
         const body = await request.json()
@@ -56,7 +60,11 @@ export async function POST(request: NextRequest) {
         }
 
         if (!name || !type) {
-            return NextResponse.json({ error: 'Nome e tipo são obrigatórios' }, { status: 400 })
+            return jsonWithRequestId(
+                logger.requestId,
+                { error: 'Nome e tipo são obrigatórios', requestId: logger.requestId },
+                { status: 400 }
+            )
         }
 
         const prompt = [
@@ -75,12 +83,21 @@ export async function POST(request: NextRequest) {
             maxOutputTokens: 8192,
         })
 
-        return NextResponse.json(object)
+        logger.log('generation_succeeded', {
+            type,
+            hasContext: Boolean(context),
+            featuresCount: object.features.length,
+            benefitsCount: object.benefits.length,
+        })
+
+        return jsonWithRequestId(logger.requestId, object)
     } catch (error) {
-        console.error('[products/generate] Error:', error)
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Erro ao gerar conteúdo' },
-            { status: 500 }
-        )
+        logger.error('generation_failed', error)
+
+        if (isAuthError(error)) {
+            return jsonWithRequestId(logger.requestId, { error: 'Não autenticado', requestId: logger.requestId }, { status: 401 })
+        }
+
+        return jsonWithRequestId(logger.requestId, { error: 'Erro ao gerar conteúdo', requestId: logger.requestId }, { status: 500 })
     }
 }

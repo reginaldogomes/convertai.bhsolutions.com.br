@@ -10,6 +10,7 @@ import {
 } from '@/application/services/container'
 import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
 import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
+import { createApiRequestLogger } from '@/lib/api-observability'
 
 const CHAT_DEBUG = process.env.CHAT_DEBUG === 'true'
 
@@ -22,7 +23,8 @@ export async function POST(
     req: Request,
     { params }: { params: Promise<{ pageId: string }> }
 ) {
-    const requestId = crypto.randomUUID()
+    const logger = createApiRequestLogger('chat/[pageId]')
+    const requestId = logger.requestId
     const startedAt = Date.now()
 
     try {

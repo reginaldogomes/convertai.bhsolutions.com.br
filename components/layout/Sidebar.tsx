@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/auth'
 import {
     LayoutDashboard, Users, TrendingUp, MessageSquare, Mail,
-    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram, Package,
+    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram, Package, FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './ThemeToggle'
@@ -16,6 +16,7 @@ const navItems = [
         section: 'Visão Geral',
         items: [
             { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+            { href: '/release-notes', label: 'Release Notes', icon: FileText },
         ],
     },
     {

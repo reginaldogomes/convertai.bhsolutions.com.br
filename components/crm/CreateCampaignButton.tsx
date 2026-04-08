@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { InlineError } from '@/components/ui/inline-error'
 
 const initialState = { error: '', success: false }
 
@@ -133,7 +134,7 @@ export function CreateCampaignButton() {
                         </div>
 
                         {state?.error && (
-                            <p className="text-destructive text-xs border border-destructive/20 bg-destructive/5 px-3 py-2 rounded-(--radius)">{state.error}</p>
+                            <InlineError message={state.error} size="sm" />
                         )}
 
                         <div className="flex justify-end gap-3 pt-2">
