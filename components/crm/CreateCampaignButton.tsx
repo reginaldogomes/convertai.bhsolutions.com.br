@@ -51,13 +51,15 @@ export function CreateCampaignButton() {
 
     return (
         <>
-            <button
+            <Button
+                type="button"
+                size="sm"
                 onClick={() => setOpen(true)}
-                className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white h-8 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors rounded-(--radius)"
+                className="h-8 px-4 text-xs font-bold uppercase tracking-wider"
             >
                 <Plus className="w-3.5 h-3.5" />
                 Nova Campanha
-            </button>
+            </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-(--radius) sm:max-w-lg">
@@ -73,18 +75,17 @@ export function CreateCampaignButton() {
                                 {CHANNELS.map(ch => {
                                     const Icon = ch.icon
                                     return (
-                                        <button
+                                        <Button
                                             key={ch.value}
                                             type="button"
                                             onClick={() => setChannel(ch.value)}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-(--radius) text-xs font-bold uppercase tracking-wider border transition-colors ${channel === ch.value
-                                                ? 'bg-primary text-white border-primary'
-                                                : 'bg-secondary text-foreground-secondary border-border hover:border-primary/50'
-                                                }`}
+                                            size="sm"
+                                            variant={channel === ch.value ? 'default' : 'secondary'}
+                                            className="h-8 px-3 text-xs font-bold uppercase tracking-wider"
                                         >
                                             <Icon className="w-3.5 h-3.5" />
                                             {ch.label}
-                                        </button>
+                                        </Button>
                                     )
                                 })}
                             </div>
@@ -142,11 +143,11 @@ export function CreateCampaignButton() {
                                 type="button"
                                 variant="ghost"
                                 onClick={() => setOpen(false)}
-                                className="text-foreground-secondary rounded-(--radius) h-9"
+                                className="h-9"
                             >
                                 Cancelar
                             </Button>
-                            <Button type="submit" className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs">
+                            <Button type="submit" className="h-9 text-xs font-bold uppercase tracking-wider">
                                 Criar Campanha
                             </Button>
                         </div>

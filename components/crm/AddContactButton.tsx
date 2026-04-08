@@ -41,7 +41,7 @@ export function AddContactButton() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white h-8 px-3 text-xs font-bold uppercase tracking-wider rounded-(--radius)">
+                <Button size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-wider">
                     <Plus className="w-3.5 h-3.5 mr-1.5" />
                     Novo Contato
                 </Button>
@@ -88,7 +88,7 @@ export function AddContactButton() {
                         <InlineError message={state.error} size="sm" />
                     )}
 
-                    <Button type="submit" className="w-full bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs">
+                    <Button type="submit" className="w-full h-9 text-xs font-bold uppercase tracking-wider">
                         Salvar Contato
                     </Button>
                 </form>

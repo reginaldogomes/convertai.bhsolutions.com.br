@@ -11,7 +11,7 @@ interface HeroSectionProps {
     primaryColor: string
     palette?: ColorPalette
     isDark: boolean
-    onCtaClick?: () => void
+    onCtaClick?: (targetUrl?: string) => void
 }
 
 export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick }: HeroSectionProps) {
@@ -24,6 +24,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
         : content.backgroundImageUrl
     const showSideImage = heroLayout === 'split' && !!content.heroImageUrl
     const trustBadges = Array.isArray(content.trustBadges) ? content.trustBadges.filter(Boolean).slice(0, 4) : []
+    const ctaTarget = content.ctaUrl || '#contato'
 
     return (
         <header className="relative overflow-hidden bg-background">
@@ -104,7 +105,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
                                     boxShadow: `0 8px 32px ${primaryColor}30`,
                                 }}
                             >
-                                <a href={content.ctaUrl || '#contato'} onClick={onCtaClick}>
+                                <a href={ctaTarget} onClick={() => onCtaClick?.(ctaTarget)}>
                                     {content.ctaText}
                                     <ArrowRight className="w-4 h-4 ml-1 transition-transform duration-200 group-hover:translate-x-1" />
                                 </a>

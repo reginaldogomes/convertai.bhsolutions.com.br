@@ -93,12 +93,21 @@ export function LandingPageView({ page }: LandingPageViewProps) {
         })
     }, [page.id])
 
-    const handleCtaClick = () => {
+    const handleCtaClick = (targetUrl?: string) => {
+        const normalizedTarget = targetUrl?.toLowerCase() ?? ''
+        const ctaAction = normalizedTarget.includes('wa.me') || normalizedTarget.includes('whatsapp')
+            ? 'click_whatsapp'
+            : 'cta_click'
+
         trackAnalyticsEvent({
             landingPageId: page.id,
             eventType: 'cta_click',
             visitorId: getVisitorId(),
-            metadata: buildAdsMetadata('cta_click'),
+            metadata: {
+                ...buildAdsMetadata('cta_click'),
+                ctaAction,
+                ctaTarget: targetUrl ?? '#contato',
+            },
         })
     }
 
@@ -114,7 +123,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                                 </div>
                                 <a
                                     href="#contato"
-                                    onClick={handleCtaClick}
+                                    onClick={() => handleCtaClick('#contato')}
                                     className="inline-flex shrink-0 items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                                     style={{ backgroundColor: config.primaryColor }}
                                 >
@@ -208,7 +217,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                 <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 p-3 backdrop-blur md:hidden">
                     <a
                         href="#contato"
-                        onClick={handleCtaClick}
+                        onClick={() => handleCtaClick('#contato')}
                         className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-bold text-white transition-opacity hover:opacity-90"
                         style={{ backgroundColor: config.primaryColor }}
                     >

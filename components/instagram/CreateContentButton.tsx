@@ -53,19 +53,16 @@ export function CreateContentButton() {
                         <Label>Tipo de Conteúdo</Label>
                         <div className="grid grid-cols-4 gap-2">
                             {CONTENT_TYPES.map(({ value, label, icon: Icon }) => (
-                                <button
+                                <Button
                                     key={value}
                                     type="button"
+                                    variant={contentType === value ? 'secondary' : 'outline'}
                                     onClick={() => setContentType(value)}
-                                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-xs font-medium transition-all ${
-                                        contentType === value
-                                            ? 'border-primary bg-primary/10 text-primary'
-                                            : 'border-border bg-muted/40 hover:border-primary/50'
-                                    }`}
+                                    className="h-auto flex-col gap-1.5 p-3 text-xs font-medium"
                                 >
                                     <Icon className="w-5 h-5" />
                                     {label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                         <input type="hidden" name="type" value={contentType} />

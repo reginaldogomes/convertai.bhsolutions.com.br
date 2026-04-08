@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { IMAGE_MODELS, type ImageModelId } from '@/lib/ai'
 import {
@@ -125,10 +126,10 @@ export function CreativeGenerator() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button className="h-8 px-3 bg-primary hover:bg-[hsl(var(--primary-hover))] text-white text-xs font-bold uppercase tracking-wider rounded-(--radius) transition-colors inline-flex items-center gap-1.5">
+                <Button type="button" size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-wider">
                     <Wand2 className="w-3.5 h-3.5" />
                     Criar Imagem
-                </button>
+                </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
                 <DialogHeader className="p-6 pb-0">
@@ -147,15 +148,12 @@ export function CreativeGenerator() {
                                 const Icon = MODEL_ICONS[m.id] ?? Star
                                 const isActive = model === m.id
                                 return (
-                                    <button
+                                    <Button
                                         key={m.id}
                                         type="button"
                                         onClick={() => setModel(m.id)}
-                                        className={`relative p-3 border text-left transition-all rounded-(--radius) ${
-                                            isActive
-                                                ? 'border-primary bg-[hsl(var(--primary)/0.05)] shadow-[0_0_0_1px_hsl(var(--primary))]'
-                                                : 'border-border bg-muted/40 hover:border-primary/50'
-                                        }`}
+                                        variant={isActive ? 'secondary' : 'outline'}
+                                        className="relative h-auto w-full flex-col items-start gap-0 p-3 text-left"
                                     >
                                         <span className={`absolute top-2 right-2 px-1.5 py-0.5 text-[9px] uppercase font-bold tracking-wider rounded-(--radius) ${
                                             m.badge === 'Pro'
@@ -169,7 +167,7 @@ export function CreativeGenerator() {
                                         <Icon className={`w-4 h-4 mb-1.5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                         <p className="text-xs font-bold text-foreground">{m.name}</p>
                                         <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{m.description}</p>
-                                    </button>
+                                    </Button>
                                 )
                             })}
                         </div>
@@ -193,14 +191,16 @@ export function CreativeGenerator() {
                         {/* Quick Templates */}
                         <div className="flex flex-wrap gap-1.5">
                             {PROMPT_TEMPLATES.map(t => (
-                                <button
+                                <Button
                                     key={t.label}
                                     type="button"
+                                    variant="outline"
+                                    size="xs"
                                     onClick={() => handleUseTemplate(t.prompt)}
-                                    className="px-2 py-1 text-[10px] uppercase font-bold tracking-wider border border-border bg-muted text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors rounded-(--radius)"
+                                    className="h-6 px-2 text-[10px] uppercase tracking-wider"
                                 >
                                     {t.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -210,20 +210,17 @@ export function CreativeGenerator() {
                         <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Proporção</Label>
                         <div className="grid grid-cols-6 gap-2">
                             {ASPECT_RATIOS.map(ar => (
-                                <button
+                                <Button
                                     key={ar.value}
                                     type="button"
+                                    variant={aspectRatio === ar.value ? 'secondary' : 'outline'}
                                     onClick={() => setAspectRatio(ar.value)}
-                                    className={`p-2 border text-center transition-all rounded-(--radius) ${
-                                        aspectRatio === ar.value
-                                            ? 'border-primary bg-[hsl(var(--primary)/0.05)] shadow-[0_0_0_1px_hsl(var(--primary))]'
-                                            : 'border-border bg-muted/40 hover:border-primary/50'
-                                    }`}
+                                    className="h-auto flex-col gap-0 p-2 text-center"
                                 >
                                     <p className="text-lg leading-none">{ar.icon}</p>
                                     <p className="text-[10px] font-bold text-foreground mt-1">{ar.label}</p>
                                     <p className="text-[9px] text-muted-foreground">{ar.desc}</p>
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -231,33 +228,32 @@ export function CreativeGenerator() {
                     {/* Advanced Settings */}
                     {selectedModel.supportsSize && (
                         <div>
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
+                                size="xs"
                                 onClick={() => setShowAdvanced(!showAdvanced)}
-                                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
                             >
                                 {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                                 <span className="uppercase tracking-wider font-bold">Configurações avançadas</span>
-                            </button>
+                            </Button>
 
                             {showAdvanced && (
                                 <div className="mt-3 space-y-2">
                                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Resolução</Label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {RESOLUTIONS.map(r => (
-                                            <button
+                                            <Button
                                                 key={r.value}
                                                 type="button"
+                                                variant={imageSize === r.value ? 'secondary' : 'outline'}
                                                 onClick={() => setImageSize(r.value)}
-                                                className={`p-2.5 border text-center transition-all rounded-(--radius) ${
-                                                    imageSize === r.value
-                                                        ? 'border-primary bg-[hsl(var(--primary)/0.05)] shadow-[0_0_0_1px_hsl(var(--primary))]'
-                                                        : 'border-border bg-muted/40 hover:border-primary/50'
-                                                }`}
+                                                className="h-auto flex-col gap-0 p-2.5 text-center"
                                             >
                                                 <p className="text-xs font-bold font-mono-data text-foreground">{r.label}</p>
                                                 <p className="text-[10px] text-muted-foreground">{r.desc}</p>
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
@@ -266,11 +262,11 @@ export function CreativeGenerator() {
                     )}
 
                     {/* Generate Button */}
-                    <button
+                    <Button
                         type="button"
                         onClick={handleGenerate}
                         disabled={loading || !prompt.trim()}
-                        className="w-full h-11 bg-primary hover:bg-[hsl(var(--primary-hover))] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center justify-center gap-2 rounded-(--radius)"
+                        className="h-11 w-full text-xs font-bold uppercase tracking-wider"
                     >
                         {loading ? (
                             <>
@@ -283,7 +279,7 @@ export function CreativeGenerator() {
                                 Gerar Criativo
                             </>
                         )}
-                    </button>
+                    </Button>
 
                     {/* Error */}
                     {error && <InlineError message={error} size="sm" />}
@@ -293,15 +289,17 @@ export function CreativeGenerator() {
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Resultado</p>
-                                <button
+                                <Button
                                     type="button"
                                     onClick={handleGenerate}
                                     disabled={loading}
-                                    className="h-7 px-2.5 border border-border bg-muted/50 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors inline-flex items-center gap-1.5 rounded-(--radius)"
+                                    variant="outline"
+                                    size="xs"
+                                    className="h-7 px-2.5 text-xs font-bold uppercase tracking-wider"
                                 >
                                     <RotateCcw className="w-3 h-3" />
                                     Regenerar
-                                </button>
+                                </Button>
                             </div>
                             <div className="grid gap-3">
                                 {images.map((img, i) => (
@@ -316,14 +314,15 @@ export function CreativeGenerator() {
                                             <span className="text-[10px] text-muted-foreground font-mono-data">
                                                 {selectedModel.name} · {aspectRatio} · {img.mimeType.split('/')[1]?.toUpperCase()}
                                             </span>
-                                            <button
+                                            <Button
                                                 type="button"
                                                 onClick={() => handleDownload(img, i)}
-                                                className="h-7 px-2.5 bg-primary hover:bg-[hsl(var(--primary-hover))] text-white text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 rounded-(--radius)"
+                                                size="xs"
+                                                className="h-7 px-2.5 text-[10px] font-bold uppercase tracking-wider"
                                             >
                                                 <Download className="w-3 h-3" />
                                                 Download
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
@@ -337,13 +336,14 @@ export function CreativeGenerator() {
                             <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Histórico recente</p>
                             <div className="grid grid-cols-4 gap-2">
                                 {history.slice(1, 5).map((h, i) => (
-                                    <button
+                                    <Button
                                         key={i}
                                         type="button"
+                                        variant="outline"
                                         onClick={() => {
                                             setImages(h.images)
                                         }}
-                                        className="border border-border bg-muted/30 overflow-hidden hover:border-primary/50 transition-colors rounded-(--radius)"
+                                        className="h-auto w-full overflow-hidden p-0"
                                     >
                                         {h.images[0] && (
                                             /* eslint-disable-next-line @next/next/no-img-element */
@@ -354,7 +354,7 @@ export function CreativeGenerator() {
                                             />
                                         )}
                                         <p className="p-1.5 text-[9px] text-muted-foreground truncate">{h.prompt.slice(0, 40)}...</p>
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>

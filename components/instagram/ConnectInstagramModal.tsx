@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import {
     Instagram,
     ExternalLink,
@@ -94,10 +95,10 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {isConnected ? (
-                    <button className="h-8 px-3 border border-border bg-card text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors inline-flex items-center gap-1.5 rounded-(--radius)">
+                    <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                         <Instagram className="w-3.5 h-3.5" />
                         Gerenciar
-                    </button>
+                    </Button>
                 ) : (
                     <div className="border border-dashed border-border p-5 flex items-center gap-4 bg-secondary/50 rounded-(--radius) cursor-pointer hover:border-primary/50 transition-colors">
                         <div className="w-12 h-12 rounded-full bg-[hsl(var(--primary-subtle))] flex items-center justify-center shrink-0">
@@ -146,14 +147,15 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                                 </div>
                             </div>
 
-                            <button
+                            <Button
                                 type="button"
+                                variant="secondary"
                                 onClick={handleConnect}
-                                className="w-full h-9 border border-border bg-muted/50 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors inline-flex items-center justify-center gap-1.5 rounded-(--radius)"
+                                className="h-9 w-full text-xs font-bold uppercase tracking-wider"
                             >
                                 <Unplug className="w-3.5 h-3.5" />
                                 Reconectar conta
-                            </button>
+                            </Button>
                         </div>
                     )}
 
@@ -223,11 +225,11 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                             </div>
 
                             {/* Connect Button */}
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handleConnect}
                                 disabled={connecting}
-                                className="w-full h-11 bg-[#1877F2] hover:bg-[#166FE5] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center justify-center gap-2 rounded-(--radius)"
+                                className="h-11 w-full bg-[#1877F2] text-xs font-bold uppercase tracking-wider text-white hover:bg-[#166FE5]"
                             >
                                 {connecting ? (
                                     <>
@@ -240,7 +242,7 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                                         Conectar com Facebook
                                     </>
                                 )}
-                            </button>
+                            </Button>
 
                             <p className="text-[10px] text-muted-foreground text-center">
                                 O login é feito via Facebook porque a API do Instagram Business requer uma Página do Facebook vinculada.

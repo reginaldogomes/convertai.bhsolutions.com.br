@@ -5,16 +5,20 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 active:translate-y-[1px] active:scale-[0.99] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-200 select-none outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-55 active:translate-y-[1px] active:scale-[0.99] data-[loading=true]:pointer-events-none data-[loading=true]:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-white hover:bg-[hsl(var(--primary-hover))] shadow-sm hover:shadow-md",
-        primary: "bg-linear-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary-hover))] text-white shadow-sm hover:shadow-md",
+        default: "bg-primary text-primary-foreground hover:bg-[hsl(var(--primary-hover))] shadow-sm hover:shadow-md",
+        primary: "bg-linear-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary-hover))] text-primary-foreground shadow-sm hover:shadow-md",
         glass: "border border-white/20 bg-white/70 text-foreground backdrop-blur-md shadow-sm hover:bg-white/85 dark:border-white/15 dark:bg-white/8 dark:text-white dark:hover:bg-white/12",
         elevated: "bg-card text-card-foreground border border-border shadow-md hover:shadow-lg hover:-translate-y-0.5",
         destructive:
-          "bg-destructive text-white hover:brightness-110 shadow-sm focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          "bg-destructive text-destructive-foreground hover:brightness-105 shadow-sm focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+        success:
+          "bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))] hover:brightness-95 shadow-sm",
+        warning:
+          "bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))] hover:brightness-95 shadow-sm",
         outline:
           "border border-border bg-background text-foreground shadow-xs hover:bg-accent hover:border-input",
         secondary:
@@ -31,7 +35,7 @@ const buttonVariants = cva(
         icon: "size-10",
         "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        "icon-lg": "size-11",
       },
     },
     defaultVariants: {

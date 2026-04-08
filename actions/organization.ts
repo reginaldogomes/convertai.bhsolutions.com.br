@@ -327,3 +327,120 @@ export async function deleteKnowledgeBaseEntry(formData: FormData) {
         return { error: getErrorMessage(err), success: false }
     }
 }
+
+const MAX_KB_IMAGE_BYTES = 8 * 1024 * 1024
+const KB_IMAGE_BUCKET = 'knowledge-base-assets'
+const ALLOWED_KB_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+function sanitizeFileName(fileName: string): string {
+    return fileName
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 120)
+}
+
+export async function uploadKnowledgeBaseImage(
+    _prevState: { error: string; success: boolean },
+    formData: FormData,
+) {
+    try {
+        const { orgId } = await getAuthContext()
+        const title = safeText(formData.get('imageTitle'), 300)
+        const description = safeText(formData.get('imageDescription'), 4000)
+        const extractedText = safeText(formData.get('imageExtractedText'), 5000)
+        const tags = parseTagList(formData.get('imageTags'))
+        const file = formData.get('imageFile') as File | null
+
+        if (!file) return { error: 'Selecione uma imagem para upload.', success: false }
+        if (!title) return { error: 'Informe um título para a imagem.', success: false }
+        if (!ALLOWED_KB_IMAGE_TYPES.has(file.type)) {
+            return { error: 'Formato inválido. Use JPG, PNG ou WEBP.', success: false }
+        }
+        if (file.size <= 0 || file.size > MAX_KB_IMAGE_BYTES) {
+            return { error: 'Imagem muito grande. Limite de 8MB por arquivo.', success: false }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const admin = createAdminClient() as any
+
+        const { data: bucketData, error: bucketError } = await admin.storage.getBucket(KB_IMAGE_BUCKET)
+        if (bucketError && bucketError.message?.toLowerCase()?.includes('not found')) {
+            const { error: createBucketError } = await admin.storage.createBucket(KB_IMAGE_BUCKET, {
+                public: true,
+                fileSizeLimit: `${MAX_KB_IMAGE_BYTES}`,
+                allowedMimeTypes: Array.from(ALLOWED_KB_IMAGE_TYPES),
+            })
+
+            if (createBucketError) {
+                return { error: `Falha ao criar bucket de imagens: ${createBucketError.message}`, success: false }
+            }
+        } else if (bucketError && !bucketData) {
+            return { error: `Falha ao acessar bucket de imagens: ${bucketError.message}`, success: false }
+        }
+
+        const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+        const safeName = sanitizeFileName(file.name || `imagem.${extension}`)
+        const storagePath = `${orgId}/${Date.now()}-${safeName}`
+        const fileBuffer = Buffer.from(await file.arrayBuffer())
+
+        const { error: uploadError } = await admin.storage
+            .from(KB_IMAGE_BUCKET)
+            .upload(storagePath, fileBuffer, {
+                contentType: file.type,
+                upsert: false,
+            })
+
+        if (uploadError) {
+            return { error: `Falha ao enviar imagem: ${uploadError.message}`, success: false }
+        }
+
+        const { data: publicUrlData } = admin.storage
+            .from(KB_IMAGE_BUCKET)
+            .getPublicUrl(storagePath)
+
+        const publicUrl = publicUrlData?.publicUrl
+        if (!publicUrl) {
+            return { error: 'Falha ao gerar URL pública da imagem.', success: false }
+        }
+
+        const content = [
+            `Tipo de ativo: imagem`,
+            `URL da imagem: ${publicUrl}`,
+            '',
+            `Descrição da imagem:\n${description || 'Não informada.'}`,
+            '',
+            `Texto extraído/relevante da imagem:\n${extractedText || 'Não informado.'}`,
+        ].join('\n')
+
+        const result = await useCases.addKnowledgeBase().execute(orgId, {
+            landingPageId: null,
+            title,
+            content,
+        })
+
+        if (!result.ok) return { error: result.error.message, success: false }
+
+        await admin
+            .from('knowledge_base')
+            .update({
+                metadata_json: {
+                    source: 'settings_knowledge_base_image_upload',
+                    assetType: 'image',
+                    imageUrl: publicUrl,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    sizeBytes: file.size,
+                    tags,
+                    updatedAt: new Date().toISOString(),
+                },
+            })
+            .eq('id', result.value.id)
+            .eq('organization_id', orgId)
+
+        revalidatePath('/settings')
+        return { error: '', success: true }
+    } catch (err) {
+        return { error: getErrorMessage(err), success: false }
+    }
+}

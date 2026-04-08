@@ -42,13 +42,16 @@ export function ResendCampaignButton({ campaignId, campaignName, recipientCount,
 
     return (
         <>
-            <button
+            <Button
+                type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setOpen(true)}
-                className="bg-[hsl(var(--primary-subtle))] hover:bg-[hsl(var(--primary-soft))] border-2 border-primary hover:border-primary text-primary h-9 px-6 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors rounded-(--radius)"
+                className="h-9 px-6 text-xs font-bold uppercase tracking-wider"
             >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Reenviar Campanha
-            </button>
+            </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="bg-[hsl(var(--background-tertiary))] border-border rounded-(--radius) sm:max-w-md">
@@ -85,14 +88,14 @@ export function ResendCampaignButton({ campaignId, campaignName, recipientCount,
                                 variant="ghost"
                                 onClick={() => setOpen(false)}
                                 disabled={sending}
-                                className="text-foreground-secondary rounded-(--radius) h-9"
+                                className="h-9"
                             >
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={handleResend}
                                 disabled={sending}
-                                className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 font-bold uppercase tracking-wider text-xs flex items-center gap-2"
+                                className="h-9 text-xs font-bold uppercase tracking-wider"
                             >
                                 {sending ? (
                                     <>

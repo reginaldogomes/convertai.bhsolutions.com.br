@@ -4,9 +4,10 @@ import { useMemo, useState } from 'react'
 import { useActionState } from 'react'
 import { useEffect } from 'react'
 import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { deleteKnowledgeBaseEntry, purgeAiUsageHistory, saveKnowledgeBaseProfile, updateAiGovernancePolicy, updateKnowledgeBaseEntry, updateOrganization } from '@/actions/organization'
+import { deleteKnowledgeBaseEntry, purgeAiUsageHistory, saveKnowledgeBaseProfile, updateAiGovernancePolicy, updateKnowledgeBaseEntry, updateOrganization, uploadKnowledgeBaseImage } from '@/actions/organization'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Textarea } from '@/components/ui/textarea'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -102,6 +103,7 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
     const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai'>('org')
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
     const [knowledgeState, knowledgeAction, knowledgePending] = useActionState(saveKnowledgeBaseProfile, { error: '', success: false })
+    const [knowledgeImageState, knowledgeImageAction, knowledgeImagePending] = useActionState(uploadKnowledgeBaseImage, { error: '', success: false })
     const [aiState, aiAction, aiPending] = useActionState(updateAiGovernancePolicy, { error: '', success: false })
     const [purgeState, purgeAction, purgePending] = useActionState(purgeAiUsageHistory, {
         error: '',
@@ -254,42 +256,42 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Nav Tabs */}
             <div className="space-y-1">
-                <button
+                <Button
+                    type="button"
+                    variant={tab === 'org' ? 'secondary' : 'ghost'}
+                    size="sm"
                     onClick={() => setTab('org')}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-bold border-l-2 transition-colors flex items-center gap-3 rounded-(--radius) ${tab === 'org'
-                        ? 'bg-secondary text-foreground border-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
-                        }`}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Building className={`w-4 h-4 ${tab === 'org' ? 'text-primary' : ''}`} /> Organização
-                </button>
-                <button
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'integrations' ? 'secondary' : 'ghost'}
+                    size="sm"
                     onClick={() => setTab('integrations')}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-bold border-l-2 transition-colors flex items-center gap-3 rounded-(--radius) ${tab === 'integrations'
-                        ? 'bg-secondary text-foreground border-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
-                        }`}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Puzzle className={`w-4 h-4 ${tab === 'integrations' ? 'text-primary' : ''}`} /> Integrações
-                </button>
-                <button
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'knowledge' ? 'secondary' : 'ghost'}
+                    size="sm"
                     onClick={() => setTab('knowledge')}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-bold border-l-2 transition-colors flex items-center gap-3 rounded-(--radius) ${tab === 'knowledge'
-                        ? 'bg-secondary text-foreground border-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
-                        }`}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Sparkles className={`w-4 h-4 ${tab === 'knowledge' ? 'text-primary' : ''}`} /> Base de Conhecimento
-                </button>
-                <button
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'ai' ? 'secondary' : 'ghost'}
+                    size="sm"
                     onClick={() => setTab('ai')}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-bold border-l-2 transition-colors flex items-center gap-3 rounded-(--radius) ${tab === 'ai'
-                        ? 'bg-secondary text-foreground border-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
-                        }`}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Sparkles className={`w-4 h-4 ${tab === 'ai' ? 'text-primary' : ''}`} /> Governança IA
-                </button>
+                </Button>
             </div>
 
             {/* Content */}
@@ -365,9 +367,9 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                     </div>
                                 </div>
 
-                                <button type="submit" disabled={orgPending} className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 px-6 font-bold uppercase tracking-wider text-xs transition-colors mt-6 disabled:opacity-50">
+                                <Button type="submit" disabled={orgPending} className="mt-6 h-9 px-6 text-xs font-bold uppercase tracking-wider">
                                     {orgPending ? 'Salvando...' : 'Salvar Alterações'}
-                                </button>
+                                </Button>
                             </form>
                         </div>
 
@@ -541,13 +543,63 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                     </p>
                                 </div>
 
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={knowledgePending}
-                                    className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 px-6 font-bold uppercase tracking-wider text-xs transition-colors mt-2 disabled:opacity-50"
+                                    className="mt-2 h-9 px-6 text-xs font-bold uppercase tracking-wider"
                                 >
                                     {knowledgePending ? 'Salvando...' : 'Salvar na Base de Conhecimento'}
-                                </button>
+                                </Button>
+                            </form>
+                        </div>
+
+                        <div className="bg-card border border-border p-6 rounded-(--radius)">
+                            <h2 className="text-foreground font-bold tracking-tight mb-2">Upload de Imagens para Base</h2>
+                            <p className="text-muted-foreground text-sm mb-6">
+                                Envie imagens relevantes da empresa e descreva o contexto para enriquecer a base de conhecimento.
+                            </p>
+
+                            {knowledgeImageState.success && (
+                                <InlineNotice variant="success" message="Imagem enviada e indexada na base de conhecimento." className="mb-4" size="sm" />
+                            )}
+                            {knowledgeImageState.error && (
+                                <InlineNotice variant="destructive" message={knowledgeImageState.error} className="mb-4" size="sm" />
+                            )}
+
+                            <form action={knowledgeImageAction} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Arquivo da Imagem</Label>
+                                    <Input name="imageFile" type="file" accept="image/png,image/jpeg,image/webp" className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-10" required />
+                                    <p className="text-xs text-muted-foreground">Formatos aceitos: JPG, PNG e WEBP (até 8MB).</p>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Título</Label>
+                                    <Input name="imageTitle" placeholder="Ex: Catálogo visual da coleção outono" className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9" required />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Descrição da Imagem</Label>
+                                    <Textarea name="imageDescription" rows={3} placeholder="Explique o que aparece na imagem e por que isso é relevante para o negócio." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Texto importante contido na imagem</Label>
+                                    <Textarea name="imageExtractedText" rows={3} placeholder="Copie textos da imagem (slogans, títulos, preços, chamadas) para melhorar a recuperação semântica." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tags</Label>
+                                    <Input name="imageTags" placeholder="ex: vitrine, branding, ecommerce" className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9" />
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    disabled={knowledgeImagePending}
+                                    className="mt-2 h-9 px-6 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    {knowledgeImagePending ? 'Enviando...' : 'Enviar Imagem para Base'}
+                                </Button>
                             </form>
                         </div>
 
@@ -561,13 +613,15 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                 <div className="flex items-center justify-between gap-3">
                                     <Label className="text-xs uppercase tracking-wider text-foreground-secondary">Filtrar por tags</Label>
                                     {selectedKnowledgeTags.length > 0 && (
-                                        <button
+                                        <Button
                                             type="button"
+                                            size="xs"
+                                            variant="ghost"
                                             onClick={() => setSelectedKnowledgeTags([])}
-                                            className="text-xs text-primary hover:underline"
+                                            className="h-6 px-2 text-xs"
                                         >
                                             Limpar filtros
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -577,18 +631,17 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                         knowledgeTagOptions.map(({ tag, count }) => {
                                             const active = selectedKnowledgeTags.includes(tag)
                                             return (
-                                                <button
+                                                <Button
                                                     key={tag}
                                                     type="button"
+                                                    size="xs"
+                                                    variant={active ? 'secondary' : 'outline'}
                                                     onClick={() => toggleKnowledgeTag(tag)}
-                                                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${active
-                                                        ? 'border-primary bg-primary/10 text-primary'
-                                                        : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/40'
-                                                        }`}
+                                                    className="h-6 gap-1 rounded-full px-2.5 py-1 text-xs"
                                                 >
                                                     <span>{tag}</span>
                                                     <span className="opacity-80">({count})</span>
-                                                </button>
+                                                </Button>
                                             )
                                         })
                                     )}
@@ -638,22 +691,25 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                                             className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9"
                                                         />
                                                     </div>
-                                                    <button
+                                                    <Button
                                                         type="submit"
-                                                        className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-8 px-4 font-bold uppercase tracking-wider text-[11px] transition-colors"
+                                                        size="sm"
+                                                        className="h-8 px-4 text-[11px] font-bold uppercase tracking-wider"
                                                     >
                                                         Salvar Edição (Reindexar)
-                                                    </button>
+                                                    </Button>
                                                 </form>
 
                                                 <form action={deleteKnowledgeBaseEntry}>
                                                     <input type="hidden" name="entryId" value={entry.id} />
-                                                    <button
+                                                    <Button
                                                         type="submit"
-                                                        className="bg-destructive hover:bg-destructive/90 text-white rounded-(--radius) h-8 px-4 font-bold uppercase tracking-wider text-[11px] transition-colors"
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        className="h-8 px-4 text-[11px] font-bold uppercase tracking-wider"
                                                     >
                                                         Remover Entrada
-                                                    </button>
+                                                    </Button>
                                                 </form>
                                             </div>
                                         </details>
@@ -749,13 +805,13 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                     Bloquear automaticamente quando atingir limites
                                 </label>
 
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={aiPending}
-                                    className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white rounded-(--radius) h-9 px-6 font-bold uppercase tracking-wider text-xs transition-colors mt-2 disabled:opacity-50"
+                                    className="mt-2 h-9 px-6 text-xs font-bold uppercase tracking-wider"
                                 >
                                     {aiPending ? 'Salvando...' : 'Salvar Política de IA'}
-                                </button>
+                                </Button>
                             </form>
                         </div>
 
@@ -873,13 +929,14 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                             className="w-44 bg-[hsl(var(--background-tertiary))] border-border text-foreground rounded-(--radius) h-9 text-sm"
                                         />
                                     </div>
-                                    <button
+                                    <Button
                                         type="submit"
+                                        variant="destructive"
                                         disabled={purgePending}
-                                        className="bg-destructive hover:bg-destructive/90 text-white rounded-(--radius) h-9 px-4 font-bold uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
+                                        className="h-9 px-4 text-xs font-bold uppercase tracking-wider"
                                     >
                                         {purgePending ? 'Limpando...' : 'Limpar Histórico Antigo'}
-                                    </button>
+                                    </Button>
                                 </form>
                             </div>
 

@@ -3,6 +3,7 @@
 import { useState, useActionState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveAutoContentConfig, toggleAutoContentConfig } from '@/actions/instagram'
+import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Sparkles, Loader2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import type { InstagramAutoConfigRow, HashtagStrategy } from '@/types/instagram'
@@ -197,30 +198,36 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button
                             type="button"
                             onClick={handleGenerate}
                             disabled={isGenerating}
-                            className="h-8 px-4 border-2 border-primary bg-[hsl(var(--primary-subtle))] hover:bg-[hsl(var(--primary-soft))] text-primary text-xs uppercase tracking-wider font-bold transition-colors inline-flex items-center gap-1.5 rounded-(--radius) disabled:opacity-50"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 px-4 text-xs uppercase tracking-wider font-bold"
                         >
                             {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                             Gerar Conteúdo
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
                             onClick={handleToggle}
                             disabled={isPendingToggle}
-                            className={`text-[10px] uppercase font-bold tracking-widest transition-colors px-3 h-8 rounded-(--radius) border ${config.active ? 'text-[hsl(var(--success))] border-[hsl(var(--success)/0.3)] hover:border-destructive hover:text-destructive' : 'text-muted-foreground border-border hover:border-primary hover:text-primary'} disabled:opacity-50`}
+                            variant={config.active ? 'success' : 'outline'}
+                            size="sm"
+                            className="h-8 px-3 text-[10px] uppercase tracking-widest"
                         >
                             {isPendingToggle ? '...' : config.active ? 'On' : 'Off'}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => setExpanded(true)}
-                            className="h-8 w-8 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            className="h-8 w-8 text-muted-foreground"
                         >
                             <ChevronDown className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -229,14 +236,16 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
                     <div className="border-t border-border pt-4">
                         <div className="flex items-center justify-between mb-3">
                             <p className="text-foreground font-bold text-sm uppercase tracking-wider">Conteúdo Gerado</p>
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handleCopy}
-                                className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground border border-border rounded-(--radius) inline-flex items-center gap-1 transition-colors"
+                                variant="outline"
+                                size="xs"
+                                className="h-7 px-3 text-xs"
                             >
                                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                 {copied ? 'Copiado' : 'Copiar'}
-                            </button>
+                            </Button>
                         </div>
                         <div className="bg-muted border border-border rounded-(--radius) p-4 max-h-96 overflow-y-auto">
                             <pre className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{completion}</pre>
@@ -257,13 +266,15 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
         <div className="space-y-4">
             {config && (
                 <div className="flex justify-end">
-                    <button
+                    <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => setExpanded(false)}
-                        className="h-8 w-8 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        className="h-8 w-8 text-muted-foreground"
                     >
                         <ChevronUp className="w-4 h-4" />
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -323,18 +334,16 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
                     <label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Tipos de Conteúdo</label>
                     <div className="flex flex-wrap gap-2">
                         {CONTENT_TYPES.map(({ value, label }) => (
-                            <button
+                            <Button
                                 key={value}
                                 type="button"
+                                variant={contentTypes.includes(value) ? 'secondary' : 'outline'}
+                                size="sm"
                                 onClick={() => toggleContentType(value)}
-                                className={`h-8 px-3 text-xs font-bold uppercase tracking-wider border rounded-(--radius) transition-colors ${
-                                    contentTypes.includes(value)
-                                        ? 'bg-[hsl(var(--primary-subtle))] text-primary border-primary'
-                                        : 'bg-secondary text-foreground-secondary border-border hover:border-primary/50'
-                                }`}
+                                className="h-8 px-3 text-xs font-bold uppercase tracking-wider"
                             >
                                 {label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     <input type="hidden" name="content_types" value={contentTypes.join(',')} />
@@ -345,18 +354,16 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
                     <label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Objetivos</label>
                     <div className="flex flex-wrap gap-2">
                         {OBJECTIVES.map(({ value, label }) => (
-                            <button
+                            <Button
                                 key={value}
                                 type="button"
+                                variant={objectives.includes(value) ? 'secondary' : 'outline'}
+                                size="sm"
                                 onClick={() => toggleObjective(value)}
-                                className={`h-8 px-3 text-xs font-bold uppercase tracking-wider border rounded-(--radius) transition-colors ${
-                                    objectives.includes(value)
-                                        ? 'bg-[hsl(var(--primary-subtle))] text-primary border-primary'
-                                        : 'bg-secondary text-foreground-secondary border-border hover:border-primary/50'
-                                }`}
+                                className="h-8 px-3 text-xs font-bold uppercase tracking-wider"
                             >
                                 {label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     <input type="hidden" name="objectives" value={objectives.join(',')} />
@@ -456,22 +463,25 @@ export function AutoContentConfig({ config }: AutoContentConfigProps) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-3 pt-2 border-t border-border">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending}
-                        className="h-8 px-4 bg-primary hover:bg-[hsl(var(--primary-hover))] text-white text-xs font-bold uppercase tracking-wider rounded-(--radius) transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+                        size="sm"
+                        className="h-8 px-4 text-xs font-bold uppercase tracking-wider"
                     >
                         {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                         {isPending ? 'Salvando...' : 'Salvar Configuração'}
-                    </button>
+                    </Button>
                     {config && (
-                        <button
+                        <Button
                             type="button"
+                            variant="outline"
+                            size="sm"
                             onClick={() => setExpanded(false)}
-                            className="h-8 px-4 text-xs text-muted-foreground hover:text-foreground border border-border rounded-(--radius) transition-colors"
+                            className="h-8 px-4 text-xs"
                         >
                             Cancelar
-                        </button>
+                        </Button>
                     )}
                 </div>
             </form>

@@ -459,6 +459,19 @@ Consolidação de duas frentes principais:
 
 1. app/(dashboard)/settings/settings-tabs.tsx
 
+## Base de Conhecimento (Fase 1.6)
+
+### Entregas
+
+1. Nova opcao de upload de imagens para alimentar a base de conhecimento da empresa.
+2. Upload para Supabase Storage com validacao de tipo/tamanho e criacao de entrada indexavel no RAG.
+3. Campos auxiliares de descricao, texto relevante da imagem e tags para melhorar recuperacao semantica.
+
+### Artefatos
+
+1. actions/organization.ts
+2. app/(dashboard)/settings/settings-tabs.tsx
+
 ## Validação
 
 1. Verificação de problemas/typing nos arquivos alterados concluída sem erros.

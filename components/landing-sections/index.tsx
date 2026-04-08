@@ -27,7 +27,7 @@ interface SectionRendererProps {
     palette?: ColorPalette
     isDark: boolean
     landingPageId: string
-    onCtaClick?: () => void
+    onCtaClick?: (targetUrl?: string) => void
 }
 
 export function SectionRenderer({ sections, primaryColor, palette, isDark, landingPageId, onCtaClick }: SectionRendererProps) {
@@ -75,7 +75,7 @@ function SectionBlock({
     palette: ColorPalette
     isDark: boolean
     landingPageId: string
-    onCtaClick?: () => void
+    onCtaClick?: (targetUrl?: string) => void
 }) {
     const type = section.type as SectionType
 

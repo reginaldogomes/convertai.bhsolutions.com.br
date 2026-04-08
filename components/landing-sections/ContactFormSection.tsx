@@ -38,6 +38,18 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
     message: 'Como podemos ajudar?',
 }
 
+function getVisitorId(): string {
+    if (typeof window === 'undefined') return crypto.randomUUID()
+
+    let id = window.localStorage.getItem('ag_visitor_id')
+    if (!id) {
+        id = crypto.randomUUID()
+        window.localStorage.setItem('ag_visitor_id', id)
+    }
+
+    return id
+}
+
 // Client-side Zod schemas per field
 const fieldSchemas: Record<string, z.ZodTypeAny> = {
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -109,6 +121,28 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
 
         setSubmitting(true)
         try {
+            const submitEventBody = JSON.stringify({
+                landingPageId,
+                eventType: 'cta_click',
+                visitorId: getVisitorId(),
+                metadata: {
+                    ctaAction: 'submit_form',
+                    source: 'contact_form',
+                },
+            })
+
+            if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+                const blob = new Blob([submitEventBody], { type: 'application/json' })
+                navigator.sendBeacon('/api/analytics/track', blob)
+            } else {
+                fetch('/api/analytics/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: submitEventBody,
+                    keepalive: true,
+                }).catch(() => {})
+            }
+
             const res = await fetch('/api/landing-pages/lead', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

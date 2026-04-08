@@ -3,6 +3,7 @@
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { publishInstagramContent, deleteInstagramContent } from '@/actions/instagram'
+import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import { Image as ImageIcon, Film, Clock, SquareStack, Send, Trash2, Heart, MessageCircle, Share2, Bookmark, Eye } from 'lucide-react'
 import { toast } from 'sonner'
@@ -151,23 +152,26 @@ export function ContentCard({ content }: ContentCardProps) {
                 <div className="flex items-center gap-2 pt-3 border-t border-border">
                     {content.status === 'draft' && (
                         <>
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handlePublish}
                                 disabled={isPendingPublish}
-                                className="flex-1 h-8 px-4 bg-primary hover:bg-[hsl(var(--primary-hover))] text-white text-xs font-bold uppercase tracking-wider rounded-(--radius) transition-colors inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                size="sm"
+                                className="h-8 flex-1 px-4 text-xs font-bold uppercase tracking-wider"
                             >
                                 <Send className="w-3 h-3" />
                                 {isPendingPublish ? 'Publicando...' : 'Publicar'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={handleDelete}
                                 disabled={isPendingDelete}
-                                className="h-8 px-3 border border-border hover:border-[hsl(var(--destructive))] text-destructive text-xs rounded-(--radius) transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                                variant="destructive"
+                                size="sm"
+                                className="h-8 px-3"
                             >
                                 <Trash2 className="w-3 h-3" />
-                            </button>
+                            </Button>
                         </>
                     )}
                     {content.status === 'published' && content.publishedAt && (
@@ -176,15 +180,17 @@ export function ContentCard({ content }: ContentCardProps) {
                         </p>
                     )}
                     {content.status === 'failed' && (
-                        <button
+                        <Button
                             type="button"
                             onClick={handlePublish}
                             disabled={isPendingPublish}
-                            className="flex-1 h-8 px-4 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold uppercase tracking-wider rounded-(--radius) transition-colors inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                            variant="destructive"
+                            size="sm"
+                            className="h-8 flex-1 px-4 text-xs font-bold uppercase tracking-wider"
                         >
                             <Send className="w-3 h-3" />
                             Tentar novamente
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
