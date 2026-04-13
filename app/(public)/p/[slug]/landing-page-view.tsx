@@ -172,7 +172,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                                     </p>
                                 )}
                                 <Button
-                                    onClick={handleCtaClick}
+                                    onClick={() => handleCtaClick()}
                                     size="lg"
                                     className="rounded-xl px-7"
                                     style={{ backgroundColor: config.primaryColor, borderColor: config.primaryColor, color: getContrastTextColor(config.primaryColor) }}
