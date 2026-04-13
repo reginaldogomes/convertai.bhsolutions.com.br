@@ -103,6 +103,12 @@ function EntryCard({ entry }: { entry: KnowledgeEntryView }) {
     const [expanded, setExpanded] = useState(false)
     const [editing, setEditing] = useState(false)
     const [content, setContent] = useState(entry.content)
+    const [updateState, updateAction, updatePending] = useActionState(updateKnowledgeBaseEntry, { error: '', success: false })
+    const [deleteState, deleteAction, deletePending] = useActionState(deleteKnowledgeBaseEntry, { error: '', success: false })
+
+    useEffect(() => {
+        if (updateState.success) setEditing(false)
+    }, [updateState.success])
 
     return (
         <div className="rounded-(--radius) border border-border bg-card overflow-hidden">
@@ -139,7 +145,7 @@ function EntryCard({ entry }: { entry: KnowledgeEntryView }) {
             {expanded && (
                 <div className="border-t border-border p-4 space-y-4">
                     {editing ? (
-                        <form action={updateKnowledgeBaseEntry} className="space-y-3" onSubmit={() => setEditing(false)}>
+                        <form action={updateAction} className="space-y-3">
                             <input type="hidden" name="entryId" value={entry.id} />
                             <div className="space-y-1">
                                 <Label className="text-xs uppercase tracking-wider text-foreground-secondary">Título</Label>
@@ -167,9 +173,10 @@ function EntryCard({ entry }: { entry: KnowledgeEntryView }) {
                                     className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9"
                                 />
                             </div>
+                            {updateState.error && <InlineNotice variant="destructive" message={updateState.error} size="sm" />}
                             <div className="flex items-center gap-2 pt-1">
-                                <Button type="submit" size="sm" className="h-8 px-4 text-[11px] font-bold uppercase tracking-wider">
-                                    Salvar &amp; Reindexar
+                                <Button type="submit" disabled={updatePending} size="sm" className="h-8 px-4 text-[11px] font-bold uppercase tracking-wider">
+                                    {updatePending ? 'Salvando...' : 'Salvar & Reindexar'}
                                 </Button>
                                 <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-[11px]" onClick={() => setEditing(false)}>
                                     Cancelar
@@ -197,10 +204,10 @@ function EntryCard({ entry }: { entry: KnowledgeEntryView }) {
                                 >
                                     <Pencil className="w-3.5 h-3.5" /> Editar
                                 </Button>
-                                <form action={deleteKnowledgeBaseEntry}>
+                                <form action={deleteAction}>
                                     <input type="hidden" name="entryId" value={entry.id} />
-                                    <Button type="submit" variant="destructive" size="sm" className="h-8 gap-1.5 text-[11px] font-bold">
-                                        <Trash2 className="w-3.5 h-3.5" /> Remover
+                                    <Button type="submit" disabled={deletePending} variant="destructive" size="sm" className="h-8 gap-1.5 text-[11px] font-bold">
+                                        <Trash2 className="w-3.5 h-3.5" /> {deletePending ? 'Removendo...' : 'Remover'}
                                     </Button>
                                 </form>
                             </div>
