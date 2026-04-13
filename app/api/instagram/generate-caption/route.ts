@@ -5,10 +5,8 @@ import { enforceAiUsagePolicy, recordAiUsageEvent } from '@/lib/ai-governance'
 import { z } from 'zod'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
 
-    let usageContext: { organizationId: string; userId: string; requestId: string; routeScope: string; featureKey: string; model: string; provider: 'google' } | null = null
 const CONTENT_TYPES: Record<string, string> = {
     post: 'Post para feed do Instagram (imagem estática com legenda)',
-        const { orgId, userId } = await getAuthContext()
     reel: 'Reel do Instagram (vídeo curto vertical, até 90 segundos)',
     carousel: 'Carrossel do Instagram (múltiplas imagens/slides com legenda)',
 }
@@ -42,6 +40,48 @@ const generateCaptionSchema = z.object({
 })
 
 export async function POST(request: Request) {
+    let usageContext: {
+        organizationId: string
+        userId: string
+        requestId: string
+        routeScope: string
+        featureKey: string
+        model: string
+        provider: 'google'
+    } | null = null
+    const logger = createApiRequestLogger('instagram/generate-caption')
+
+    try {
+        const { orgId, userId } = await getAuthContext()
+        const parsed = generateCaptionSchema.safeParse(await request.json())
+
+        if (!parsed.success) {
+            return Response.json(
+                {
+                    error: 'Payload inválido para geração de legenda',
+                    requestId: logger.requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                {
+                    status: 400,
+                    headers: { 'x-request-id': logger.requestId },
+                }
+            )
+        }
+
+        const {
+            contentType,
+            objective,
+            tone,
+            topic,
+            details,
+            targetAudience,
+            includeHashtags,
+            includeEmojis,
+        } = parsed.data
 
         usageContext = {
             organizationId: orgId,
@@ -77,40 +117,6 @@ export async function POST(request: Request) {
                 }
             )
         }
-    const logger = createApiRequestLogger('instagram/generate-caption')
-
-    try {
-        await getAuthContext()
-        const parsed = generateCaptionSchema.safeParse(await request.json())
-
-        if (!parsed.success) {
-            return Response.json(
-                {
-                    error: 'Payload inválido para geração de legenda',
-                    requestId: logger.requestId,
-                    details: parsed.error.issues.map((issue) => ({
-                        path: issue.path.join('.'),
-                        message: issue.message,
-                    })),
-                },
-                {
-                    status: 400,
-                    headers: { 'x-request-id': logger.requestId },
-                }
-            )
-        }
-
-        const {
-            contentType,
-            objective,
-            tone,
-            topic,
-            details,
-            targetAudience,
-            includeHashtags,
-            includeEmojis,
-        } = parsed.data
-
 
         await recordAiUsageEvent(usageContext, {
             status: 'started',
@@ -131,14 +137,6 @@ export async function POST(request: Request) {
             model: geminiModel,
             system: `Você é um especialista em marketing digital e criação de conteúdo para Instagram.
 Sua tarefa é gerar conteúdo otimizado para Instagram que maximiza engajamento e alcance.
-
-        if (usageContext) {
-            await recordAiUsageEvent(usageContext, {
-                status: 'error',
-                errorCode: 'generation_failed',
-            })
-        }
-
 
 ## Regras:
 1. Gere APENAS o texto da legenda (caption). Não inclua descrição de imagem.
@@ -176,6 +174,12 @@ Gere o conteúdo otimizado para máximo engajamento e alcance orgânico.`,
         })
     } catch (error) {
         logger.error('generation_failed', error)
+        if (usageContext) {
+            await recordAiUsageEvent(usageContext, {
+                status: 'error',
+                errorCode: 'generation_failed',
+            })
+        }
         if (isAuthError(error)) {
             return Response.json({ error: 'Não autenticado', requestId: logger.requestId }, { status: 401, headers: { 'x-request-id': logger.requestId } })
         }
