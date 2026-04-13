@@ -40,8 +40,12 @@ export async function proxy(request: NextRequest) {
 
     let user = null
     try {
-        const { data } = await supabase.auth.getUser()
-        user = data.user
+        // getSession() reads the JWT from cookies without a network roundtrip (O(1) local decode).
+        // getUser() would verify remotely with the Supabase Auth server on every request — too slow
+        // for middleware. The actual security check (getUser) happens inside getAuthContext() in each
+        // server component/action before any data is accessed.
+        const { data } = await supabase.auth.getSession()
+        user = data.session?.user ?? null
     } catch {
         // Supabase may throw if cookies contain invalid/empty auth tokens
     }

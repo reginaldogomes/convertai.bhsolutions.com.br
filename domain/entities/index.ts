@@ -16,6 +16,7 @@ export type {
     FeaturesContent,
     BenefitsGridContent,
     ProcessStepsContent,
+    AboutExpertContent,
     FeatureItem,
     TestimonialsContent,
     TestimonialItem,

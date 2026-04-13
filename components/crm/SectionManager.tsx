@@ -6,7 +6,7 @@ import type {
     LandingPageSection, SectionType, SectionContentMap,
     HeroContent, FeaturesContent, TestimonialsContent, FaqContent,
     PricingContent, ContactFormContent, CtaBannerContent, VideoContent,
-    StatsContent,
+    StatsContent, AboutExpertContent,
 } from '@/domain/entities'
 import { DEFAULT_SECTION_CONTENT, SECTION_LABELS } from '@/domain/entities'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
@@ -27,6 +27,7 @@ const ContactFormEditor = dynamic(() => import('./editors/ContactFormEditor').th
 const CtaBannerEditor = dynamic(() => import('./editors/CtaBannerEditor').then(m => m.CtaBannerEditor), { loading: () => editorFallback })
 const VideoEditor = dynamic(() => import('./editors/VideoEditor').then(m => m.VideoEditor), { loading: () => editorFallback })
 const StatsEditor = dynamic(() => import('./editors/StatsEditor').then(m => m.StatsEditor), { loading: () => editorFallback })
+const AboutExpertEditor = dynamic(() => import('./editors/AboutExpertEditor').then(m => m.AboutExpertEditor), { loading: () => editorFallback })
 const GenericEditor = dynamic(() => import('./editors/GenericEditor').then(m => m.GenericEditor), { loading: () => editorFallback })
 const GenerateSectionsAI = dynamic(() => import('./GenerateSectionsAI').then(m => m.GenerateSectionsAI))
 
@@ -257,6 +258,7 @@ function SectionContentEditor({
         case 'cta_banner': return <CtaBannerEditor content={content as CtaBannerContent} onChange={onChange} />
         case 'video': return <VideoEditor content={content as VideoContent} onChange={onChange} />
         case 'stats': return <StatsEditor content={content as StatsContent} onChange={onChange} />
+        case 'about_expert': return <AboutExpertEditor content={content as AboutExpertContent} onChange={onChange} />
         default: return <GenericEditor content={content} onChange={onChange} />
     }
 }

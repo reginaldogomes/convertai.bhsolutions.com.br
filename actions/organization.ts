@@ -254,6 +254,7 @@ export async function saveKnowledgeBaseProfile(
             .eq('organization_id', orgId)
 
         revalidatePath('/settings')
+        revalidatePath('/knowledge-base')
         return { error: '', success: true }
     } catch (err) {
         return { error: getErrorMessage(err), success: false }
@@ -298,6 +299,7 @@ export async function updateKnowledgeBaseEntry(formData: FormData) {
         })
 
         revalidatePath('/settings')
+        revalidatePath('/knowledge-base')
         return { error: '', success: true }
     } catch (err) {
         return { error: getErrorMessage(err), success: false }
@@ -322,6 +324,7 @@ export async function deleteKnowledgeBaseEntry(formData: FormData) {
         if (error) return { error: error.message, success: false }
 
         revalidatePath('/settings')
+        revalidatePath('/knowledge-base')
         return { error: '', success: true }
     } catch (err) {
         return { error: getErrorMessage(err), success: false }
@@ -438,6 +441,66 @@ export async function uploadKnowledgeBaseImage(
             .eq('id', result.value.id)
             .eq('organization_id', orgId)
 
+        revalidatePath('/settings')
+        revalidatePath('/knowledge-base')
+        return { error: '', success: true }
+    } catch (err) {
+        return { error: getErrorMessage(err), success: false }
+    }
+}
+
+export const KNOWLEDGE_ENTRY_TYPES = [
+    { value: 'geral',         label: 'Conteúdo Geral' },
+    { value: 'produto',       label: 'Produto / Serviço' },
+    { value: 'faq',           label: 'FAQ / Objeções' },
+    { value: 'processo',      label: 'Processo / Operação' },
+    { value: 'competitivo',   label: 'Diferencial Competitivo' },
+    { value: 'marca',         label: 'Marca / Tom de Voz' },
+    { value: 'politica',      label: 'Política / Contrato' },
+    { value: 'case',          label: 'Case / Resultado' },
+] as const
+
+export type KnowledgeEntryType = typeof KNOWLEDGE_ENTRY_TYPES[number]['value']
+
+export async function saveKnowledgeBaseEntry(
+    _prevState: { error: string; success: boolean },
+    formData: FormData,
+) {
+    try {
+        const { orgId } = await getAuthContext()
+
+        const title   = safeText(formData.get('title'), 300)
+        const content = safeText(formData.get('content'), 8000)
+        const type    = safeText(formData.get('type'), 30) || 'geral'
+        const tags    = parseTagList(formData.get('tags'))
+
+        if (!title) return { error: 'Título é obrigatório.', success: false }
+        if (!content || content.length < 20) return { error: 'Conteúdo deve ter ao menos 20 caracteres.', success: false }
+
+        const result = await useCases.addKnowledgeBase().execute(orgId, {
+            landingPageId: null,
+            title,
+            content,
+        })
+
+        if (!result.ok) return { error: result.error.message, success: false }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const admin = createAdminClient() as any
+        await admin
+            .from('knowledge_base')
+            .update({
+                metadata_json: {
+                    source: 'knowledge_base_page',
+                    entryType: type,
+                    tags,
+                    updatedAt: new Date().toISOString(),
+                },
+            })
+            .eq('id', result.value.id)
+            .eq('organization_id', orgId)
+
+        revalidatePath('/knowledge-base')
         revalidatePath('/settings')
         return { error: '', success: true }
     } catch (err) {

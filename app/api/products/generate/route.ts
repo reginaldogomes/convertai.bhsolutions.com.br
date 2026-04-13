@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { powerModel } from '@/lib/ai'
+import { structuredPowerModel } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 import { enforceAiUsagePolicy, recordAiUsageEvent, estimateCostCents } from '@/lib/ai-governance'
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         }
 
         const { object } = await generateObject({
-            model: powerModel,
+            model: structuredPowerModel,
             schema: productAISchema,
             system: SYSTEM_PROMPT,
             prompt,

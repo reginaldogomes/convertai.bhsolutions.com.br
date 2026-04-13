@@ -20,14 +20,14 @@ export function FaqSection({ content, primaryColor, palette, isDark }: FaqSectio
         <section id="faq" className="relative bg-background-secondary py-24 overflow-hidden">
             {/* Decorative glow */}
             <div
-                className="pointer-events-none absolute -bottom-20 left-[20%] h-60 w-60 rounded-full blur-[120px] opacity-10"
+                className="pointer-events-none absolute -bottom-20 left-[20%] h-60 w-60 rounded-full blur-[120px] opacity-25"
                 style={{ backgroundColor: primaryColor }}
                 aria-hidden
             />
 
             <Container className="relative max-w-3xl">
                 {content.title && (
-                    <h2 className="text-balance mb-4 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
+                    <h2 className="text-balance mb-4 text-center text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}

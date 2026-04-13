@@ -30,8 +30,8 @@ const getLandingPageBySlugCached = unstable_cache(
     { revalidate }
 )
 
-const getLandingPageBySlug = cache(async (slug: string, options?: { bypassCache?: boolean }) => {
-    if (options?.bypassCache) {
+const getLandingPageBySlug = cache(async (slug: string, bypassCache = false) => {
+    if (bypassCache) {
         const page = await landingPageRepo.findBySlug(slug)
         return normalizeLandingPageProps(page?.props)
     }
@@ -76,7 +76,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     const { slug } = await params
     const { preview } = await searchParams
     const isPreview = preview === '1'
-    const page = await getLandingPageBySlug(slug, { bypassCache: isPreview })
+    const page = await getLandingPageBySlug(slug, isPreview)
 
     if (!page) {
         return {
@@ -172,7 +172,7 @@ export default async function PublicLandingPage({
     const { slug } = await params
     const { preview } = await searchParams
     const isPreview = preview === '1'
-    const page = await getLandingPageBySlug(slug, { bypassCache: isPreview })
+    const page = await getLandingPageBySlug(slug, isPreview)
 
     if (!page) {
         console.warn('[landing-public] page not found', { slug, preview })
@@ -430,6 +430,7 @@ function isAllowedSectionType(value: string): value is LandingPageSection['type'
         'features',
         'benefits_grid',
         'process_steps',
+        'about_expert',
         'testimonials',
         'faq',
         'pricing',

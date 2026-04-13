@@ -241,6 +241,44 @@ export const DESIGN_PRESETS: DesignPreset[] = [
             style: 'modern',
         },
     },
+    {
+        id: 'neural-dark',
+        name: 'Neural Dark',
+        description: 'Futurista e técnico, para produtos de IA, automação e machine learning — dark mode',
+        tags: ['ai', 'automation', 'machine-learning', 'dark', 'tech', 'ia', 'neural'],
+        designSystem: {
+            palette: {
+                primary: '#2E3A4F',
+                secondary: '#3E4B62',
+                accent: '#1DA1DB',
+                background: '#101724',
+                foreground: '#C4D0DE',
+                muted: '#7E90A6',
+            },
+            fontFamily: 'space-grotesk',
+            borderRadius: 'lg',
+            style: 'modern',
+        },
+    },
+    {
+        id: 'neural-light',
+        name: 'Neural Light',
+        description: 'Limpo e inteligente, para produtos de IA, automação e machine learning — light mode',
+        tags: ['ai', 'automation', 'machine-learning', 'light', 'tech', 'ia', 'neural'],
+        designSystem: {
+            palette: {
+                primary: '#37455E',
+                secondary: '#495A73',
+                accent: '#1FA0D8',
+                background: '#E6E6E6',
+                foreground: '#0D1730',
+                muted: '#8C9DB2',
+            },
+            fontFamily: 'space-grotesk',
+            borderRadius: 'lg',
+            style: 'modern',
+        },
+    },
 ]
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -274,6 +312,7 @@ export function inferDesignSystemFromText(input: string): DesignSystem {
         { keywords: ['advocacia', 'juridico', 'advogado', 'trabalhista', 'tributario', 'direito'], presetId: 'ocean-trust' },
         { keywords: ['consultoria', 'b2b', 'financeiro', 'financas', 'contabilidade', 'empresa'], presetId: 'ocean-trust' },
         { keywords: ['saas', 'software', 'startup', 'tecnologia', 'crm', 'automacao', 'plataforma'], presetId: 'indigo-tech' },
+        { keywords: ['inteligencia artificial', 'ia', 'machine learning', 'llm', 'chatbot', 'neural', 'automacao ia', 'ai', 'gpt', 'modelos de linguagem', 'agente ia', 'agent ai'], presetId: 'neural-dark' },
         { keywords: ['curso', 'educacao', 'treinamento', 'certificacao', 'aulas'], presetId: 'coral-creative' },
         { keywords: ['restaurante', 'alimentacao', 'comida', 'delivery', 'gastronomia', 'organico'], presetId: 'forest-organic' },
         { keywords: ['beleza', 'moda', 'lifestyle', 'luxo', 'joias', 'premium'], presetId: 'rose-luxury' },
@@ -308,6 +347,37 @@ export function designSystemFromPrimaryColor(primaryColor: string, theme: 'light
         borderRadius: 'lg',
         style: 'modern',
     }
+}
+
+// ─── Dark / Light Snap ────────────────────────────────────────────────────────
+
+/**
+ * Swaps the background/foreground/muted of a palette to a dark or light mode
+ * while preserving primary, secondary, and accent.
+ */
+export function snapPaletteToMode(palette: ColorPalette, mode: 'dark' | 'light'): ColorPalette {
+    if (mode === 'dark') {
+        return {
+            ...palette,
+            background: '#0f0f1a',
+            foreground: '#f1f5f9',
+            muted: '#64748b',
+        }
+    }
+    return {
+        ...palette,
+        background: '#ffffff',
+        foreground: '#0f172a',
+        muted: '#94a3b8',
+    }
+}
+
+/**
+ * Returns 'dark' | 'light' | 'custom' based on the background luminance.
+ */
+export function detectPaletteMode(palette: ColorPalette): 'dark' | 'light' {
+    const [, , l] = hexToHsl(palette.background)
+    return l < 50 ? 'dark' : 'light'
 }
 
 // ─── Color Utilities ──────────────────────────────────────────────────────────

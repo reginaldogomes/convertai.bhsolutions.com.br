@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { SectionRenderer } from '@/components/landing-sections'
@@ -10,7 +10,7 @@ import { Container } from '@/components/ui/container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BRAND } from '@/lib/brand'
-import { cn } from '@/lib/utils'
+import { cn, getContrastTextColor } from '@/lib/utils'
 import { buildAdsMetadata, captureAttributionFromCurrentPage } from '@/lib/ads-attribution'
 import { ConsentBanner } from './consent-banner'
 
@@ -59,6 +59,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
         fontFamily: resolveFontFamily(designSystem?.fontFamily),
         borderRadius: resolveBorderRadius(designSystem?.borderRadius),
         backgroundImage: resolveStyleBackground(designSystem?.style, config.designSystem?.palette as ColorPalette | undefined),
+        ...(designSystem?.palette ? buildPaletteCSSVars(designSystem.palette) : {}),
     }
 
     useEffect(() => {
@@ -124,8 +125,8 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                                 <a
                                     href="#contato"
                                     onClick={() => handleCtaClick('#contato')}
-                                    className="inline-flex shrink-0 items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-                                    style={{ backgroundColor: config.primaryColor }}
+                                    className="inline-flex shrink-0 items-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90"
+                                    style={{ backgroundColor: config.primaryColor, color: getContrastTextColor(config.primaryColor) }}
                                 >
                                     {page.ctaText || 'Falar com especialista'}
                                 </a>
@@ -174,7 +175,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                                     onClick={handleCtaClick}
                                     size="lg"
                                     className="rounded-xl px-7"
-                                    style={{ backgroundColor: config.primaryColor, borderColor: config.primaryColor }}
+                                    style={{ backgroundColor: config.primaryColor, borderColor: config.primaryColor, color: getContrastTextColor(config.primaryColor) }}
                                 >
                                     {page.ctaText}
                                 </Button>
@@ -218,8 +219,8 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                     <a
                         href="#contato"
                         onClick={() => handleCtaClick('#contato')}
-                        className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                        style={{ backgroundColor: config.primaryColor }}
+                        className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-bold transition-opacity hover:opacity-90"
+                        style={{ backgroundColor: config.primaryColor, color: getContrastTextColor(config.primaryColor) }}
                     >
                         {page.ctaText || 'Falar com especialista'}
                     </a>
@@ -298,16 +299,113 @@ function resolveStyleBackground(style: DesignSystem['style'] | undefined, palett
 
     switch (style) {
         case 'elegant':
-            return `radial-gradient(circle at top right, ${palette.accent}12 0%, transparent 30%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+            return `radial-gradient(circle at top right, ${palette.accent}30 0%, transparent 36%), radial-gradient(circle at bottom left, ${palette.primary}1a 0%, transparent 30%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
         case 'corporate':
-            return `linear-gradient(180deg, ${palette.background}, ${palette.background}), linear-gradient(90deg, ${palette.primary}08 1px, transparent 1px), linear-gradient(${palette.primary}08 1px, transparent 1px)`
+            return `linear-gradient(180deg, ${palette.background}, ${palette.background}), linear-gradient(90deg, ${palette.primary}12 1px, transparent 1px), linear-gradient(${palette.primary}12 1px, transparent 1px)`
         case 'bold':
-            return `radial-gradient(circle at 20% 10%, ${palette.primary}14 0%, transparent 32%), radial-gradient(circle at 80% 0%, ${palette.accent}14 0%, transparent 26%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+            return `radial-gradient(circle at 20% 10%, ${palette.primary}28 0%, transparent 36%), radial-gradient(circle at 80% 0%, ${palette.accent}28 0%, transparent 32%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
         case 'minimal':
             return `linear-gradient(180deg, ${palette.background}, ${palette.background})`
         case 'playful':
-            return `radial-gradient(circle at 10% 20%, ${palette.primary}12 0%, transparent 24%), radial-gradient(circle at 90% 10%, ${palette.secondary}10 0%, transparent 20%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+            return `radial-gradient(circle at 10% 20%, ${palette.primary}26 0%, transparent 30%), radial-gradient(circle at 90% 10%, ${palette.secondary}22 0%, transparent 28%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
         default:
-            return `radial-gradient(circle at top left, ${palette.primary}10 0%, transparent 28%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
+            return `radial-gradient(circle at top left, ${palette.primary}22 0%, transparent 32%), radial-gradient(circle at bottom right, ${palette.accent}18 0%, transparent 28%), linear-gradient(135deg, ${palette.background}, ${palette.background})`
     }
+}
+
+// ─── Palette → CSS Custom Properties ─────────────────────────────────────────
+// Converts palette hex colors to HSL CSS variable format ("H S% L%") so that
+// all Tailwind utility classes (bg-background, text-foreground, surface-glass,
+// etc.) automatically reflect the user's chosen palette on public landing pages.
+
+function hexToHslVar(hex: string): string {
+    if (!hex || !hex.startsWith('#') || hex.length < 7) return '0 0% 50%'
+    const r = parseInt(hex.slice(1, 3), 16) / 255
+    const g = parseInt(hex.slice(3, 5), 16) / 255
+    const b = parseInt(hex.slice(5, 7), 16) / 255
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    const l = (max + min) / 2
+    if (max === min) return `0 0% ${Math.round(l * 100)}%`
+    const d = max - min
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    let h = 0
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+    else if (max === g) h = ((b - r) / d + 2) / 6
+    else h = ((r - g) / d + 4) / 6
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+}
+
+function shiftL(hslVar: string, delta: number): string {
+    const parts = hslVar.split(' ')
+    const lNum = parseFloat(parts[2])
+    return `${parts[0]} ${parts[1]} ${Math.round(Math.min(100, Math.max(0, lNum + delta)))}%`
+}
+
+function buildPaletteCSSVars(palette: ColorPalette): React.CSSProperties {
+    const bg        = hexToHslVar(palette.background)
+    const fg        = hexToHslVar(palette.foreground)
+    const muted     = hexToHslVar(palette.muted)
+    const primary   = hexToHslVar(palette.primary)
+    const secondary = hexToHslVar(palette.secondary)
+    const accent    = hexToHslVar(palette.accent)
+
+    const bgL      = parseFloat(bg.split(' ')[2])
+    const isDark   = bgL < 50
+    const primaryL = parseFloat(primary.split(' ')[2])
+
+    // Layered surface colors — increasing lightness deltas for clear visual separation
+    const bgSec     = shiftL(bg, isDark ? 7  : -5)   // section alternation
+    const card      = shiftL(bg, isDark ? 15 : -9)   // card fill — clearly distinct
+    const border    = shiftL(bg, isDark ? 26 : -18)  // border lines — visible grid
+    const borderSub = shiftL(bg, isDark ? 18 : -12)  // subtle borders
+
+    // Muted-foreground clamped for legibility: ≥50% L on dark, ≤50% L on light
+    const [mH, mS, mLRaw] = muted.split(' ')
+    const mutedL     = parseFloat(mLRaw)
+    const safeMutedL = isDark ? Math.max(mutedL, 50) : Math.min(mutedL, 50)
+    const safeMuted  = `${mH} ${mS} ${Math.round(safeMutedL)}%`
+
+    // Muted bg surface (used by <section class="bg-muted">)
+    const mutedBg = shiftL(bg, isDark ? 10 : -7)
+
+    // Primary foreground: white for dark/saturated primaries, dark for light/pastel ones
+    const primaryFg = primaryL < 62 ? '0 0% 100%' : '220 15% 10%'
+
+    // Primary-subtle: used for glow halos, badge bgs — slightly desaturated + lightness-shifted
+    const [pH, pSRaw] = primary.split(' ')
+    const pS = parseFloat(pSRaw)
+    const primarySubtle = `${pH} ${Math.round(pS * 0.55)}% ${isDark ? Math.min(bgL + 10, 22) : Math.max(bgL - 8, 85)}%`
+    const primarySoft   = `${pH} ${Math.round(pS * 0.45)}% ${isDark ? Math.min(bgL + 18, 30) : Math.max(bgL - 14, 80)}%`
+
+    // Accent foreground
+    const accentL = parseFloat(accent.split(' ')[2])
+    const accentFg = accentL < 62 ? '0 0% 100%' : '220 15% 10%'
+
+    return {
+        '--background':           bg,
+        '--background-secondary': bgSec,
+        '--background-tertiary':  shiftL(bg, isDark ? -3 : 4),
+        '--foreground':           fg,
+        '--foreground-secondary': shiftL(fg, isDark ? -20 : 20),
+        '--foreground-muted':     safeMuted,
+        '--muted':                mutedBg,
+        '--muted-foreground':     safeMuted,
+        '--card':                 card,
+        '--card-foreground':      fg,
+        '--popover':              card,
+        '--popover-foreground':   fg,
+        '--border':               border,
+        '--border-subtle':        borderSub,
+        '--input':                border,
+        '--primary':              primary,
+        '--primary-foreground':   primaryFg,
+        '--primary-hover':        primaryL < 80 ? shiftL(primary, isDark ? 8 : -8) : shiftL(primary, -8),
+        '--primary-subtle':       primarySubtle,
+        '--primary-soft':         primarySoft,
+        '--secondary':            secondary,
+        '--secondary-foreground': fg,
+        '--accent':               accent,
+        '--accent-foreground':    accentFg,
+        '--ring':                 primary,
+    } as React.CSSProperties
 }

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { NotAuthenticatedError, OrganizationNotFoundError } from '@/domain/errors'
 import type { UserProfile } from '@/domain/interfaces'
@@ -16,8 +17,11 @@ export interface AuthenticatedContext {
  * Resolves the current authenticated user and their organization.
  * Centralizes the auth + org lookup that was repeated across every page and action.
  * isSuperAdmin is read from app_metadata in the JWT (set via service role only).
+ *
+ * Wrapped with React.cache() so the Supabase auth network call and profile DB query
+ * are deduplicated across multiple callers within the same server request.
  */
-export async function getAuthContext(): Promise<AuthenticatedContext> {
+export const getAuthContext = cache(async (): Promise<AuthenticatedContext> => {
     const supabase = await createClient()
 
     let userId: string | undefined
@@ -41,7 +45,7 @@ export async function getAuthContext(): Promise<AuthenticatedContext> {
         profile,
         isSuperAdmin,
     }
-}
+})
 
 /**
  * Same as getAuthContext but returns null instead of throwing.

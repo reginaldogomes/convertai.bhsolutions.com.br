@@ -22,13 +22,13 @@ export function BenefitsGridSection({ content, primaryColor, palette, isDark }: 
             <div
                 className="pointer-events-none absolute inset-0"
                 style={{
-                    background: `radial-gradient(circle at 20% 20%, ${primaryColor}14 0%, transparent 35%), radial-gradient(circle at 80% 80%, ${secondary}14 0%, transparent 35%)`,
+                    background: `radial-gradient(circle at 20% 20%, ${primaryColor}2a 0%, transparent 40%), radial-gradient(circle at 80% 80%, ${secondary}24 0%, transparent 40%)`,
                 }}
             />
 
             <Container className="relative">
                 <div className="mx-auto mb-14 max-w-3xl text-center">
-                    <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-5xl">
+                    <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                     {content.subtitle && (

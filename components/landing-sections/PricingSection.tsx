@@ -4,6 +4,7 @@ import type { PricingContent } from '@/domain/entities'
 import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { Check, Sparkles } from 'lucide-react'
 import { Container } from '@/components/ui/container'
+import { getContrastTextColor } from '@/lib/utils'
 
 interface PricingSectionProps {
     content: PricingContent
@@ -19,14 +20,14 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
         <section className="relative bg-background-secondary py-24 overflow-hidden">
             {/* Decorative glow */}
             <div
-                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-125 w-125 rounded-full blur-[180px] opacity-10"
+                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-125 w-125 rounded-full blur-[180px] opacity-25"
                 style={{ backgroundColor: secondary }}
                 aria-hidden
             />
 
             <Container className="relative">
                 {content.title && (
-                    <h2 className="text-balance mb-4 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
+                    <h2 className="text-balance mb-4 text-center text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}
@@ -59,9 +60,10 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
                         >
                             {tier.highlighted && (
                                 <div
-                                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-lg"
+                                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest shadow-lg"
                                     style={{
                                         background: `linear-gradient(135deg, ${primaryColor}, ${secondary})`,
+                                        color: getContrastTextColor(primaryColor),
                                         boxShadow: `0 4px 14px ${primaryColor}40`,
                                     }}
                                 >
@@ -71,7 +73,7 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
                             )}
 
                             <div className="mb-6">
-                                <h3 className="text-base font-black text-foreground">{tier.name}</h3>
+                                <h3 className="text-base font-bold text-foreground">{tier.name}</h3>
                                 <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{tier.description}</p>
                             </div>
 
@@ -103,11 +105,12 @@ export function PricingSection({ content, primaryColor, palette, isDark }: Prici
                             <button
                                 className={`w-full rounded-xl py-3 text-sm font-bold transition-all duration-200 ${
                                     tier.highlighted
-                                        ? 'text-white shadow-lg hover:shadow-xl hover:scale-[1.01]'
+                                        ? `shadow-lg hover:shadow-xl hover:scale-[1.01]`
                                         : `${isDark ? 'bg-white/6 hover:bg-white/10' : 'bg-black/4 hover:bg-black/[0.07]'} text-foreground`
                                 }`}
                                 style={tier.highlighted ? {
                                     backgroundColor: primaryColor,
+                                    color: getContrastTextColor(primaryColor),
                                     boxShadow: `0 4px 14px ${primaryColor}30`,
                                 } : undefined}
                             >

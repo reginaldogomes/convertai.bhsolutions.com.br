@@ -31,7 +31,7 @@ export function StatsSection({ content, primaryColor, palette, isDark }: StatsSe
 
             <Container className="relative">
                 {content.title && (
-                    <h2 className="text-balance mb-12 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
+                    <h2 className="text-balance mb-12 text-center text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}

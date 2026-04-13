@@ -31,7 +31,7 @@ export function VideoSection({ content, isDark, primaryColor }: VideoSectionProp
         <section className="bg-background py-24">
             <Container className="max-w-4xl">
                 {content.title && (
-                    <h2 className="text-2xl md:text-4xl font-black text-center mb-12 tracking-tight text-foreground">
+                    <h2 className="text-balance text-3xl font-black tracking-tight text-foreground text-center mb-12 md:text-4xl">
                         {content.title}
                     </h2>
                 )}

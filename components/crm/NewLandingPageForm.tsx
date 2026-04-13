@@ -12,8 +12,10 @@ import { InlineError } from '@/components/ui/inline-error'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import {
     Globe, Package, Sparkles, Bot, Wand2, CheckCircle2, Loader2, Save,
-    Check, Palette, FileText, MessageSquare, Zap,
+    Check, Palette, FileText, MessageSquare, Zap, LayoutTemplate,
 } from 'lucide-react'
+import { HeroTemplatePicker } from '@/components/crm/HeroTemplatePicker'
+import type { HeroLayoutPreset } from '@/components/crm/HeroTemplatePicker'
 import { DESIGN_PRESETS, DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { IMAGE_MODELS, type ImageModelId } from '@/lib/ai'
@@ -128,6 +130,7 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     const [chatbotName, setChatbotName] = useState('')
     const [chatbotWelcomeMessage, setChatbotWelcomeMessage] = useState('')
     const [chatbotSystemPrompt, setChatbotSystemPrompt] = useState('')
+    const [heroLayoutPreset, setHeroLayoutPreset] = useState<HeroLayoutPreset>('central')
     const [designSystem, setDesignSystem] = useState<DesignSystem>(DEFAULT_DESIGN_SYSTEM)
     const [pendingDesignSystem, setPendingDesignSystem] = useState<DesignSystem | null>(null)
     const [designSystemAlert, setDesignSystemAlert] = useState('')
@@ -557,7 +560,25 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                     </div>
                 </div>
 
-                {/* Step 3: Form Card */}
+                {/* Step 3: Hero Template */}
+                <div className="bg-card border border-border rounded-(--radius) overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border bg-linear-to-r from-violet-500/5 to-accent/30">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                                <LayoutTemplate className="w-4.5 h-4.5 text-violet-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-bold text-foreground">Modelo de Hero</h2>
+                                <p className="text-[11px] text-muted-foreground">Escolha o layout visual da seção principal da landing page.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <HeroTemplatePicker value={heroLayoutPreset} onChange={setHeroLayoutPreset} />
+                    </div>
+                </div>
+
+                {/* Step 4: Form Card */}
                 <div className="bg-card border border-border rounded-(--radius) overflow-hidden">
                     <div className="px-6 py-4 border-b border-border bg-accent/30">
                         <h2 className="text-sm font-bold text-foreground">Configurar Landing Page</h2>
@@ -565,6 +586,7 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                     </div>
                     <form action={action} className="p-6 space-y-8">
                         {/* Hidden fields */}
+                        <input type="hidden" name="heroLayoutPreset" value={heroLayoutPreset} />
                         <input type="hidden" name="designSystem" value={JSON.stringify(designSystem)} />
                         <input type="hidden" name="generateVisuals" value={generateVisuals ? '1' : '0'} />
                         <input type="hidden" name="imageModel" value={imageModel} />

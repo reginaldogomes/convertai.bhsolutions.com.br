@@ -5,6 +5,7 @@ import { z } from 'zod'
 import type { ContactFormContent } from '@/domain/entities'
 import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { Send, CheckCircle, Clock, X } from 'lucide-react'
+import { getContrastTextColor } from '@/lib/utils'
 
 interface ContactFormSectionProps {
     content: ContactFormContent
@@ -213,8 +214,8 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
                         </div>
                         <button
                             onClick={() => setDialogOpen(false)}
-                            className="w-full rounded-xl py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: primaryColor }}
+                            className="w-full rounded-xl py-3 text-sm font-bold transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: primaryColor, color: getContrastTextColor(primaryColor) }}
                         >
                             Fechar
                         </button>
@@ -226,7 +227,7 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
             <section id="contato" className="bg-background-secondary py-20">
                 <div className="max-w-lg mx-auto px-6">
                     {content.title && (
-                        <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">{content.title}</h2>
+                        <h2 className="text-balance text-3xl font-black tracking-tight text-center mb-3 text-foreground md:text-4xl">{content.title}</h2>
                     )}
                     {content.subtitle && (
                         <p className="text-center text-base mb-8 text-muted-foreground">
@@ -318,8 +319,8 @@ export function ContactFormSection({ content, primaryColor, palette, isDark, lan
                             <button
                                 type="submit"
                                 disabled={!consent || submitting}
-                                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-sm text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                                style={{ backgroundColor: primaryColor }}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ backgroundColor: primaryColor, color: getContrastTextColor(primaryColor) }}
                             >
                                 <Send className="w-4 h-4" />
                                 {submitting ? 'Enviando...' : content.submitText}

@@ -45,6 +45,7 @@ export async function createLandingPage(prevState: { error: string; success: boo
         const isDark = isColorDark(bg)
 
         const productId = (formData.get('productId') as string) || null
+        const heroLayoutPreset = (formData.get('heroLayoutPreset') as string) || 'central'
         const generateVisuals = (formData.get('generateVisuals') as string) === '1'
         const imageModel = (formData.get('imageModel') as string) || 'gemini-2.5-flash-image'
         const aiPrompt = ((formData.get('aiPrompt') as string) || '').trim()
@@ -173,6 +174,11 @@ export async function createLandingPage(prevState: { error: string; success: boo
             throw new Error('Cannot create landing page without AI-generated sections for selected product')
         }
 
+        // Apply the user-selected hero layout preset to all hero sections.
+        if (sections.length > 0) {
+            sections = applyHeroPreset(sections, heroLayoutPreset)
+        }
+
         // Use AI-generated design system if available
         const generatedDesignSystemRaw = formData.get('generatedDesignSystem') as string | null
         if (generatedDesignSystemRaw) {
@@ -210,6 +216,32 @@ export async function createLandingPage(prevState: { error: string; success: boo
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
     }
+}
+
+function applyHeroPreset(sections: LandingPageSection[], preset: string): LandingPageSection[] {
+    const presets: Record<string, { layout: 'background' | 'split'; alignment: 'center' | 'left' }> = {
+        central:   { layout: 'background', alignment: 'center' },
+        split:     { layout: 'split',      alignment: 'left'   },
+        immersive: { layout: 'background', alignment: 'center' },
+        minimal:   { layout: 'background', alignment: 'left'   },
+    }
+    const config = presets[preset] ?? presets.central
+    return sections.map((section) => {
+        if (section.type !== 'hero') return section
+        const content = { ...(section.content as unknown as Record<string, unknown>) }
+        content.layout = config.layout
+        content.alignment = config.alignment
+        // For the immersive preset, ensure heroImageUrl (if set) moves to backgroundImageUrl
+        if (preset === 'immersive') {
+            const heroImg = (content.heroImageUrl as string | null) || null
+            const bgImg = (content.backgroundImageUrl as string | null) || null
+            if (!bgImg && heroImg) {
+                content.backgroundImageUrl = heroImg
+                content.heroImageUrl = null
+            }
+        }
+        return { ...section, content: content as unknown as LandingPageSection['content'] }
+    })
 }
 
 function anchorSectionsWithProductData(product: Product, sections: LandingPageSection[]): LandingPageSection[] {

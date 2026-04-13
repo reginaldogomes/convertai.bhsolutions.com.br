@@ -2,6 +2,7 @@
 
 import type { ProcessStepsContent } from '@/domain/entities'
 import type { ColorPalette } from '@/domain/value-objects/design-system'
+import { getContrastTextColor } from '@/lib/utils'
 import { Container } from '@/components/ui/container'
 
 interface ProcessStepsSectionProps {
@@ -20,7 +21,7 @@ export function ProcessStepsSection({ content, primaryColor, palette, isDark }: 
         <section className="relative bg-background-secondary py-24">
             <Container>
                 <div className="mx-auto mb-14 max-w-3xl text-center">
-                    <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-5xl">
+                    <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                     {content.subtitle && (
@@ -40,8 +41,8 @@ export function ProcessStepsSection({ content, primaryColor, palette, isDark }: 
                         >
                             <div className="flex items-start gap-4">
                                 <div
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black text-white"
-                                    style={{ backgroundColor: accent }}
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black"
+                                    style={{ backgroundColor: accent, color: getContrastTextColor(accent) }}
                                 >
                                     {index + 1}
                                 </div>

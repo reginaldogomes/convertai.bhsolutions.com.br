@@ -4,6 +4,16 @@ import { google } from '@ai-sdk/google'
 export const agentModel = google('gemini-2.5-flash')
 export const powerModel = google('gemini-2.5-pro')
 
+// Structured output models — thinking MUST be disabled (thinkingBudget: 0) because
+// thinking tokens are prepended to the model response and corrupt JSON parsing,
+// causing "No object generated: could not parse the response" in generateObject().
+export const structuredOutputModel = google('gemini-2.5-flash', {
+    thinkingConfig: { thinkingBudget: 0 },
+})
+export const structuredPowerModel = google('gemini-2.5-pro', {
+    thinkingConfig: { thinkingBudget: 0 },
+})
+
 // Gemini — Used for campaign HTML generation
 export const geminiModel = google('gemini-2.5-flash')
 

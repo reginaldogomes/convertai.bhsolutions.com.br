@@ -5,6 +5,7 @@ import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { Button } from '@/components/ui/button'
+import { getContrastTextColor } from '@/lib/utils'
 
 interface HeroSectionProps {
     content: HeroContent
@@ -53,7 +54,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(128,128,128,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(128,128,128,0.03)_1px,transparent_1px)] bg-size-[64px_64px]" />
                     {/* Floating orb accent */}
                     <div
-                        className="absolute top-1/4 right-[15%] h-72 w-72 rounded-full blur-[120px] opacity-20"
+                        className="absolute top-1/4 right-[15%] h-72 w-72 rounded-full blur-[120px] opacity-35"
                         style={{ backgroundColor: secondary }}
                     />
                 </>
@@ -102,6 +103,7 @@ export function HeroSection({ content, primaryColor, palette, isDark, onCtaClick
                                 style={{
                                     backgroundColor: primaryColor,
                                     borderColor: primaryColor,
+                                    color: getContrastTextColor(primaryColor),
                                     boxShadow: `0 8px 32px ${primaryColor}30`,
                                 }}
                             >

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { getAuthContext } from '@/infrastructure/auth'
-import { agentModel } from '@/lib/ai'
+import { structuredOutputModel } from '@/lib/ai'
 import { ragService, useCases } from '@/application/services/container'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 import type { RagSearchFilters } from '@/domain/interfaces'
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 
         try {
             const { object } = await generateObject({
-                model: agentModel,
+                model: structuredOutputModel,
                 schema,
                 system,
                 prompt,

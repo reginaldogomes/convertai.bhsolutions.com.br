@@ -1,6 +1,6 @@
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { agentModel } from '@/lib/ai'
+import { structuredOutputModel } from '@/lib/ai'
 import { generateNanoBananaImageDataUrl, type NanoBananaModelId } from './nano-banana'
 import { DEFAULT_SECTION_CONTENT, SECTION_LABELS, type SectionType } from '@/domain/entities'
 import { inferDesignSystemFromText } from '@/domain/value-objects/design-system'
@@ -318,7 +318,7 @@ export async function generateLandingPageSections(input: LandingPageGenerationIn
 
     try {
         const { object } = await generateObject({
-            model: agentModel,
+            model: structuredOutputModel,
             schema: generateResponseSchema,
             system: SYSTEM_PROMPT,
             prompt: enrichedPrompt,
@@ -337,7 +337,7 @@ export async function generateLandingPageSections(input: LandingPageGenerationIn
 
         try {
             const { object } = await generateObject({
-                model: agentModel,
+                model: structuredOutputModel,
                 schema: looseGenerateResponseSchema,
                 system: SYSTEM_PROMPT,
                 prompt: enrichedPrompt,

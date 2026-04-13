@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/auth'
 import {
     LayoutDashboard, Users, TrendingUp, MessageSquare, Mail,
-    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram, Package, FileText, BarChart3,
+    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram, Package, FileText, BarChart3, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './ThemeToggle'
@@ -45,8 +45,9 @@ const navItems = [
     {
         section: 'Automação & IA',
         items: [
-            { href: '/automations', label: 'Automações', icon: Zap },
-            { href: '/agents', label: 'Agentes IA', icon: Bot },
+            { href: '/automations',     label: 'Automações',          icon: Zap },
+            { href: '/agents',          label: 'Agentes IA',          icon: Bot },
+            { href: '/knowledge-base',  label: 'Base de Conhecimento', icon: BookOpen },
         ],
     },
 ] as const

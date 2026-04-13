@@ -4,6 +4,7 @@ import type { TestimonialsContent } from '@/domain/entities'
 import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { Star, Quote } from 'lucide-react'
 import { Container } from '@/components/ui/container'
+import { getContrastTextColor } from '@/lib/utils'
 
 interface TestimonialsSectionProps {
     content: TestimonialsContent
@@ -18,14 +19,14 @@ export function TestimonialsSection({ content, primaryColor, palette, isDark }: 
         <section className="relative bg-background py-24 overflow-hidden">
             {/* Decorative glow */}
             <div
-                className="pointer-events-none absolute bottom-0 right-[10%] h-80 w-80 rounded-full blur-[140px] opacity-10"
+                className="pointer-events-none absolute bottom-0 right-[10%] h-80 w-80 rounded-full blur-[140px] opacity-25"
                 style={{ backgroundColor: primaryColor }}
                 aria-hidden
             />
 
             <Container>
                 {content.title && (
-                    <h2 className="text-balance mb-14 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
+                    <h2 className="text-balance mb-14 text-center text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}
@@ -75,9 +76,10 @@ export function TestimonialsSection({ content, primaryColor, palette, isDark }: 
                                     />
                                 ) : (
                                     <div
-                                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-md"
+                                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-md"
                                         style={{
                                             background: `linear-gradient(135deg, ${primaryColor}, ${secondary})`,
+                                            color: getContrastTextColor(primaryColor),
                                         }}
                                         aria-hidden
                                     >

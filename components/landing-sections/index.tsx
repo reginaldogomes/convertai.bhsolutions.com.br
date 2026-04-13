@@ -4,7 +4,7 @@ import type {
     LandingPageSection, SectionType,
     HeroContent, FeaturesContent, BenefitsGridContent, ProcessStepsContent, TestimonialsContent, FaqContent,
     PricingContent, ContactFormContent, CtaBannerContent, VideoContent,
-    StatsContent, LogoCloudContent, GalleryContent,
+    StatsContent, LogoCloudContent, GalleryContent, AboutExpertContent,
 } from '@/domain/entities'
 import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { HeroSection } from './HeroSection'
@@ -20,6 +20,7 @@ import { VideoSection } from './VideoSection'
 import { StatsSection } from './StatsSection'
 import { LogoCloudSection } from './LogoCloudSection'
 import { GallerySection } from './GallerySection'
+import { AboutExpertSection } from './AboutExpertSection'
 
 interface SectionRendererProps {
     sections: LandingPageSection[]
@@ -106,6 +107,8 @@ function SectionBlock({
             return <LogoCloudSection content={section.content as LogoCloudContent} isDark={isDark} />
         case 'gallery':
             return <GallerySection content={section.content as GalleryContent} isDark={isDark} />
+        case 'about_expert':
+            return <AboutExpertSection content={section.content as AboutExpertContent} primaryColor={primaryColor} palette={palette} isDark={isDark} />
         default:
             return null
     }

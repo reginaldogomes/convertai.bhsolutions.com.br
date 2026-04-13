@@ -263,4 +263,21 @@
     background-image: radial-gradient(circle, hsl(var(--foreground) / 0.07) 1px, transparent 1px);
     background-size: 24px 24px;
   }
+
+  /* ── Landing page typography standardization ────────────────────
+     Type scale (AVOID CSS `capitalize` em headings pt-BR — usar sentence case):
+       lp-label  → xs / semibold / uppercase / tracking-[0.18em]  (kickers, badges, labels)
+       H1 hero   → 4xl–7xl / font-black / leading-[1.02] / tracking-tight
+       H2        → 3xl / font-black / tracking-tight → md: 4xl
+       H3 cards  → base / font-bold                  → md: lg onde relevante
+       Section ¶ → base / leading-relaxed / text-muted-foreground
+       Card ¶    → sm  / leading-relaxed / text-muted-foreground
+     `uppercase` é OK somente para lp-label / badges (xs com letter-spacing largo).
+  ──────────────────────────────────────────────────────────────── */
+  .lp-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
 }

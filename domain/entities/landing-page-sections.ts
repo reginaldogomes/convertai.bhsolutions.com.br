@@ -7,6 +7,7 @@ export type SectionType =
     | 'features'
     | 'benefits_grid'
     | 'process_steps'
+    | 'about_expert'
     | 'testimonials'
     | 'faq'
     | 'pricing'
@@ -140,6 +141,17 @@ export interface GalleryContent {
     columns: 2 | 3 | 4
 }
 
+export interface AboutExpertContent {
+    sectionTitle: string
+    name: string
+    role: string
+    bio: string
+    avatarUrl: string | null
+    credentials: string[]
+    learnMoreUrl: string
+    learnMoreText: string
+}
+
 // --- Union of all content types ---
 
 export type SectionContentMap = {
@@ -147,6 +159,7 @@ export type SectionContentMap = {
     features: FeaturesContent
     benefits_grid: BenefitsGridContent
     process_steps: ProcessStepsContent
+    about_expert: AboutExpertContent
     testimonials: TestimonialsContent
     faq: FaqContent
     pricing: PricingContent
@@ -261,6 +274,16 @@ export const DEFAULT_SECTION_CONTENT: { [K in SectionType]: SectionContentMap[K]
             { value: '24/7', label: 'Suporte' },
         ],
     },
+    about_expert: {
+        sectionTitle: 'Quem está por trás disso?',
+        name: 'Seu Nome',
+        role: 'Especialista / Cargo',
+        bio: 'Descreva aqui sua trajetória profissional, conquistas e o que te torna a pessoa certa para ajudar seu cliente nesse tema.',
+        avatarUrl: null,
+        credentials: ['10+ anos de experiência', 'Formação relevante', 'Reconhecimento ou prêmio'],
+        learnMoreUrl: '#',
+        learnMoreText: 'Conhecer mais sobre mim',
+    },
     logo_cloud: {
         title: 'Empresas que confiam em nós',
         logos: [],
@@ -277,6 +300,7 @@ export const SECTION_LABELS: Record<SectionType, string> = {
     features: 'Funcionalidades',
     benefits_grid: 'Grade de Benefícios',
     process_steps: 'Passo a Passo',
+    about_expert: 'Apresentação do Profissional',
     testimonials: 'Depoimentos',
     faq: 'FAQ (Perguntas Frequentes)',
     pricing: 'Tabela de Preços',

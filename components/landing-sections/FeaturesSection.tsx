@@ -30,14 +30,14 @@ export function FeaturesSection({ content, primaryColor, palette, isDark }: Feat
         <section className="relative bg-background-secondary py-24 overflow-hidden">
             {/* Decorative accent blob */}
             <div
-                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-105 w-105 rounded-full blur-[160px] opacity-15"
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-105 w-105 rounded-full blur-[160px] opacity-30"
                 style={{ backgroundColor: secondary }}
                 aria-hidden
             />
 
             <Container className="relative">
                 {content.title && (
-                    <h2 className="text-balance mb-4 text-center text-2xl font-black tracking-tight text-foreground md:text-4xl">
+                    <h2 className="text-balance mb-4 text-center text-3xl font-black tracking-tight text-foreground md:text-4xl">
                         {content.title}
                     </h2>
                 )}

@@ -2,15 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { useActionState } from 'react'
-import { useEffect } from 'react'
-import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle } from 'lucide-react'
+import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { deleteKnowledgeBaseEntry, purgeAiUsageHistory, saveKnowledgeBaseProfile, updateAiGovernancePolicy, updateKnowledgeBaseEntry, updateOrganization, uploadKnowledgeBaseImage } from '@/actions/organization'
+import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization } from '@/actions/organization'
 import { InlineNotice } from '@/components/ui/inline-notice'
-import { Textarea } from '@/components/ui/textarea'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 interface Props {
     profileWithOrg: {
@@ -54,14 +52,7 @@ interface Props {
         durationMs: number | null
         errorCode: string | null
     }>
-    knowledgeBaseEntries: Array<{
-        id: string
-        title: string
-        createdAt: string
-        content: string
-        preview: string
-        tags: string[]
-    }>
+    knowledgeEntryCount: number
 }
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -83,27 +74,9 @@ function formatCurrencyFromCents(value: number): string {
     })
 }
 
-function parseKbTagsFromQuery(value: string | null): string[] {
-    if (!value) return []
-
-    return Array.from(
-        new Set(
-            value
-                .split(',')
-                .map((tag) => tag.trim().toLowerCase())
-                .filter((tag) => tag.length >= 2),
-        ),
-    ).slice(0, 12)
-}
-
-export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeBaseEntries }: Props) {
-    const router = useRouter()
-    const pathname = usePathname()
-    const searchParams = useSearchParams()
+export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount }: Props) {
     const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai'>('org')
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
-    const [knowledgeState, knowledgeAction, knowledgePending] = useActionState(saveKnowledgeBaseProfile, { error: '', success: false })
-    const [knowledgeImageState, knowledgeImageAction, knowledgeImagePending] = useActionState(uploadKnowledgeBaseImage, { error: '', success: false })
     const [aiState, aiAction, aiPending] = useActionState(updateAiGovernancePolicy, { error: '', success: false })
     const [purgeState, purgeAction, purgePending] = useActionState(purgeAiUsageHistory, {
         error: '',
@@ -114,8 +87,6 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
     const [statusFilter, setStatusFilter] = useState<'all' | 'started' | 'success' | 'error' | 'blocked'>('all')
     const [featureFilter, setFeatureFilter] = useState<'all' | string>('all')
     const [modelQuery, setModelQuery] = useState('')
-    const [selectedKnowledgeTags, setSelectedKnowledgeTags] = useState<string[]>([])
-    const [hydratedKnowledgeTags, setHydratedKnowledgeTags] = useState(false)
 
     const dailyUsagePercent = aiGovernance
         ? Math.min(100, Math.round((aiGovernance.dailyRequestsUsed / Math.max(1, aiGovernance.dailyRequestsLimit)) * 100))
@@ -166,72 +137,6 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
     const filteredBlockedCount = useMemo(() => {
         return filteredEvents.filter((event) => event.status === 'blocked').length
     }, [filteredEvents])
-
-    const knowledgeTagCounts = useMemo(() => {
-        const counts = new Map<string, number>()
-
-        for (const entry of knowledgeBaseEntries) {
-            for (const tag of entry.tags) {
-                counts.set(tag, (counts.get(tag) ?? 0) + 1)
-            }
-        }
-
-        return counts
-    }, [knowledgeBaseEntries])
-
-    const knowledgeTagOptions = useMemo(() => {
-        return Array.from(knowledgeTagCounts.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([tag, count]) => ({ tag, count }))
-    }, [knowledgeTagCounts])
-
-    useEffect(() => {
-        const requestedTags = parseKbTagsFromQuery(searchParams.get('kbTags'))
-        const availableTags = new Set(knowledgeTagOptions.map((option) => option.tag))
-        const safeTags = requestedTags.filter((tag) => availableTags.has(tag))
-
-        setSelectedKnowledgeTags((previous) => {
-            if (previous.join(',') === safeTags.join(',')) return previous
-            return safeTags
-        })
-        setHydratedKnowledgeTags(true)
-    }, [knowledgeTagOptions, searchParams])
-
-    useEffect(() => {
-        if (!hydratedKnowledgeTags) return
-
-        const currentRaw = searchParams.get('kbTags') ?? ''
-        const nextRaw = selectedKnowledgeTags.join(',')
-        if (currentRaw === nextRaw) return
-
-        const params = new URLSearchParams(searchParams.toString())
-        if (nextRaw.length > 0) {
-            params.set('kbTags', nextRaw)
-        } else {
-            params.delete('kbTags')
-        }
-
-        const nextQuery = params.toString()
-        router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
-    }, [hydratedKnowledgeTags, pathname, router, searchParams, selectedKnowledgeTags])
-
-    const filteredKnowledgeEntries = useMemo(() => {
-        if (selectedKnowledgeTags.length === 0) return knowledgeBaseEntries
-
-        return knowledgeBaseEntries.filter((entry) =>
-            selectedKnowledgeTags.every((selectedTag) => entry.tags.includes(selectedTag)),
-        )
-    }, [knowledgeBaseEntries, selectedKnowledgeTags])
-
-    function toggleKnowledgeTag(tag: string) {
-        setSelectedKnowledgeTags((previous) => {
-            if (previous.includes(tag)) {
-                return previous.filter((item) => item !== tag)
-            }
-
-            return [...previous, tag]
-        })
-    }
 
     const statusBadgeClassMap: Record<'started' | 'success' | 'error' | 'blocked', string> = {
         started: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
@@ -475,247 +380,35 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                 )}
 
                 {tab === 'knowledge' && (
-                    <div className="space-y-6">
-                        <div className="bg-card border border-border p-6 rounded-(--radius)">
-                            <h2 className="text-foreground font-bold tracking-tight mb-2">Perfil Estratégico para IA</h2>
-                            <p className="text-muted-foreground text-sm mb-6">
-                                Alimente a base com contexto da empresa para melhorar geração de conteúdo, SEO e respostas da IA.
-                            </p>
-
-                            {knowledgeState.success && (
-                                <InlineNotice variant="success" message="Informações salvas na base de conhecimento com sucesso." className="mb-4" size="sm" />
-                            )}
-                            {knowledgeState.error && (
-                                <InlineNotice variant="destructive" message={knowledgeState.error} className="mb-4" size="sm" />
-                            )}
-
-                            <form action={knowledgeAction} className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Resumo da Empresa</Label>
-                                    <Textarea name="companySummary" rows={4} placeholder="Quem é a empresa, história, proposta de valor principal..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
+                    <div className="space-y-4">
+                        <div className="bg-card border border-border rounded-(--radius) p-6">
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                    <BookOpen className="w-5 h-5 text-primary" />
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Nicho</Label>
-                                        <Textarea name="niche" rows={3} placeholder="Ex: consultoria de IA para e-commerce, SaaS B2B..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Público-alvo</Label>
-                                        <Textarea name="targetAudience" rows={3} placeholder="Persona, segmento, momento de compra, dores..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Cultura e Valores</Label>
-                                    <Textarea name="culture" rows={3} placeholder="Princípios, estilo de atendimento, posicionamento ético..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tom de Voz</Label>
-                                    <Textarea name="brandVoice" rows={3} placeholder="Ex: consultivo, direto, premium, didático, informal..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Produtos e Serviços</Label>
-                                    <Textarea name="productsAndServices" rows={4} placeholder="Detalhe ofertas, pacotes, entregáveis, faixas de preço..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Diferenciais</Label>
-                                    <Textarea name="differentiators" rows={3} placeholder="O que torna sua empresa única frente aos concorrentes..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Objeções e Respostas</Label>
-                                    <Textarea name="objectionsAndFaq" rows={4} placeholder="Dúvidas recorrentes, objeções comerciais e como responder..." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tags estratégicas</Label>
-                                    <Input
-                                        name="tags"
-                                        placeholder="ex: ecommerce, moda, ticket-medio, b2b"
-                                        className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9"
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Separe por vírgula. Essas tags ajudam a IA a encontrar contexto mais relevante.
+                                <div>
+                                    <h2 className="text-foreground font-bold tracking-tight">Base de Conhecimento</h2>
+                                    <p className="text-muted-foreground text-sm mt-0.5">
+                                        Contexto estratégico que alimenta a IA para geração de conteúdo, chatbots e automações.
                                     </p>
                                 </div>
-
-                                <Button
-                                    type="submit"
-                                    disabled={knowledgePending}
-                                    className="mt-2 h-9 px-6 text-xs font-bold uppercase tracking-wider"
-                                >
-                                    {knowledgePending ? 'Salvando...' : 'Salvar na Base de Conhecimento'}
-                                </Button>
-                            </form>
-                        </div>
-
-                        <div className="bg-card border border-border p-6 rounded-(--radius)">
-                            <h2 className="text-foreground font-bold tracking-tight mb-2">Upload de Imagens para Base</h2>
-                            <p className="text-muted-foreground text-sm mb-6">
-                                Envie imagens relevantes da empresa e descreva o contexto para enriquecer a base de conhecimento.
-                            </p>
-
-                            {knowledgeImageState.success && (
-                                <InlineNotice variant="success" message="Imagem enviada e indexada na base de conhecimento." className="mb-4" size="sm" />
-                            )}
-                            {knowledgeImageState.error && (
-                                <InlineNotice variant="destructive" message={knowledgeImageState.error} className="mb-4" size="sm" />
-                            )}
-
-                            <form action={knowledgeImageAction} className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Arquivo da Imagem</Label>
-                                    <Input name="imageFile" type="file" accept="image/png,image/jpeg,image/webp" className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-10" required />
-                                    <p className="text-xs text-muted-foreground">Formatos aceitos: JPG, PNG e WEBP (até 8MB).</p>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Título</Label>
-                                    <Input name="imageTitle" placeholder="Ex: Catálogo visual da coleção outono" className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9" required />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Descrição da Imagem</Label>
-                                    <Textarea name="imageDescription" rows={3} placeholder="Explique o que aparece na imagem e por que isso é relevante para o negócio." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Texto importante contido na imagem</Label>
-                                    <Textarea name="imageExtractedText" rows={3} placeholder="Copie textos da imagem (slogans, títulos, preços, chamadas) para melhorar a recuperação semântica." className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tags</Label>
-                                    <Input name="imageTags" placeholder="ex: vitrine, branding, ecommerce" className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9" />
-                                </div>
-
-                                <Button
-                                    type="submit"
-                                    disabled={knowledgeImagePending}
-                                    className="mt-2 h-9 px-6 text-xs font-bold uppercase tracking-wider"
-                                >
-                                    {knowledgeImagePending ? 'Enviando...' : 'Enviar Imagem para Base'}
-                                </Button>
-                            </form>
-                        </div>
-
-                        <div className="bg-card border border-border p-6 rounded-(--radius)">
-                            <h3 className="text-foreground font-bold tracking-tight mb-2">Entradas Recentes da Organização</h3>
-                            <p className="text-muted-foreground text-sm mb-4">
-                                Histórico recente de conteúdos estratégicos salvos para RAG.
-                            </p>
-
-                            <div className="mb-4 space-y-2">
-                                <div className="flex items-center justify-between gap-3">
-                                    <Label className="text-xs uppercase tracking-wider text-foreground-secondary">Filtrar por tags</Label>
-                                    {selectedKnowledgeTags.length > 0 && (
-                                        <Button
-                                            type="button"
-                                            size="xs"
-                                            variant="ghost"
-                                            onClick={() => setSelectedKnowledgeTags([])}
-                                            className="h-6 px-2 text-xs"
-                                        >
-                                            Limpar filtros
-                                        </Button>
-                                    )}
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {knowledgeTagOptions.length === 0 ? (
-                                        <span className="text-xs text-muted-foreground">Sem tags cadastradas ainda.</span>
-                                    ) : (
-                                        knowledgeTagOptions.map(({ tag, count }) => {
-                                            const active = selectedKnowledgeTags.includes(tag)
-                                            return (
-                                                <Button
-                                                    key={tag}
-                                                    type="button"
-                                                    size="xs"
-                                                    variant={active ? 'secondary' : 'outline'}
-                                                    onClick={() => toggleKnowledgeTag(tag)}
-                                                    className="h-6 gap-1 rounded-full px-2.5 py-1 text-xs"
-                                                >
-                                                    <span>{tag}</span>
-                                                    <span className="opacity-80">({count})</span>
-                                                </Button>
-                                            )
-                                        })
-                                    )}
-                                </div>
                             </div>
-
-                            <div className="space-y-3">
-                                {filteredKnowledgeEntries.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Nenhuma entrada organizacional encontrada ainda.</p>
-                                ) : (
-                                    filteredKnowledgeEntries.map((entry) => (
-                                        <details key={entry.id} className="rounded-(--radius) border border-border p-3">
-                                            <summary className="flex items-center justify-between gap-3 cursor-pointer list-none">
-                                                <div>
-                                                    <p className="text-sm font-bold text-foreground">{entry.title}</p>
-                                                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{entry.preview}</p>
-                                                    {entry.tags.length > 0 && (
-                                                        <div className="mt-2 flex flex-wrap gap-1">
-                                                            {entry.tags.slice(0, 8).map((tag) => (
-                                                                <span key={`${entry.id}-${tag}`} className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                                                                    {tag}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateTime(entry.createdAt)}</span>
-                                            </summary>
-
-                                            <div className="mt-4 space-y-3 border-t border-border pt-4">
-                                                <form action={updateKnowledgeBaseEntry} className="space-y-3">
-                                                    <input type="hidden" name="entryId" value={entry.id} />
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs uppercase tracking-wider text-foreground-secondary">Título</Label>
-                                                        <Input name="title" defaultValue={entry.title} className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs uppercase tracking-wider text-foreground-secondary">Conteúdo</Label>
-                                                        <Textarea name="content" defaultValue={entry.content} rows={6} className="bg-[hsl(var(--background-tertiary))] border-border text-foreground" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs uppercase tracking-wider text-foreground-secondary">Tags</Label>
-                                                        <Input
-                                                            name="tags"
-                                                            defaultValue={entry.tags.join(', ')}
-                                                            placeholder="ex: ecommerce, saas, objeções"
-                                                            className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9"
-                                                        />
-                                                    </div>
-                                                    <Button
-                                                        type="submit"
-                                                        size="sm"
-                                                        className="h-8 px-4 text-[11px] font-bold uppercase tracking-wider"
-                                                    >
-                                                        Salvar Edição (Reindexar)
-                                                    </Button>
-                                                </form>
-
-                                                <form action={deleteKnowledgeBaseEntry}>
-                                                    <input type="hidden" name="entryId" value={entry.id} />
-                                                    <Button
-                                                        type="submit"
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        className="h-8 px-4 text-[11px] font-bold uppercase tracking-wider"
-                                                    >
-                                                        Remover Entrada
-                                                    </Button>
-                                                </form>
-                                            </div>
-                                        </details>
-                                    ))
-                                )}
+                            <div className="flex items-center gap-4 p-4 rounded-(--radius) bg-[hsl(var(--background-tertiary))] border border-border mb-6">
+                                <div className="text-center px-4 border-r border-border">
+                                    <p className="text-2xl font-black text-foreground">{knowledgeEntryCount}</p>
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Entradas</p>
+                                </div>
+                                <p className="text-sm text-muted-foreground flex-1">
+                                    Gerencie perfil estratégico, entradas livres (FAQ, produtos, processos) e imagens indexadas para RAG.
+                                </p>
                             </div>
+                            <Link href="/knowledge-base">
+                                <Button className="gap-2 h-9 px-5 text-xs font-bold uppercase tracking-wider">
+                                    <BookOpen className="w-4 h-4" />
+                                    Abrir Base de Conhecimento
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 )}

@@ -5,6 +5,7 @@ import type { ColorPalette } from '@/domain/value-objects/design-system'
 import { Container } from '@/components/ui/container'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
+import { getContrastTextColor } from '@/lib/utils'
 
 interface CtaBannerSectionProps {
     content: CtaBannerContent
@@ -24,13 +25,13 @@ export function CtaBannerSection({ content, primaryColor, palette, isDark, onCta
                 className="absolute inset-0"
                 style={{
                     background: isDark
-                        ? `linear-gradient(135deg, ${primaryColor}12 0%, transparent 40%, ${primaryColor}08 100%)`
-                        : `linear-gradient(135deg, ${primaryColor}0A 0%, ${primaryColor}04 50%, ${primaryColor}08 100%)`,
+                        ? `linear-gradient(135deg, ${primaryColor}28 0%, transparent 50%, ${secondary}1a 100%)`
+                        : `linear-gradient(135deg, ${primaryColor}18 0%, ${primaryColor}0C 50%, ${secondary}18 100%)`,
                 }}
             />
             {/* Floating orb */}
             <div
-                className="pointer-events-none absolute top-1/2 right-[10%] -translate-y-1/2 h-64 w-64 rounded-full blur-[120px] opacity-20"
+                className="pointer-events-none absolute top-1/2 right-[10%] -translate-y-1/2 h-64 w-64 rounded-full blur-[120px] opacity-35"
                 style={{ backgroundColor: secondary }}
                 aria-hidden
             />
@@ -38,7 +39,7 @@ export function CtaBannerSection({ content, primaryColor, palette, isDark, onCta
             <div className="absolute inset-0 bg-[linear-gradient(rgba(128,128,128,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(128,128,128,0.03)_1px,transparent_1px)] bg-size-[48px_48px]" />
 
             <Container className="relative max-w-3xl text-center">
-                <h2 className="text-balance mb-5 text-2xl font-black tracking-tight text-foreground md:text-4xl lg:text-5xl">
+                <h2 className="text-balance mb-5 text-3xl font-black tracking-tight text-foreground md:text-4xl lg:text-5xl">
                     {content.title}
                 </h2>
                 {content.subtitle && (
@@ -53,6 +54,7 @@ export function CtaBannerSection({ content, primaryColor, palette, isDark, onCta
                     style={{
                         backgroundColor: primaryColor,
                         borderColor: primaryColor,
+                        color: getContrastTextColor(primaryColor),
                         boxShadow: `0 8px 32px ${primaryColor}30`,
                     }}
                 >
