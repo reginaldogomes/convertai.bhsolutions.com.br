@@ -261,7 +261,7 @@ export async function saveKnowledgeBaseProfile(
     }
 }
 
-export async function updateKnowledgeBaseEntry(formData: FormData) {
+export async function updateKnowledgeBaseEntry(_prevState: unknown, formData: FormData) {
     try {
         const { orgId } = await getAuthContext()
         const entryId = safeText(formData.get('entryId'), 128)
@@ -306,7 +306,7 @@ export async function updateKnowledgeBaseEntry(formData: FormData) {
     }
 }
 
-export async function deleteKnowledgeBaseEntry(formData: FormData) {
+export async function deleteKnowledgeBaseEntry(_prevState: unknown, formData: FormData) {
     try {
         const { orgId } = await getAuthContext()
         const entryId = safeText(formData.get('entryId'), 128)

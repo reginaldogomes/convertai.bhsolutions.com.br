@@ -507,6 +507,31 @@ function ProfileTab() {
 
 // ─── Tab: Images ───────────────────────────────────────────────────────────
 
+function ImageCard({ entry }: { entry: KnowledgeEntryView }) {
+    const [, deleteAction, deletePending] = useActionState(deleteKnowledgeBaseEntry, { error: '', success: false })
+    return (
+        <div className="group relative rounded-lg overflow-hidden border border-border bg-muted aspect-square">
+            {entry.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={entry.imageUrl} alt={entry.title} className="w-full h-full object-cover" />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                </div>
+            )}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                <p className="text-white text-[11px] font-semibold text-center line-clamp-3">{entry.title}</p>
+                <form action={deleteAction} className="mt-2">
+                    <input type="hidden" name="entryId" value={entry.id} />
+                    <button type="submit" disabled={deletePending} className="flex items-center gap-1 text-red-400 hover:text-red-300 text-[11px] font-bold">
+                        <Trash2 className="w-3 h-3" /> {deletePending ? '...' : 'Remover'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    )
+}
+
 function ImagesTab({ entries }: { entries: KnowledgeEntryView[] }) {
     const [state, action, pending] = useActionState(uploadKnowledgeBaseImage, { error: '', success: false })
     const imageEntries = entries.filter((e) => e.entryType === 'image' || e.imageUrl)
@@ -570,25 +595,7 @@ function ImagesTab({ entries }: { entries: KnowledgeEntryView[] }) {
                     <h3 className="text-foreground font-bold tracking-tight mb-4">Imagens Indexadas ({imageEntries.length})</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {imageEntries.map((e) => (
-                            <div key={e.id} className="group relative rounded-lg overflow-hidden border border-border bg-muted aspect-square">
-                                {e.imageUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={e.imageUrl} alt={e.title} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
-                                    </div>
-                                )}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                                    <p className="text-white text-[11px] font-semibold text-center line-clamp-3">{e.title}</p>
-                                    <form action={deleteKnowledgeBaseEntry} className="mt-2">
-                                        <input type="hidden" name="entryId" value={e.id} />
-                                        <button type="submit" className="flex items-center gap-1 text-red-400 hover:text-red-300 text-[11px] font-bold">
-                                            <Trash2 className="w-3 h-3" /> Remover
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
+                            <ImageCard key={e.id} entry={e} />
                         ))}
                     </div>
                 </div>
