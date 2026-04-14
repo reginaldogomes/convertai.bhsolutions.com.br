@@ -9,11 +9,13 @@ import {
     SupabaseKnowledgeBaseRepository,
     SupabaseChatSessionRepository,
     SupabaseAnalyticsRepository,
+    SupabaseCampaignRecipientRepository,
 } from '@/infrastructure/repositories'
 import { TwilioWhatsAppService } from '@/infrastructure/services/twilio-whatsapp-service'
 import { SendGridEmailService } from '@/infrastructure/services/sendgrid-email-service'
 import { ResendEmailService } from '@/infrastructure/services/resend-email-service'
 import { TwilioSmsService } from '@/infrastructure/services/twilio-sms-service'
+import { MockWhatsAppService, MockSmsService, MockEmailService } from '@/infrastructure/services/mock-services'
 import { RagService } from '@/infrastructure/services/rag-service'
 import { MetaInstagramService } from '@/infrastructure/services/meta-instagram-service'
 import {
@@ -21,6 +23,9 @@ import {
     SupabaseInstagramAccountRepository,
     SupabaseInstagramAutoConfigRepository,
     SupabaseProductRepository,
+    SupabasePlanRepository,
+    SupabaseSubscriptionRepository,
+    SupabaseCreditRepository,
 } from '@/infrastructure/repositories'
 
 import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase, DeleteContactUseCase } from '@/application/use-cases/contacts'
@@ -28,7 +33,7 @@ import { CreateDealUseCase, MoveDealUseCase, ListDealsUseCase } from '@/applicat
 import { SendMessageUseCase, ListThreadsUseCase } from '@/application/use-cases/messages'
 import { GetDashboardStatsUseCase } from '@/application/use-cases/dashboard'
 import { CreateCampaignUseCase, UpdateCampaignUseCase, SendCampaignUseCase, GetCampaignUseCase, GetCrmContextUseCase } from '@/application/use-cases/campaigns'
-import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase, UpdateOrganizationUseCase } from '@/application/use-cases/queries'
+import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase, UpdateOrganizationUseCase, GetCampaignRecipientsUseCase } from '@/application/use-cases/queries'
 import {
     ListAutomationsUseCase,
     GetAutomationUseCase,
@@ -69,6 +74,15 @@ import {
     ListProductsUseCase,
     ListActiveProductsUseCase,
 } from '@/application/use-cases/products'
+import {
+    GetPlansUseCase,
+    GetSubscriptionUseCase,
+    GetCreditTransactionsUseCase,
+    GetCreditPacksUseCase,
+    ChangePlanUseCase,
+    GrantCreditsUseCase,
+    ListAllSubscriptionsUseCase,
+} from '@/application/use-cases/saas'
 
 // Repository singletons (stateless, safe to reuse)
 const contactRepo = new SupabaseContactRepository()
@@ -85,13 +99,20 @@ const instagramContentRepo = new SupabaseInstagramContentRepository()
 const instagramAccountRepo = new SupabaseInstagramAccountRepository()
 const instagramAutoConfigRepo = new SupabaseInstagramAutoConfigRepository()
 const productRepo = new SupabaseProductRepository()
+const campaignRecipientRepo = new SupabaseCampaignRecipientRepository()
+const planRepo = new SupabasePlanRepository()
+const subscriptionRepo = new SupabaseSubscriptionRepository()
+const creditRepo = new SupabaseCreditRepository()
 
 // Service singletons
-const whatsAppService = new TwilioWhatsAppService()
-const emailService = process.env.EMAIL_PROVIDER === 'sendgrid'
-    ? new SendGridEmailService()
-    : new ResendEmailService()
-const smsService = new TwilioSmsService()
+const DEV_MOCK = process.env.DEV_MOCK_INTEGRATIONS === 'true'
+const whatsAppService = DEV_MOCK ? new MockWhatsAppService() : new TwilioWhatsAppService()
+const emailService = DEV_MOCK
+    ? new MockEmailService()
+    : process.env.EMAIL_PROVIDER === 'sendgrid'
+        ? new SendGridEmailService()
+        : new ResendEmailService()
+const smsService = DEV_MOCK ? new MockSmsService() : new TwilioSmsService()
 const ragService = new RagService(knowledgeBaseRepo)
 const instagramService = new MetaInstagramService()
 
@@ -121,7 +142,7 @@ export const useCases = {
     // Campaigns
     createCampaign: () => new CreateCampaignUseCase(campaignRepo),
     updateCampaign: () => new UpdateCampaignUseCase(campaignRepo),
-    sendCampaign: () => new SendCampaignUseCase(campaignRepo, contactRepo, emailService, whatsAppService, smsService),
+    sendCampaign: () => new SendCampaignUseCase(campaignRepo, contactRepo, emailService, whatsAppService, smsService, campaignRecipientRepo, creditRepo),
     getCampaign: () => new GetCampaignUseCase(campaignRepo),
     getCrmContext: () => new GetCrmContextUseCase(contactRepo, dealRepo, campaignRepo, userRepo),
 
@@ -130,6 +151,7 @@ export const useCases = {
     listContactSelects: () => new ListContactSelectsUseCase(contactRepo),
     getUserSettings: () => new GetUserSettingsUseCase(userRepo),
     listRecipients: () => new ListRecipientsUseCase(contactRepo),
+    getCampaignRecipients: () => new GetCampaignRecipientsUseCase(campaignRecipientRepo),
     updateOrganization: () => new UpdateOrganizationUseCase(userRepo),
 
     // Automations
@@ -175,7 +197,16 @@ export const useCases = {
     deleteProduct: () => new DeleteProductUseCase(productRepo),
     listProducts: () => new ListProductsUseCase(productRepo),
     listActiveProducts: () => new ListActiveProductsUseCase(productRepo),
+
+    // SaaS / Planos / Créditos
+    getPlans: () => new GetPlansUseCase(planRepo),
+    getSubscription: () => new GetSubscriptionUseCase(subscriptionRepo),
+    getCreditTransactions: () => new GetCreditTransactionsUseCase(creditRepo),
+    getCreditPacks: () => new GetCreditPacksUseCase(creditRepo),
+    changePlan: () => new ChangePlanUseCase(planRepo, subscriptionRepo, creditRepo),
+    grantCredits: () => new GrantCreditsUseCase(creditRepo),
+    listAllSubscriptions: () => new ListAllSubscriptionsUseCase(subscriptionRepo),
 } as const
 
 // Export singletons needed by API routes and server actions
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo }
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo, creditRepo, subscriptionRepo, planRepo }

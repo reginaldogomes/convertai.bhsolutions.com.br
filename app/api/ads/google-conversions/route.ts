@@ -95,9 +95,8 @@ export async function POST(req: Request) {
 
     try {
         const secret = process.env.GOOGLE_ADS_WEBHOOK_SECRET
-        if (secret) {
-            const headerSecret = req.headers.get('x-ads-webhook-secret')
-            if (headerSecret !== secret) return unauthorized(logger.requestId)
+        if (!secret || req.headers.get('x-ads-webhook-secret') !== secret) {
+            return unauthorized(logger.requestId)
         }
 
         const parsed = googleAdsWebhookEventSchema.safeParse(await req.json())

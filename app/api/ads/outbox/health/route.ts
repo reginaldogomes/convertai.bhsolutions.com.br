@@ -20,9 +20,8 @@ export async function GET(req: Request) {
 
     try {
         const cronSecret = process.env.ADS_OUTBOX_CRON_SECRET
-        if (cronSecret) {
-            const headerSecret = req.headers.get('x-ads-outbox-secret')
-            if (headerSecret !== cronSecret) return unauthorized(logger.requestId)
+        if (!cronSecret || req.headers.get('x-ads-outbox-secret') !== cronSecret) {
+            return unauthorized(logger.requestId)
         }
 
         const supabase = createAdminClient()

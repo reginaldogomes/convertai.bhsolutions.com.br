@@ -1,5 +1,13 @@
 import { google } from '@ai-sdk/google'
 
+/**
+ * Em desenvolvimento (DEV_MOCK_INTEGRATIONS=true), limita a saída dos modelos
+ * a 512 tokens para reduzir custos da API Gemini.
+ * Em produção, usa undefined (sem limite explícito, cada rota define o seu).
+ */
+export const DEV_AI_MAX_TOKENS: number | undefined =
+    process.env.DEV_MOCK_INTEGRATIONS === 'true' ? 512 : undefined
+
 // Default text models now use Gemini to avoid OpenAI key dependency.
 export const agentModel = google('gemini-2.5-flash')
 export const powerModel = google('gemini-2.5-pro')

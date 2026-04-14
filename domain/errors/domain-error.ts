@@ -37,3 +37,27 @@ export class ValidationError extends DomainError {
         super(message, 'VALIDATION_ERROR')
     }
 }
+
+export class ConflictError extends DomainError {
+    constructor(message = 'Já existe um registro com esses dados') {
+        super(message, 'CONFLICT')
+    }
+}
+
+export class LimitExceededError extends DomainError {
+    constructor(resource = 'recurso') {
+        super(`Limite de ${resource} do plano atingido`, 'LIMIT_EXCEEDED')
+    }
+}
+
+export class InsufficientCreditsError extends DomainError {
+    constructor() {
+        super('Créditos insuficientes para realizar esta operação', 'INSUFFICIENT_CREDITS')
+    }
+}
+
+export class ExternalServiceError extends DomainError {
+    constructor(service = 'serviço externo') {
+        super(`Falha ao comunicar com ${service}`, 'EXTERNAL_SERVICE')
+    }
+}

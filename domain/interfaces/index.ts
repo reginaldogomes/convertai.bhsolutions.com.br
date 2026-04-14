@@ -14,3 +14,6 @@ export type { IAnalyticsRepository, TrackEventInput, PageAnalyticsSummary } from
 export type { IInstagramContentRepository, IInstagramAccountRepository, IInstagramService, IInstagramAutoConfigRepository, CreateInstagramContentInput, UpdateInstagramContentInput } from './instagram-repository'
 export type { IRagService } from './rag-service'
 export type { IProductRepository, CreateProductInput, UpdateProductInput } from './product-repository'
+export type { ICampaignRecipientRepository, CreateCampaignRecipientInput } from './campaign-recipient-repository'
+export type { IPlanRepository } from './plan-repository'
+export type { ISubscriptionRepository, ICreditRepository, CreateSubscriptionInput, UpdateSubscriptionInput } from './subscription-repository'

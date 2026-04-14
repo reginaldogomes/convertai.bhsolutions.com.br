@@ -8,7 +8,7 @@ function unauthorized(requestId: string) {
 
 function authorize(req: Request): boolean {
     const secret = process.env.AUTOMATION_QUEUE_CRON_SECRET
-    if (!secret) return true
+    if (!secret) return false // fail-closed: deny if secret not configured
 
     const headerSecret = req.headers.get('x-automation-queue-secret')
     if (headerSecret === secret) return true

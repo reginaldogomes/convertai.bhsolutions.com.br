@@ -1,5 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { TriangleAlert } from 'lucide-react'
+
 export default function DashboardError({
     error,
     reset,
@@ -7,20 +11,30 @@ export default function DashboardError({
     error: Error & { digest?: string }
     reset: () => void
 }) {
+    useEffect(() => { console.error(error) }, [error])
+
+    // Em produção o Next.js sanitiza error.message de erros de servidor.
+    // Exibimos a mensagem apenas quando ela é claramente voltada ao usuário
+    // (erros de domínio chegam via Error boundary com mensagem já traduzida).
+    const safeMessage = error.message && !error.message.startsWith('An error occurred')
+        ? error.message
+        : 'Ocorreu um erro inesperado.'
+
     return (
         <div className="flex-1 flex items-center justify-center p-10">
             <div className="text-center space-y-4 max-w-md">
                 <div className="w-12 h-12 bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto rounded-(--radius)">
-                    <span className="text-destructive text-xl">!</span>
+                    <TriangleAlert className="w-5 h-5 text-destructive" />
                 </div>
                 <h2 className="text-foreground text-lg font-bold">Algo deu errado</h2>
-                <p className="text-muted-foreground text-sm">{error.message || 'Ocorreu um erro inesperado.'}</p>
-                <button
+                <p className="text-muted-foreground text-sm">{safeMessage}</p>
+                <Button
                     onClick={reset}
-                    className="bg-primary hover:bg-[hsl(var(--primary-hover))] text-white px-6 h-9 font-bold uppercase tracking-wider text-xs transition-colors rounded-(--radius)"
+                    variant="outline"
+                    className="h-9 px-5 text-xs font-bold uppercase tracking-wider"
                 >
                     Tentar Novamente
-                </button>
+                </Button>
             </div>
         </div>
     )

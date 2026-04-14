@@ -58,14 +58,29 @@ export default async function CampaignsPage() {
 
                             <div className="flex items-center gap-8">
                                 <div className="flex gap-6">
-                                    <div>
-                                        <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Abertura</p>
-                                        <p className="text-foreground-secondary text-sm font-mono-data">{campaign.metrics.open_rate}%</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Cliques</p>
-                                        <p className="text-foreground-secondary text-sm font-mono-data">{campaign.metrics.click_rate}%</p>
-                                    </div>
+                                    {campaign.isEmail() ? (
+                                        <>
+                                            <div>
+                                                <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Abertura</p>
+                                                <p className="text-foreground-secondary text-sm font-mono-data">{campaign.metrics.open_rate}%</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Cliques</p>
+                                                <p className="text-foreground-secondary text-sm font-mono-data">{campaign.metrics.click_rate}%</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Enviados</p>
+                                                <p className="text-foreground-secondary text-sm font-mono-data">{campaign.metrics.total_sent}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Falharam</p>
+                                                <p className={`text-sm font-mono-data ${campaign.metrics.total_failed > 0 ? 'text-destructive' : 'text-foreground-secondary'}`}>{campaign.metrics.total_failed}</p>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 {campaign.isSent() ? (

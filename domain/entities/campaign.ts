@@ -51,6 +51,15 @@ export class Campaign {
         return this.status === 'sent'
     }
 
+    isEmail(): boolean { return this.props.channel === 'email' }
+    isWhatsApp(): boolean { return this.props.channel === 'whatsapp' }
+    isSms(): boolean { return this.props.channel === 'sms' }
+
+    channelLabel(): string {
+        const labels: Record<string, string> = { email: 'Email', whatsapp: 'WhatsApp', sms: 'SMS' }
+        return labels[this.props.channel] ?? this.props.channel
+    }
+
     canSend(): boolean {
         if (this.channel === 'email') {
             return this.isDraft() && this.subject.length > 0 && this.body.length > 0

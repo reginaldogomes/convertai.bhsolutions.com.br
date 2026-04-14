@@ -176,6 +176,84 @@ export async function saveKnowledgeBaseProfile(
     try {
         const { orgId } = await getAuthContext()
 
+        const profileType = (safeText(formData.get('profileType'), 10) || 'empresa') as 'empresa' | 'pessoal'
+
+        if (profileType === 'pessoal') {
+            // ── Perfil Pessoal ─────────────────────────────────────────────
+            const bio              = safeText(formData.get('bio'), 5000)
+            const expertise        = safeText(formData.get('expertise'), 800)
+            const audience         = safeText(formData.get('audience'), 1200)
+            const personalValues   = safeText(formData.get('personalValues'), 2000)
+            const communicationStyle = safeText(formData.get('communicationStyle'), 1200)
+            const servicesOffered  = safeText(formData.get('servicesOffered'), 4000)
+            const achievements     = safeText(formData.get('achievements'), 2500)
+            const personalFaq      = safeText(formData.get('personalFaq'), 4000)
+            const customTags       = parseTagList(formData.get('tags'))
+
+            const fields = [bio, expertise, audience, personalValues, communicationStyle, servicesOffered, achievements, personalFaq]
+            if (fields.every((f) => f.length === 0)) {
+                return { error: 'Preencha ao menos um campo para salvar o perfil pessoal.', success: false }
+            }
+
+            const autoTags = [expertise, audience]
+                .flatMap((v) => v.split(/[,;\n]/g))
+                .map((v) => v.trim().toLowerCase())
+                .filter((v) => v.length >= 2)
+            const tags = Array.from(new Set([...customTags, ...autoTags])).slice(0, 24)
+
+            const content = [
+                'PERFIL PESSOAL — PROFISSIONAL / CRIADOR',
+                `Atualizado em: ${new Date().toISOString()}`,
+                '',
+                `Apresentação pessoal (bio):\n${bio || 'Não informado.'}`,
+                '',
+                `Área de especialização:\n${expertise || 'Não informado.'}`,
+                '',
+                `Público / audiência:\n${audience || 'Não informado.'}`,
+                '',
+                `Valores e missão pessoal:\n${personalValues || 'Não informado.'}`,
+                '',
+                `Estilo de comunicação e tom de voz:\n${communicationStyle || 'Não informado.'}`,
+                '',
+                `Serviços, produtos ou conteúdos que ofereço:\n${servicesOffered || 'Não informado.'}`,
+                '',
+                `Conquistas, cases e resultados:\n${achievements || 'Não informado.'}`,
+                '',
+                `Perguntas frequentes sobre mim:\n${personalFaq || 'Não informado.'}`,
+            ].join('\n')
+
+            const result = await useCases.addKnowledgeBase().execute(orgId, {
+                landingPageId: null,
+                title: 'Perfil Pessoal',
+                content,
+            })
+
+            if (!result.ok) return { error: result.error.message, success: false }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const admin = createAdminClient() as any
+            await admin
+                .from('knowledge_base')
+                .update({
+                    metadata_json: {
+                        source: 'settings_knowledge_base',
+                        profileType: 'personal',
+                        tags,
+                        expertise,
+                        audience,
+                        communicationStyle,
+                        updatedAt: new Date().toISOString(),
+                    },
+                })
+                .eq('id', result.value.id)
+                .eq('organization_id', orgId)
+
+            revalidatePath('/settings')
+            revalidatePath('/knowledge-base')
+            return { error: '', success: true }
+        }
+
+        // ── Perfil Empresarial ─────────────────────────────────────────────
         const companySummary = safeText(formData.get('companySummary'), 5000)
         const niche = safeText(formData.get('niche'), 800)
         const targetAudience = safeText(formData.get('targetAudience'), 1200)
@@ -191,17 +269,7 @@ export async function saveKnowledgeBaseProfile(
             .filter((value) => value.length >= 2)
         const tags = Array.from(new Set([...customTags, ...autoTags])).slice(0, 24)
 
-        const fields = [
-            companySummary,
-            niche,
-            targetAudience,
-            culture,
-            brandVoice,
-            productsAndServices,
-            differentiators,
-            objectionsAndFaq,
-        ]
-
+        const fields = [companySummary, niche, targetAudience, culture, brandVoice, productsAndServices, differentiators, objectionsAndFaq]
         if (fields.every((field) => field.length === 0)) {
             return { error: 'Preencha ao menos um campo para salvar na base de conhecimento.', success: false }
         }
@@ -449,18 +517,7 @@ export async function uploadKnowledgeBaseImage(
     }
 }
 
-export const KNOWLEDGE_ENTRY_TYPES = [
-    { value: 'geral',         label: 'Conteúdo Geral' },
-    { value: 'produto',       label: 'Produto / Serviço' },
-    { value: 'faq',           label: 'FAQ / Objeções' },
-    { value: 'processo',      label: 'Processo / Operação' },
-    { value: 'competitivo',   label: 'Diferencial Competitivo' },
-    { value: 'marca',         label: 'Marca / Tom de Voz' },
-    { value: 'politica',      label: 'Política / Contrato' },
-    { value: 'case',          label: 'Case / Resultado' },
-] as const
-
-export type KnowledgeEntryType = typeof KNOWLEDGE_ENTRY_TYPES[number]['value']
+export type { KnowledgeEntryType } from '@/lib/knowledge-base-constants'
 
 export async function saveKnowledgeBaseEntry(
     _prevState: { error: string; success: boolean },

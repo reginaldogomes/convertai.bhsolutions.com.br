@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SettingsTabs } from './settings-tabs'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Subscription, CreditPack, CreditTransaction } from '@/domain/entities'
 
 type AiGovernanceView = {
     available: boolean
@@ -160,6 +161,25 @@ export default async function SettingsPage() {
     const aiUsageEvents = auth ? await loadAiUsageEvents(auth.orgId) : []
     const knowledgeEntryCount = auth ? await loadKnowledgeEntryCount(auth.orgId) : 0
 
+    let subscription: Subscription | null = null
+    let creditPacks: CreditPack[] = []
+    let creditTransactions: CreditTransaction[] = []
+
+    if (auth) {
+        try {
+            const [subResult, packsResult, txResult] = await Promise.all([
+                useCases.getSubscription().execute(auth.orgId),
+                useCases.getCreditPacks().execute(),
+                useCases.getCreditTransactions().execute(auth.orgId, 50),
+            ])
+            if (subResult.ok) subscription = subResult.value
+            if (packsResult.ok) creditPacks = packsResult.value
+            if (txResult.ok) creditTransactions = txResult.value
+        } catch {
+            // tabelas podem não existir ainda — ignore
+        }
+    }
+
     const integrations = {
         sendgrid: !!process.env.SENDGRID_API_KEY,
         twilioWhatsapp: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_WHATSAPP_NUMBER),
@@ -176,6 +196,9 @@ export default async function SettingsPage() {
                 aiGovernance={aiGovernance}
                 aiUsageEvents={aiUsageEvents}
                 knowledgeEntryCount={knowledgeEntryCount}
+                subscription={subscription}
+                creditPacks={creditPacks}
+                creditTransactions={creditTransactions}
             />
         </div>
     )

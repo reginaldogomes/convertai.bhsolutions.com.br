@@ -1,5 +1,5 @@
 import { streamText } from 'ai'
-import { geminiModel } from '@/lib/ai'
+import { geminiModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { instagramAutoConfigRepo } from '@/application/services/container'
 import { z } from 'zod'
@@ -90,6 +90,7 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: geminiModel,
+            maxTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um estrategista de conteúdo para Instagram especializado em ${config.niche}.
 Crie conteúdo que combina estratégia de crescimento com a identidade da marca.
 Idioma: ${config.language}.`,

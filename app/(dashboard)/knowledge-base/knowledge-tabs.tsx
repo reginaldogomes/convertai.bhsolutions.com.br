@@ -17,8 +17,9 @@ import {
     updateKnowledgeBaseEntry,
     deleteKnowledgeBaseEntry,
     uploadKnowledgeBaseImage,
-    KNOWLEDGE_ENTRY_TYPES,
 } from '@/actions/organization'
+import { KNOWLEDGE_ENTRY_TYPES, PROFILE_TYPES } from '@/lib/knowledge-base-constants'
+import type { ProfileType } from '@/lib/knowledge-base-constants'
 import type { KnowledgeEntryView } from './page'
 
 // ─── Entry type config ─────────────────────────────────────────────────────
@@ -426,7 +427,10 @@ function EntriesTab({ entries }: { entries: KnowledgeEntryView[] }) {
 
 function ProfileTab() {
     const [state, action, pending] = useActionState(saveKnowledgeBaseProfile, { error: '', success: false })
+    const [profileType, setProfileType] = useState<ProfileType>('empresa')
     const inputCls = 'bg-[hsl(var(--background-tertiary))] border-border text-foreground'
+
+    const currentProfile = PROFILE_TYPES.find((p) => p.value === profileType)!
 
     return (
         <div className="space-y-6">
@@ -436,63 +440,133 @@ function ProfileTab() {
                         <Sparkles className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-foreground font-bold tracking-tight">Perfil Estratégico da Empresa</h2>
+                        <h2 className="text-foreground font-bold tracking-tight">Perfil Estratégico</h2>
                         <p className="text-muted-foreground text-sm mt-0.5">
                             Contexto estruturado que a IA usa para gerar landing pages, campanhas, respostas do chatbot e SEO.
                         </p>
                     </div>
                 </div>
 
+                {/* Profile type toggle */}
+                <div className="flex gap-2 mb-6 p-1 bg-[hsl(var(--background-tertiary))] rounded-(--radius) w-fit">
+                    {PROFILE_TYPES.map((p) => (
+                        <button
+                            key={p.value}
+                            type="button"
+                            onClick={() => setProfileType(p.value)}
+                            className={`px-4 py-1.5 rounded-[calc(var(--radius)-2px)] text-xs font-bold uppercase tracking-wider transition-colors ${
+                                profileType === p.value
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            {p.label}
+                        </button>
+                    ))}
+                </div>
+                <p className="text-muted-foreground text-xs mb-6 -mt-3">{currentProfile.description}</p>
+
                 {state.success && <InlineNotice variant="success" message="Perfil salvo na base de conhecimento com sucesso." className="mb-4" size="sm" />}
                 {state.error   && <InlineNotice variant="destructive" message={state.error} className="mb-4" size="sm" />}
 
                 <form action={action} className="space-y-5">
-                    <div className="space-y-1.5">
-                        <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Resumo da Empresa</Label>
-                        <Textarea name="companySummary" rows={4} placeholder="Quem é a empresa, história, proposta de valor principal..." className={inputCls} />
-                    </div>
+                    <input type="hidden" name="profileType" value={profileType} />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Nicho de Atuação</Label>
-                            <Textarea name="niche" rows={3} placeholder="Ex: consultoria de IA para e-commerce, SaaS B2B..." className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Público-alvo / Persona</Label>
-                            <Textarea name="targetAudience" rows={3} placeholder="Persona, segmento, momento de compra, dores..." className={inputCls} />
-                        </div>
-                    </div>
+                    {profileType === 'empresa' ? (
+                        <>
+                            <div className="space-y-1.5">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Resumo da Empresa</Label>
+                                <Textarea name="companySummary" rows={4} placeholder="Quem é a empresa, história, proposta de valor principal..." className={inputCls} />
+                            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Cultura e Valores</Label>
-                            <Textarea name="culture" rows={3} placeholder="Princípios, estilo de atendimento, posicionamento ético..." className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tom de Voz da Marca</Label>
-                            <Textarea name="brandVoice" rows={3} placeholder="Ex: consultivo, direto, premium, didático, informal..." className={inputCls} />
-                        </div>
-                    </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Nicho de Atuação</Label>
+                                    <Textarea name="niche" rows={3} placeholder="Ex: consultoria de IA para e-commerce, SaaS B2B..." className={inputCls} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Público-alvo / Persona</Label>
+                                    <Textarea name="targetAudience" rows={3} placeholder="Persona, segmento, momento de compra, dores..." className={inputCls} />
+                                </div>
+                            </div>
 
-                    <div className="space-y-1.5">
-                        <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Produtos e Serviços Oferecidos</Label>
-                        <Textarea name="productsAndServices" rows={5} placeholder="Detalhe ofertas, pacotes, entregáveis, faixas de preço, diferenças entre planos..." className={inputCls} />
-                    </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Cultura e Valores</Label>
+                                    <Textarea name="culture" rows={3} placeholder="Princípios, estilo de atendimento, posicionamento ético..." className={inputCls} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tom de Voz da Marca</Label>
+                                    <Textarea name="brandVoice" rows={3} placeholder="Ex: consultivo, direto, premium, didático, informal..." className={inputCls} />
+                                </div>
+                            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Diferenciais Competitivos</Label>
-                            <Textarea name="differentiators" rows={4} placeholder="O que torna sua empresa única frente aos concorrentes..." className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Objeções Comuns e Respostas</Label>
-                            <Textarea name="objectionsAndFaq" rows={4} placeholder="Dúvidas recorrentes, objeções comerciais e como responder..." className={inputCls} />
-                        </div>
-                    </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Produtos e Serviços Oferecidos</Label>
+                                <Textarea name="productsAndServices" rows={5} placeholder="Detalhe ofertas, pacotes, entregáveis, faixas de preço, diferenças entre planos..." className={inputCls} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Diferenciais Competitivos</Label>
+                                    <Textarea name="differentiators" rows={4} placeholder="O que torna sua empresa única frente aos concorrentes..." className={inputCls} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Objeções Comuns e Respostas</Label>
+                                    <Textarea name="objectionsAndFaq" rows={4} placeholder="Dúvidas recorrentes, objeções comerciais e como responder..." className={inputCls} />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="space-y-1.5">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Apresentação Pessoal</Label>
+                                <Textarea name="bio" rows={4} placeholder="Quem você é, sua trajetória, o que te motivou, proposta de valor pessoal..." className={inputCls} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Área de Especialização</Label>
+                                    <Textarea name="expertise" rows={3} placeholder="Ex: coach de carreira, criador de conteúdo de finanças, consultor de tráfego..." className={inputCls} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Público / Audiência</Label>
+                                    <Textarea name="audience" rows={3} placeholder="Para quem você cria, quem você atende, persona do seu público..." className={inputCls} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Valores e Missão Pessoal</Label>
+                                    <Textarea name="personalValues" rows={3} placeholder="O que você acredita, sua missão de vida, o impacto que quer gerar..." className={inputCls} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Estilo de Comunicação</Label>
+                                    <Textarea name="communicationStyle" rows={3} placeholder="Ex: direto e prático, inspirador, técnico, descontraído e próximo..." className={inputCls} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Serviços, Produtos ou Conteúdos que Ofereço</Label>
+                                <Textarea name="servicesOffered" rows={5} placeholder="Mentorias, cursos, consultorias, conteúdo gratuito, pacotes, preços..." className={inputCls} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Conquistas e Resultados</Label>
+                                    <Textarea name="achievements" rows={4} placeholder="Cases de sucesso, números, transformações geradas, prêmios, reconhecimentos..." className={inputCls} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Perguntas Frequentes sobre Mim</Label>
+                                    <Textarea name="personalFaq" rows={4} placeholder="Dúvidas que seu público sempre tem sobre você, sua metodologia ou serviços..." className={inputCls} />
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     <div className="space-y-1.5">
                         <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Tags Estratégicas</Label>
-                        <Input name="tags" placeholder="ex: ecommerce, moda, ticket-medio, b2b" className={`${inputCls} h-9`} />
+                        <Input name="tags" placeholder={profileType === 'empresa' ? 'ex: ecommerce, moda, ticket-medio, b2b' : 'ex: coach, finanças, instagram, criador'} className={`${inputCls} h-9`} />
                         <p className="text-xs text-muted-foreground">Separe por vírgula. Estas tags melhoram a recuperação semântica (RAG).</p>
                     </div>
 

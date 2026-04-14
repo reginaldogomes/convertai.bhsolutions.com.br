@@ -8,7 +8,7 @@ function unauthorized(requestId: string) {
 
 function authorize(req: Request): boolean {
     const secret = process.env.CHAT_HEALTH_SECRET
-    if (!secret) return true
+    if (!secret) return false // fail-closed: deny if secret not configured
 
     const headerSecret = req.headers.get('x-chat-health-secret')
     if (headerSecret === secret) return true

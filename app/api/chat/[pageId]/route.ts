@@ -1,5 +1,5 @@
 import { streamText } from 'ai'
-import { agentModel } from '@/lib/ai'
+import { agentModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
 import {
     landingPageRepo,
     chatSessionRepo,
@@ -38,8 +38,16 @@ export async function POST(
             eventId?: string
         }
 
-        if (!message || !visitorId) {
+        if (!message || typeof message !== 'string' || !visitorId || typeof visitorId !== 'string') {
             return Response.json({ error: 'message and visitorId are required', requestId }, { status: 400 })
+        }
+
+        if (message.length > 2000) {
+            return Response.json({ error: 'Mensagem muito longa (máx. 2000 caracteres)', requestId }, { status: 400 })
+        }
+
+        if (visitorId.length > 255) {
+            return Response.json({ error: 'visitorId inválido', requestId }, { status: 400 })
         }
 
         logChatServer('request_received', {
@@ -198,6 +206,7 @@ export async function POST(
         // 8. Stream the response
         const result = await streamText({
             model: agentModel,
+            maxTokens: DEV_AI_MAX_TOKENS,
             system: systemPrompt,
             messages: conversationMessages,
             async onFinish({ text }) {

@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { CREDIT_COSTS } from '@/lib/credits'
 
 const DEFAULT_DAILY_REQUESTS_LIMIT = 120
 const DEFAULT_MONTHLY_BUDGET_CENTS = 3000
@@ -228,6 +229,22 @@ export async function recordAiUsageEvent(ctx: AiGovernanceContext, input: AiUsag
             .upsert(payload, { onConflict: 'organization_id,request_id,route_scope,status' })
         if (error && !isMissingTableError(error)) {
             throw error
+        }
+
+        // Deduct credits on successful AI usage
+        if (input.status === 'success') {
+            try {
+                await supabase.rpc('consume_credits', {
+                    p_org_id: ctx.organizationId,
+                    p_amount: CREDIT_COSTS.AI_GENERATION,
+                    p_type: 'usage_ai',
+                    p_description: `IA: ${ctx.featureKey}`,
+                    p_reference_id: ctx.requestId,
+                    p_created_by: ctx.userId ?? null,
+                })
+            } catch {
+                // Best-effort: não bloquear o fluxo se dedução de crédito falhar
+            }
         }
     } catch {
         // Keep usage tracking best-effort to avoid breaking user flows.

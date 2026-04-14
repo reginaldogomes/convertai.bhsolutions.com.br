@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import { type Result, success, failure, ValidationError, EntityNotFoundError } from '@/domain/errors'
-import type { ICampaignRepository, IContactRepository, IEmailService, IWhatsAppService, ISmsService } from '@/domain/interfaces'
+import type { ICampaignRepository, IContactRepository, IEmailService, IWhatsAppService, ISmsService, ICampaignRecipientRepository, ICreditRepository } from '@/domain/interfaces'
 import { Campaign } from '@/domain/entities'
+import { normalizeBrazilianPhone } from '@/lib/utils'
+import { creditsForCampaign } from '@/lib/credits'
 
 // --- Schemas ---
 
@@ -72,6 +74,8 @@ export class UpdateCampaignUseCase {
 
 // --- Send Campaign ---
 
+const WHATSAPP_CONCURRENCY = 5
+
 export class SendCampaignUseCase {
     constructor(
         private readonly campaignRepo: ICampaignRepository,
@@ -79,6 +83,8 @@ export class SendCampaignUseCase {
         private readonly emailService: IEmailService,
         private readonly whatsAppService: IWhatsAppService,
         private readonly smsService: ISmsService,
+        private readonly recipientRepo: ICampaignRecipientRepository,
+        private readonly creditRepo?: ICreditRepository,
     ) {}
 
     async execute(orgId: string, campaignId: string, options?: { resend?: boolean; tags?: string[] }): Promise<Result<{ sent: number; failed: number }>> {
@@ -105,10 +111,7 @@ export class SendCampaignUseCase {
             }
         }
 
-        // 2. Determine channel (from campaign row or default to email)
-        const channel = (campaign as unknown as { channel?: string }).channel || 'email'
-
-        // 3. Get recipients based on channel
+        const channel = campaign.channel || 'email'
         let result: { sent: number; failed: number }
 
         if (channel === 'email') {
@@ -127,7 +130,19 @@ export class SendCampaignUseCase {
             }))
 
             result = await this.emailService.sendBatch(emails)
-        } else if (channel === 'sms' || channel === 'whatsapp') {
+
+            // Registrar destinatários (status geral — email não retorna SID por destinatário)
+            await this.recipientRepo.bulkCreate(recipients.map((contact, i) => ({
+                campaignId,
+                organizationId: orgId,
+                contactId: contact.id ?? null,
+                contactName: contact.name,
+                recipientAddress: contact.email,
+                status: (i < result.sent ? 'sent' : 'failed') as import('@/types/database').CampaignRecipientStatus,
+                sentAt: new Date().toISOString(),
+            })))
+
+        } else if (channel === 'sms') {
             const recipients = await this.contactRepo.findWithPhoneByOrgId(orgId, tags)
             if (recipients.length === 0) {
                 return failure(new ValidationError('Nenhum contato com telefone encontrado'))
@@ -135,33 +150,97 @@ export class SendCampaignUseCase {
 
             await this.campaignRepo.updateStatus(campaignId, orgId, 'sending')
 
-            const messages = recipients.map(contact => ({
-                to: contact.phone,
-                body: this.personalizeBodyPhone(campaign.body, contact),
-            }))
+            const messages = recipients.flatMap(contact => {
+                const normalizedPhone = normalizeBrazilianPhone(contact.phone)
+                if (!normalizedPhone) return []
+                return [{ to: normalizedPhone, body: this.personalizeBodyPhone(campaign.body, contact) }]
+            })
 
-            if (channel === 'sms') {
-                result = await this.smsService.sendBatch(messages)
-            } else {
-                // WhatsApp — send one by one
-                let sent = 0
-                let failed = 0
-                for (const msg of messages) {
-                    try {
-                        await this.whatsAppService.send(msg)
-                        sent++
-                    } catch (error) {
-                        console.error('[SendCampaign] WhatsApp send failed:', error)
-                        failed++
-                    }
-                }
-                result = { sent, failed }
+            result = await this.smsService.sendBatch(messages)
+
+            await this.recipientRepo.bulkCreate(recipients.map((contact, i) => ({
+                campaignId,
+                organizationId: orgId,
+                contactId: contact.id ?? null,
+                contactName: contact.name,
+                recipientAddress: contact.phone,
+                status: (i < result.sent ? 'sent' : 'failed') as import('@/types/database').CampaignRecipientStatus,
+                sentAt: new Date().toISOString(),
+            })))
+
+        } else if (channel === 'whatsapp') {
+            const recipients = await this.contactRepo.findWithPhoneByOrgId(orgId, tags)
+            if (recipients.length === 0) {
+                return failure(new ValidationError('Nenhum contato com telefone encontrado'))
             }
+
+            await this.campaignRepo.updateStatus(campaignId, orgId, 'sending')
+
+            // Envio paralelo com concorrência limitada
+            const recipientRows: import('@/domain/interfaces').CreateCampaignRecipientInput[] = []
+            let sent = 0
+            let failed = 0
+
+            const sendOne = async (contact: typeof recipients[number]) => {
+                const normalizedPhone = normalizeBrazilianPhone(contact.phone)
+                if (!normalizedPhone) {
+                    failed++
+                    recipientRows.push({
+                        campaignId,
+                        organizationId: orgId,
+                        contactId: contact.id ?? null,
+                        contactName: contact.name,
+                        recipientAddress: contact.phone,
+                        status: 'failed',
+                        errorMessage: `Telefone inválido ou fora do formato aceito: ${contact.phone}`,
+                    })
+                    return
+                }
+                const body = this.personalizeBodyPhone(campaign.body, contact)
+                try {
+                    const sendResult = await this.whatsAppService.send({ to: normalizedPhone, body })
+                    sent++
+                    recipientRows.push({
+                        campaignId,
+                        organizationId: orgId,
+                        contactId: contact.id ?? null,
+                        contactName: contact.name,
+                        recipientAddress: contact.phone,
+                        status: 'sent',
+                        twilioSid: sendResult.sid,
+                        sentAt: new Date().toISOString(),
+                    })
+                } catch (error) {
+                    failed++
+                    const errMsg = error instanceof Error ? error.message : 'Falha no envio'
+                    console.error(`[SendCampaign] WhatsApp failed for ${contact.phone}:`, errMsg)
+                    recipientRows.push({
+                        campaignId,
+                        organizationId: orgId,
+                        contactId: contact.id ?? null,
+                        contactName: contact.name,
+                        recipientAddress: contact.phone,
+                        status: 'failed',
+                        errorMessage: errMsg,
+                    })
+                }
+            }
+
+            // Processar em lotes de WHATSAPP_CONCURRENCY
+            for (let i = 0; i < recipients.length; i += WHATSAPP_CONCURRENCY) {
+                const batch = recipients.slice(i, i + WHATSAPP_CONCURRENCY)
+                await Promise.all(batch.map(sendOne))
+            }
+
+            // Persistir todos os destinatários de uma vez
+            await this.recipientRepo.bulkCreate(recipientRows)
+            result = { sent, failed }
+
         } else {
             return failure(new ValidationError(`Canal inválido: ${channel}`))
         }
 
-        // Update campaign status and metrics
+        // Atualizar status e métricas da campanha
         const previousMetrics = resend ? campaign.metrics : null
         const metrics = {
             total_sent: (previousMetrics?.total_sent ?? 0) + result.sent,
@@ -173,22 +252,38 @@ export class SendCampaignUseCase {
 
         await this.campaignRepo.updateStatus(campaignId, orgId, 'sent', metrics)
 
+        // Deduzir créditos pelos envios realizados (best-effort)
+        if (this.creditRepo && result.sent > 0) {
+            try {
+                const channel = campaign.channel || 'email'
+                const cost = creditsForCampaign(
+                    channel as 'whatsapp' | 'sms' | 'email',
+                    result.sent,
+                )
+                if (cost > 0) {
+                    await this.creditRepo.consume(
+                        orgId,
+                        cost,
+                        channel === 'whatsapp' ? 'usage_whatsapp' : channel === 'sms' ? 'usage_sms' : 'usage_email',
+                        `Campanha: ${campaign.name} (${result.sent} envios)`,
+                        campaignId,
+                    )
+                }
+            } catch {
+                // Best-effort: não bloquear fluxo de campanha se dedução falhar
+            }
+        }
+
         return success(result)
     }
 
-    private personalizeBody(
-        body: string,
-        contact: { name: string; email: string },
-    ): string {
+    private personalizeBody(body: string, contact: { name: string; email: string }): string {
         return body
             .replaceAll('{{nome}}', contact.name)
             .replaceAll('{{email}}', contact.email)
     }
 
-    private personalizeBodyPhone(
-        body: string,
-        contact: { name: string; phone: string },
-    ): string {
+    private personalizeBodyPhone(body: string, contact: { name: string; phone: string }): string {
         return body
             .replaceAll('{{nome}}', contact.name)
             .replaceAll('{{telefone}}', contact.phone)

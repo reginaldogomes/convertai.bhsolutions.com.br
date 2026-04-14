@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { getSiteUrl } from '@/lib/site-url'
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -89,6 +90,33 @@ export async function logout() {
     const supabase = await createClient()
     await supabase.auth.signOut()
     redirect('/login')
+}
+
+export async function loginWithGoogle() {
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${getSiteUrl()}/auth/callback`,
+            queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+    })
+    if (error || !data.url) redirect('/login?error=oauth')
+    redirect(data.url)
+}
+
+export async function getGoogleOAuthUrl(): Promise<{ url: string | null; error: string | null }> {
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${getSiteUrl()}/auth/callback?popup=1`,
+            queryParams: { access_type: 'offline', prompt: 'consent' },
+            skipBrowserRedirect: true,
+        },
+    })
+    if (error || !data.url) return { url: null, error: 'Erro ao iniciar autenticação com Google.' }
+    return { url: data.url, error: null }
 }
 
 export async function forgotPassword(prevState: { error: string; success: boolean }, formData: FormData) {

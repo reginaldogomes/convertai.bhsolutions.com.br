@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { getAuthContext } from '@/infrastructure/auth'
-import { structuredOutputModel } from '@/lib/ai'
+import { structuredOutputModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
 import { ragService, useCases } from '@/application/services/container'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 import type { RagSearchFilters } from '@/domain/interfaces'
@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
             const { object } = await generateObject({
                 model: structuredOutputModel,
                 schema,
+                maxTokens: DEV_AI_MAX_TOKENS,
                 system,
                 prompt,
                 temperature: 0.35,

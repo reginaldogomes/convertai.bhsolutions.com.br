@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { sendCampaign } from '@/actions/campaigns'
 import { toast } from 'sonner'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2, X } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -11,23 +11,46 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'next/navigation'
 
 interface SendCampaignButtonProps {
     campaignId: string
     campaignName: string
     recipientCount: number
+    channel?: string
     disabled?: boolean
 }
 
-export function SendCampaignButton({ campaignId, campaignName, recipientCount, disabled }: SendCampaignButtonProps) {
+export function SendCampaignButton({ campaignId, campaignName, recipientCount, channel = 'email', disabled }: SendCampaignButtonProps) {
     const [open, setOpen] = useState(false)
     const [sending, setSending] = useState(false)
+    const [tagInput, setTagInput] = useState('')
+    const [tags, setTags] = useState<string[]>([])
     const router = useRouter()
+
+    const channelLabel: Record<string, string> = {
+        email: 'email',
+        whatsapp: 'WhatsApp',
+        sms: 'SMS',
+    }
+
+    const addTag = (value: string) => {
+        const trimmed = value.trim()
+        if (trimmed && !tags.includes(trimmed)) {
+            setTags(prev => [...prev, trimmed])
+        }
+        setTagInput('')
+    }
+
+    const removeTag = (tag: string) => {
+        setTags(prev => prev.filter(t => t !== tag))
+    }
 
     const handleSend = async () => {
         setSending(true)
-        const result = await sendCampaign(campaignId)
+        const result = await sendCampaign(campaignId, tags.length > 0 ? tags : undefined)
         setSending(false)
         setOpen(false)
 
@@ -59,14 +82,66 @@ export function SendCampaignButton({ campaignId, campaignName, recipientCount, d
                         <div className="bg-secondary border border-border p-4 space-y-2 rounded-(--radius)">
                             <p className="text-foreground text-sm font-bold">{campaignName}</p>
                             <p className="text-foreground-secondary text-xs">
-                                Será enviada para <span className="text-primary font-bold">{recipientCount}</span> contatos com email cadastrado.
+                                Canal: <span className="text-primary font-bold capitalize">{channelLabel[channel] ?? channel}</span>
+                                {tags.length === 0 && (
+                                    <> · Será enviada para <span className="text-primary font-bold">{recipientCount}</span> contatos com {channel === 'email' ? 'email' : 'telefone'} cadastrado.</>
+                                )}
+                                {tags.length > 0 && (
+                                    <> · Filtrado pelas tags selecionadas abaixo.</>
+                                )}
                             </p>
+                        </div>
+
+                        {/* Filtro por tags */}
+                        <div className="space-y-2">
+                            <p className="text-foreground-secondary text-xs uppercase tracking-wider font-bold">
+                                Filtrar por tags <span className="text-muted-foreground font-normal normal-case">(opcional)</span>
+                            </p>
+                            <div className="flex gap-2">
+                                <Input
+                                    value={tagInput}
+                                    onChange={e => setTagInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' || e.key === ',') {
+                                            e.preventDefault()
+                                            addTag(tagInput)
+                                        }
+                                    }}
+                                    placeholder="Digite uma tag e pressione Enter"
+                                    className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9 text-xs"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addTag(tagInput)}
+                                    className="h-9 text-xs"
+                                    disabled={!tagInput.trim()}
+                                >
+                                    Adicionar
+                                </Button>
+                            </div>
+                            {tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {tags.map(tag => (
+                                        <Badge key={tag} variant="secondary" className="text-xs gap-1 pr-1">
+                                            {tag}
+                                            <button
+                                                onClick={() => removeTag(tag)}
+                                                className="hover:text-destructive transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="bg-[hsl(var(--warning))]/5 border border-[hsl(var(--warning))]/20 p-3 rounded-(--radius)">
                             <p className="text-[hsl(var(--warning))] text-xs font-bold uppercase tracking-wider mb-1">Atenção</p>
                             <p className="text-[hsl(var(--warning))]/80 text-xs">
-                                Esta ação não pode ser desfeita. Os emails serão enviados imediatamente.
+                                Esta ação não pode ser desfeita. As mensagens serão enviadas imediatamente.
                             </p>
                         </div>
 

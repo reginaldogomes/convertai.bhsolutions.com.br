@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { structuredPowerModel } from '@/lib/ai'
+import { structuredPowerModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { createApiRequestLogger, isAuthError, jsonWithRequestId } from '@/lib/api-observability'
 import { enforceAiUsagePolicy, recordAiUsageEvent, estimateCostCents } from '@/lib/ai-governance'
@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
         const { object } = await generateObject({
             model: structuredPowerModel,
             schema: productAISchema,
+            maxTokens: DEV_AI_MAX_TOKENS,
             system: SYSTEM_PROMPT,
             prompt,
             temperature: 0.6,

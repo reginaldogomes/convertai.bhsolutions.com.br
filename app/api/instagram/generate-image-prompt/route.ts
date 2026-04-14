@@ -1,5 +1,5 @@
 import { streamText } from 'ai'
-import { powerModel } from '@/lib/ai'
+import { powerModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
 import { z } from 'zod'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
@@ -76,6 +76,7 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: powerModel,
+            maxTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um especialista em criação de conteúdo visual para Instagram e direção de arte.
 Sua tarefa é gerar prompts detalhados para geração de imagens com IA (como DALL-E, Midjourney ou Gemini).
 

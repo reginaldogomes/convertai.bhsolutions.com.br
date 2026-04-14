@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { useActionState } from 'react'
-import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight } from 'lucide-react'
+import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization } from '@/actions/organization'
+import { BuyCreditsButton } from '@/components/crm/BuyCreditsButton'
+import type { Subscription, CreditPack, CreditTransaction } from '@/domain/entities'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import Link from 'next/link'
 
@@ -53,6 +55,9 @@ interface Props {
         errorCode: string | null
     }>
     knowledgeEntryCount: number
+    subscription: Subscription | null
+    creditPacks: CreditPack[]
+    creditTransactions: CreditTransaction[]
 }
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -74,8 +79,8 @@ function formatCurrencyFromCents(value: number): string {
     })
 }
 
-export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount }: Props) {
-    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai'>('org')
+export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions }: Props) {
+    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan'>('org')
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
     const [aiState, aiAction, aiPending] = useActionState(updateAiGovernancePolicy, { error: '', success: false })
     const [purgeState, purgeAction, purgePending] = useActionState(purgeAiUsageHistory, {
@@ -196,6 +201,15 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                     className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Sparkles className={`w-4 h-4 ${tab === 'ai' ? 'text-primary' : ''}`} /> Governança IA
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'plan' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTab('plan')}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
+                >
+                    <CreditCard className={`w-4 h-4 ${tab === 'plan' ? 'text-primary' : ''}`} /> Plano e Créditos
                 </Button>
             </div>
 
@@ -670,6 +684,178 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                                         <td className="px-3 py-2 text-foreground-secondary whitespace-nowrap">{formatCurrencyFromCents(event.estimatedCostCents)}</td>
                                                         <td className="px-3 py-2 text-foreground-secondary whitespace-nowrap">
                                                             {event.durationMs ? `${event.durationMs}ms` : event.errorCode ? event.errorCode : '—'}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {tab === 'plan' && (
+                    <div className="space-y-6">
+                        {/* Resumo do plano */}
+                        <div className="bg-card border border-border p-6 rounded-(--radius)">
+                            <div className="flex items-start justify-between gap-4 mb-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                        <CreditCard className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-foreground font-bold tracking-tight">Plano Atual</h2>
+                                        <p className="text-muted-foreground text-sm mt-0.5">
+                                            {subscription ? subscription.planName : 'Sem assinatura ativa'}
+                                        </p>
+                                    </div>
+                                </div>
+                                {subscription && (
+                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase ${
+                                        subscription.isActive()
+                                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
+                                            : subscription.isPastDue()
+                                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
+                                                : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+                                    }`}>
+                                        {subscription.statusLabel()}
+                                    </span>
+                                )}
+                            </div>
+
+                            {subscription ? (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div className="p-3 bg-[hsl(var(--background-tertiary))] rounded-(--radius) border border-border">
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Créditos disponíveis</p>
+                                            <p className="text-xl font-bold text-foreground mt-1">{subscription.creditsBalance.toLocaleString('pt-BR')}</p>
+                                        </div>
+                                        <div className="p-3 bg-[hsl(var(--background-tertiary))] rounded-(--radius) border border-border">
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Cota mensal</p>
+                                            <p className="text-xl font-bold text-foreground mt-1">{subscription.monthlyCredits.toLocaleString('pt-BR')}</p>
+                                        </div>
+                                        <div className="p-3 bg-[hsl(var(--background-tertiary))] rounded-(--radius) border border-border">
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Renovação em</p>
+                                            <p className="text-xl font-bold text-foreground mt-1">{subscription.daysUntilRenewal()}d</p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                            <span>Uso de créditos</span>
+                                            <span>{subscription.creditsPercent()}%</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary transition-all"
+                                                style={{ width: `${subscription.creditsPercent()}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground text-sm">Nenhuma assinatura encontrada. Entre em contato com o suporte.</p>
+                            )}
+                        </div>
+
+                        {/* Tabela de custos */}
+                        <div className="bg-card border border-border p-6 rounded-(--radius)">
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                    <Zap className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-foreground font-bold tracking-tight">Custo por Operação</h2>
+                                    <p className="text-muted-foreground text-sm mt-0.5">Créditos consumidos por cada ação na plataforma.</p>
+                                </div>
+                            </div>
+                            <div className="rounded-(--radius) border border-border overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-muted/40">
+                                        <tr>
+                                            <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Operação</th>
+                                            <th className="text-right px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Créditos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[
+                                            { label: 'Geração com IA', cost: 10 },
+                                            { label: 'Envio WhatsApp (por mensagem)', cost: 5 },
+                                            { label: 'Envio SMS (por mensagem)', cost: 2 },
+                                            { label: 'Envio Email (por destinatário)', cost: 1 },
+                                        ].map((row) => (
+                                            <tr key={row.label} className="border-t border-border/60">
+                                                <td className="px-4 py-2.5 text-foreground">{row.label}</td>
+                                                <td className="px-4 py-2.5 text-right font-bold text-primary">{row.cost} cr</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Comprar créditos */}
+                        {creditPacks.length > 0 && (
+                            <div className="bg-card border border-border p-6 rounded-(--radius)">
+                                <div className="flex items-start justify-between gap-4 mb-4">
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                            <TrendingUp className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-foreground font-bold tracking-tight">Pacotes de Créditos</h2>
+                                            <p className="text-muted-foreground text-sm mt-0.5">Adicione créditos avulsos quando precisar.</p>
+                                        </div>
+                                    </div>
+                                    <BuyCreditsButton packs={creditPacks} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Histórico */}
+                        <div className="bg-card border border-border p-6 rounded-(--radius)">
+                            <h2 className="text-foreground font-bold tracking-tight mb-4">Histórico de Créditos</h2>
+                            <div className="rounded-(--radius) border border-border overflow-hidden">
+                                <div className="max-h-96 overflow-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-muted/40 sticky top-0">
+                                            <tr>
+                                                <th className="text-left px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">Data</th>
+                                                <th className="text-left px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">Tipo</th>
+                                                <th className="text-left px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">Descrição</th>
+                                                <th className="text-right px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">Qtd</th>
+                                                <th className="text-right px-3 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">Saldo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {creditTransactions.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Nenhuma transação encontrada.</td>
+                                                </tr>
+                                            ) : (
+                                                creditTransactions.map((tx) => (
+                                                    <tr key={tx.id} className="border-t border-border/60">
+                                                        <td className="px-3 py-2 text-foreground-secondary whitespace-nowrap">
+                                                            {new Date(tx.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold ${
+                                                                tx.isCredit()
+                                                                    ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
+                                                                    : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+                                                            }`}>
+                                                                {tx.typeLabel()}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-foreground-secondary">{tx.description}</td>
+                                                        <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
+                                                            <span className={tx.isCredit() ? 'text-[hsl(var(--success))]' : 'text-destructive'}>
+                                                                {tx.isCredit() ? '+' : ''}{tx.amount.toLocaleString('pt-BR')}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right text-foreground-secondary whitespace-nowrap">
+                                                            {tx.balanceAfter.toLocaleString('pt-BR')}
                                                         </td>
                                                     </tr>
                                                 ))

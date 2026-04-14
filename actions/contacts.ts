@@ -29,9 +29,14 @@ export async function createContact(prevState: { error: string; success: boolean
 }
 
 export async function deleteContact(contactId: string) {
-    const { orgId } = await getAuthContext()
-    const result = await useCases.deleteContact().execute(orgId, contactId)
-    if (!result.ok) throw new Error(result.error.message)
-    revalidatePath('/contacts')
+    try {
+        const { orgId } = await getAuthContext()
+        const result = await useCases.deleteContact().execute(orgId, contactId)
+        if (!result.ok) return { error: getErrorMessage(result.error) }
+        revalidatePath('/contacts')
+    } catch (error) {
+        return { error: getErrorMessage(error) }
+    }
+    // redirect fora do try/catch — lança internamente no Next.js e não deve ser capturado
     redirect('/contacts')
 }

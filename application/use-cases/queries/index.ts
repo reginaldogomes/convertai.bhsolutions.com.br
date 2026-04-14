@@ -1,6 +1,7 @@
-import type { IContactRepository, ICampaignRepository, IDealRepository, IUserRepository, CampaignRow } from '@/domain/interfaces'
-import type { Contact, Deal, Campaign } from '@/domain/entities'
+import type { IContactRepository, ICampaignRepository, IDealRepository, IUserRepository, CampaignRow, ICampaignRecipientRepository } from '@/domain/interfaces'
+import type { Contact, Deal, Campaign, CampaignRecipient } from '@/domain/entities'
 import type { UserProfile, OrganizationDetails } from '@/domain/interfaces'
+import type { CampaignRecipientStatus } from '@/types/database'
 
 // --- List Campaigns (for page) ---
 
@@ -43,3 +44,17 @@ export class ListRecipientsUseCase {
 }
 
 export { UpdateOrganizationUseCase } from './update-organization'
+
+// --- Get Campaign Recipients ---
+
+export class GetCampaignRecipientsUseCase {
+    constructor(private readonly recipientRepo: ICampaignRecipientRepository) {}
+
+    async execute(orgId: string, campaignId: string): Promise<CampaignRecipient[]> {
+        return this.recipientRepo.findByCampaignId(campaignId, orgId)
+    }
+
+    async countByStatus(orgId: string, campaignId: string): Promise<Record<CampaignRecipientStatus, number>> {
+        return this.recipientRepo.countByCampaignAndStatus(campaignId, orgId)
+    }
+}

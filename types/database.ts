@@ -17,6 +17,7 @@ export type PipelineStage =
 export type MessageChannel = 'whatsapp' | 'email' | 'sms'
 export type MessageDirection = 'inbound' | 'outbound'
 export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent'
+export type CampaignRecipientStatus = 'pending' | 'sent' | 'failed' | 'delivered' | 'read'
 export type LandingPageStatus = 'draft' | 'published' | 'archived'
 export type ProductType = 'product' | 'service'
 export type ProductStatus = 'draft' | 'active' | 'archived'
@@ -25,6 +26,18 @@ export type ChatSessionStatus = 'active' | 'lead_captured' | 'closed'
 export type ChatMessageRole = 'user' | 'assistant' | 'system'
 export type AnalyticsEventType = 'view' | 'chat_start' | 'lead_captured' | 'cta_click'
 export type UserRole = 'owner' | 'admin' | 'agent' | 'viewer'
+export type PlanId = 'starter' | 'pro' | 'enterprise'
+export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing'
+export type CreditTransactionType =
+    | 'plan_renewal'
+    | 'purchase'
+    | 'usage_ai'
+    | 'usage_whatsapp'
+    | 'usage_sms'
+    | 'usage_email'
+    | 'admin_grant'
+    | 'admin_deduct'
+    | 'refund'
 
 export interface Database {
     public: {
@@ -35,6 +48,36 @@ export interface Database {
                     name: string
                     email: string | null
                     phone: string | null
+                    website: string | null
+                    address: string | null
+                    city: string | null
+                    state: string | null
+                    zip_code: string | null
+                    country: string | null
+                    logo_url: string | null
+                    description: string | null
+                    credits_balance: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    name: string
+                    email?: string | null
+                    phone?: string | null
+                    website?: string | null
+                    address?: string | null
+                    city?: string | null
+                    state?: string | null
+                    zip_code?: string | null
+                    country?: string | null
+                    logo_url?: string | null
+                    description?: string | null
+                    credits_balance?: number
+                    created_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['organizations']['Insert']>
+                Relationships: []
+            }
                     website: string | null
                     address: string | null
                     city: string | null
@@ -200,6 +243,44 @@ export interface Database {
                 Update: Partial<Database['public']['Tables']['campaigns']['Insert']>
                 Relationships: [
                     { foreignKeyName: 'campaigns_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+            campaign_recipients: {
+                Row: {
+                    id: string
+                    campaign_id: string
+                    organization_id: string
+                    contact_id: string | null
+                    contact_name: string
+                    recipient_address: string
+                    status: CampaignRecipientStatus
+                    twilio_sid: string | null
+                    error_message: string | null
+                    sent_at: string | null
+                    delivered_at: string | null
+                    read_at: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    campaign_id: string
+                    organization_id: string
+                    contact_id?: string | null
+                    contact_name?: string
+                    recipient_address: string
+                    status?: CampaignRecipientStatus
+                    twilio_sid?: string | null
+                    error_message?: string | null
+                    sent_at?: string | null
+                    delivered_at?: string | null
+                    read_at?: string | null
+                    created_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['campaign_recipients']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'campaign_recipients_campaign_id_fkey'; columns: ['campaign_id']; referencedRelation: 'campaigns'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'campaign_recipients_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'campaign_recipients_contact_id_fkey'; columns: ['contact_id']; referencedRelation: 'contacts'; referencedColumns: ['id'] }
                 ]
             }
             automations: {
@@ -661,6 +742,92 @@ export interface Database {
                 Relationships: [
                     { foreignKeyName: 'instagram_auto_configs_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
                 ]
+            }
+            plans: {
+                Row: {
+                    id: PlanId
+                    name: string
+                    description: string
+                    price_brl: number
+                    monthly_credits: number
+                    max_contacts: number
+                    max_landing_pages: number
+                    max_users: number
+                    max_automations: number
+                    features: string[]
+                    is_active: boolean
+                    sort_order: number
+                    updated_at: string
+                }
+                Insert: never
+                Update: never
+                Relationships: []
+            }
+            organization_subscriptions: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    plan_id: PlanId
+                    status: SubscriptionStatus
+                    current_period_start: string
+                    current_period_end: string
+                    cancel_at_period_end: boolean
+                    notes: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    plan_id: PlanId
+                    status?: SubscriptionStatus
+                    current_period_start?: string
+                    current_period_end?: string
+                    cancel_at_period_end?: boolean
+                    notes?: string | null
+                }
+                Update: Partial<Database['public']['Tables']['organization_subscriptions']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'org_subscriptions_org_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+            credit_transactions: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    amount: number
+                    type: CreditTransactionType
+                    description: string
+                    reference_id: string | null
+                    balance_after: number
+                    created_by: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    amount: number
+                    type: CreditTransactionType
+                    description: string
+                    reference_id?: string | null
+                    balance_after: number
+                    created_by?: string | null
+                }
+                Update: never
+                Relationships: []
+            }
+            credit_packs: {
+                Row: {
+                    id: string
+                    name: string
+                    credits: number
+                    price_brl: number
+                    is_active: boolean
+                    sort_order: number
+                }
+                Insert: never
+                Update: never
+                Relationships: []
             }
 
         }

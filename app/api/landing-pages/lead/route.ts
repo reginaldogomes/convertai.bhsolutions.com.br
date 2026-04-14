@@ -7,11 +7,11 @@ import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observabili
 
 const leadSchema = z.object({
     landingPageId: z.string().uuid('Landing page inválida'),
-    name: z.string().min(2, 'Nome obrigatório'),
-    email: z.string().email('Email inválido'),
-    phone: z.string().optional().or(z.literal('')),
-    company: z.string().optional().or(z.literal('')),
-    message: z.string().optional().or(z.literal('')),
+    name: z.string().min(2, 'Nome obrigatório').max(200, 'Nome muito longo'),
+    email: z.string().email('Email inválido').max(254, 'Email muito longo'),
+    phone: z.string().max(30, 'Telefone inválido').optional().or(z.literal('')),
+    company: z.string().max(200, 'Empresa muito longa').optional().or(z.literal('')),
+    message: z.string().max(2000, 'Mensagem muito longa').optional().or(z.literal('')),
     consent: z.literal(true, { error: 'Consentimento obrigatório' }),
 })
 

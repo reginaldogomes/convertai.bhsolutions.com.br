@@ -10,7 +10,9 @@ const analyticsTrackSchema = z.object({
     landingPageId: z.string().uuid(),
     eventType: z.enum(ALLOWED_EVENTS),
     visitorId: z.string().min(1).max(255),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: z.record(z.string().max(100), z.union([z.string().max(1000), z.number(), z.boolean(), z.null()]))
+        .refine(val => JSON.stringify(val).length <= 4096, 'Metadata excede o limite permitido')
+        .optional(),
 })
 
 export async function POST(req: Request) {
