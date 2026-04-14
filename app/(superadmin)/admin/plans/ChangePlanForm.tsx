@@ -4,13 +4,17 @@ import { useActionState } from 'react'
 import { adminChangePlan } from '@/actions/saas'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
-import type { Plan } from '@/domain/entities'
 import type { PlanId } from '@/types/database'
+
+interface PlanOption {
+    id: PlanId
+    name: string
+}
 
 interface ChangePlanFormProps {
     orgId: string
     currentPlanId: PlanId
-    plans: Plan[]
+    plans: PlanOption[]
 }
 
 export function ChangePlanForm({ orgId, currentPlanId, plans }: ChangePlanFormProps) {

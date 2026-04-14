@@ -2,7 +2,7 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/actions/auth'
-import { LayoutDashboard, Building2, Users, Globe, LogOut, ShieldCheck, CreditCard } from 'lucide-react'
+import { LayoutDashboard, Building2, Users, Globe, LogOut, ShieldCheck, CreditCard, UserCog, TrendingUp } from 'lucide-react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Toaster } from '@/components/ui/sonner'
 import { BRAND } from '@/lib/brand'
@@ -13,6 +13,8 @@ const adminNav = [
     { href: '/admin/users', label: 'Usuários', icon: Users },
     { href: '/admin/landing-pages', label: 'Landing Pages', icon: Globe },
     { href: '/admin/plans', label: 'Planos e Créditos', icon: CreditCard },
+    { href: '/admin/pricing', label: 'Precificação', icon: TrendingUp },
+    { href: '/admin/admins', label: 'Administradores', icon: UserCog },
 ]
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {

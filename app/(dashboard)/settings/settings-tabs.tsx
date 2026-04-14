@@ -8,9 +8,39 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization } from '@/actions/organization'
 import { BuyCreditsButton } from '@/components/crm/BuyCreditsButton'
-import type { Subscription, CreditPack, CreditTransaction } from '@/domain/entities'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import Link from 'next/link'
+
+export interface PlainSubscription {
+    planName: string
+    status: string
+    statusLabel: string
+    isActive: boolean
+    isPastDue: boolean
+    creditsBalance: number
+    monthlyCredits: number
+    daysUntilRenewal: number
+    creditsPercent: number
+    currentPeriodEnd: string
+}
+
+export interface PlainCreditPack {
+    id: string
+    name: string
+    credits: number
+    formattedPrice: string
+    costPerCredit: string
+}
+
+export interface PlainCreditTransaction {
+    id: string
+    createdAt: string
+    isCredit: boolean
+    typeLabel: string
+    description: string
+    amount: number
+    balanceAfter: number
+}
 
 interface Props {
     profileWithOrg: {
@@ -55,9 +85,9 @@ interface Props {
         errorCode: string | null
     }>
     knowledgeEntryCount: number
-    subscription: Subscription | null
-    creditPacks: CreditPack[]
-    creditTransactions: CreditTransaction[]
+    subscription: PlainSubscription | null
+    creditPacks: PlainCreditPack[]
+    creditTransactions: PlainCreditTransaction[]
 }
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -713,13 +743,13 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                 </div>
                                 {subscription && (
                                     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase ${
-                                        subscription.isActive()
+                                        subscription.isActive
                                             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
-                                            : subscription.isPastDue()
+                                            : subscription.isPastDue
                                                 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
                                                 : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
                                     }`}>
-                                        {subscription.statusLabel()}
+                                        {subscription.statusLabel}
                                     </span>
                                 )}
                             </div>
@@ -737,19 +767,19 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                         </div>
                                         <div className="p-3 bg-[hsl(var(--background-tertiary))] rounded-(--radius) border border-border">
                                             <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Renovação em</p>
-                                            <p className="text-xl font-bold text-foreground mt-1">{subscription.daysUntilRenewal()}d</p>
+                                            <p className="text-xl font-bold text-foreground mt-1">{subscription.daysUntilRenewal}d</p>
                                         </div>
                                     </div>
 
                                     <div>
                                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                             <span>Uso de créditos</span>
-                                            <span>{subscription.creditsPercent()}%</span>
+                                            <span>{subscription.creditsPercent}%</span>
                                         </div>
                                         <div className="h-2 rounded-full bg-muted overflow-hidden">
                                             <div
                                                 className="h-full bg-primary transition-all"
-                                                style={{ width: `${subscription.creditsPercent()}%` }}
+                                                style={{ width: `${subscription.creditsPercent}%` }}
                                             />
                                         </div>
                                     </div>
@@ -841,17 +871,17 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                                                         </td>
                                                         <td className="px-3 py-2">
                                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold ${
-                                                                tx.isCredit()
+                                                                tx.isCredit
                                                                     ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
                                                                     : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
                                                             }`}>
-                                                                {tx.typeLabel()}
+                                                                {tx.typeLabel}
                                                             </span>
                                                         </td>
                                                         <td className="px-3 py-2 text-foreground-secondary">{tx.description}</td>
                                                         <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
-                                                            <span className={tx.isCredit() ? 'text-[hsl(var(--success))]' : 'text-destructive'}>
-                                                                {tx.isCredit() ? '+' : ''}{tx.amount.toLocaleString('pt-BR')}
+                                                            <span className={tx.isCredit ? 'text-[hsl(var(--success))]' : 'text-destructive'}>
+                                                                {tx.isCredit ? '+' : ''}{tx.amount.toLocaleString('pt-BR')}
                                                             </span>
                                                         </td>
                                                         <td className="px-3 py-2 text-right text-foreground-secondary whitespace-nowrap">

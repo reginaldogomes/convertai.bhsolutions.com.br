@@ -11,10 +11,10 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog'
 import { InlineNotice } from '@/components/ui/inline-notice'
-import type { CreditPack } from '@/domain/entities'
+import type { PlainCreditPack } from '@/app/(dashboard)/settings/settings-tabs'
 
 interface BuyCreditsButtonProps {
-    packs: CreditPack[]
+    packs: PlainCreditPack[]
 }
 
 export function BuyCreditsButton({ packs }: BuyCreditsButtonProps) {
@@ -86,10 +86,10 @@ export function BuyCreditsButton({ packs }: BuyCreditsButtonProps) {
                                 >
                                     <div>
                                         <p className="text-foreground font-semibold text-sm">{pack.name}</p>
-                                        <p className="text-muted-foreground text-xs">{pack.credits.toLocaleString('pt-BR')} créditos · {pack.costPerCredit()}</p>
+                                        <p className="text-muted-foreground text-xs">{pack.credits.toLocaleString('pt-BR')} créditos · {pack.costPerCredit}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-foreground font-bold text-base">{pack.formattedPrice()}</span>
+                                        <span className="text-foreground font-bold text-base">{pack.formattedPrice}</span>
                                         {selected === pack.id && <Check className="w-4 h-4 text-primary" />}
                                     </div>
                                 </button>

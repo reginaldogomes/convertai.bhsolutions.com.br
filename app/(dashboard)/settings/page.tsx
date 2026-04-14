@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SettingsTabs } from './settings-tabs'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Subscription, CreditPack, CreditTransaction } from '@/domain/entities'
+import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction } from './settings-tabs'
 
 type AiGovernanceView = {
     available: boolean
@@ -161,9 +161,9 @@ export default async function SettingsPage() {
     const aiUsageEvents = auth ? await loadAiUsageEvents(auth.orgId) : []
     const knowledgeEntryCount = auth ? await loadKnowledgeEntryCount(auth.orgId) : 0
 
-    let subscription: Subscription | null = null
-    let creditPacks: CreditPack[] = []
-    let creditTransactions: CreditTransaction[] = []
+    let subscription: PlainSubscription | null = null
+    let creditPacks: PlainCreditPack[] = []
+    let creditTransactions: PlainCreditTransaction[] = []
 
     if (auth) {
         try {
@@ -172,9 +172,41 @@ export default async function SettingsPage() {
                 useCases.getCreditPacks().execute(),
                 useCases.getCreditTransactions().execute(auth.orgId, 50),
             ])
-            if (subResult.ok) subscription = subResult.value
-            if (packsResult.ok) creditPacks = packsResult.value
-            if (txResult.ok) creditTransactions = txResult.value
+            if (subResult.ok) {
+                const s = subResult.value
+                subscription = {
+                    planName: s.planName,
+                    status: s.status,
+                    statusLabel: s.statusLabel(),
+                    isActive: s.isActive(),
+                    isPastDue: s.isPastDue(),
+                    creditsBalance: s.creditsBalance,
+                    monthlyCredits: s.monthlyCredits,
+                    daysUntilRenewal: s.daysUntilRenewal(),
+                    creditsPercent: s.creditsPercent(),
+                    currentPeriodEnd: s.currentPeriodEnd,
+                }
+            }
+            if (packsResult.ok) {
+                creditPacks = packsResult.value.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    credits: p.credits,
+                    formattedPrice: p.formattedPrice(),
+                    costPerCredit: p.costPerCredit(),
+                }))
+            }
+            if (txResult.ok) {
+                creditTransactions = txResult.value.map(tx => ({
+                    id: tx.id,
+                    createdAt: tx.createdAt,
+                    isCredit: tx.isCredit(),
+                    typeLabel: tx.typeLabel(),
+                    description: tx.description,
+                    amount: tx.amount,
+                    balanceAfter: tx.balanceAfter,
+                }))
+            }
         } catch {
             // tabelas podem não existir ainda — ignore
         }

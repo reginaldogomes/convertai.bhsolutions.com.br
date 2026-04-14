@@ -6,10 +6,11 @@ import { GrantCreditsButton } from '@/components/crm/GrantCreditsButton'
 import { ChangePlanForm } from './ChangePlanForm'
 
 export default async function AdminPlansPage() {
-    const [{ subscriptions }, { plans }] = await Promise.all([
+    const [{ subscriptions }, { plans: planEntities }] = await Promise.all([
         listAllSubscriptions(),
         getPlans(),
     ])
+    const plans = planEntities.map((p) => ({ id: p.id, name: p.name, priceBrl: p.priceBrl }))
 
     return (
         <div className="p-8 space-y-6">
@@ -31,7 +32,9 @@ export default async function AdminPlansPage() {
                             <div>
                                 <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">{plan.name}</p>
                                 <p className="text-foreground text-2xl font-black">{count}</p>
-                                <p className="text-muted-foreground text-xs">{plan.formattedPrice()}/mês</p>
+                                <p className="text-muted-foreground text-xs">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.priceBrl)}/mês
+                                </p>
                             </div>
                         </div>
                     )

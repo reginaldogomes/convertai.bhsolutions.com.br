@@ -1,8 +1,11 @@
-import { getOrganizationDetail } from '@/actions/admin'
+import { getOrganizationDetail, getOrgAdminData } from '@/actions/admin'
+import { getPlans } from '@/actions/saas'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Building2, ArrowLeft } from 'lucide-react'
+import { Building2, ArrowLeft, CreditCard, Zap, Coins, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { ChangePlanForm } from '../../plans/ChangePlanForm'
+import { GrantCreditsButton } from '@/components/crm/GrantCreditsButton'
 
 const roleColors: Record<string, string> = {
     owner: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
@@ -19,9 +22,22 @@ const statusColors: Record<string, string> = {
 
 export default async function OrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
-    const { org, users, pages } = await getOrganizationDetail(id)
+    const [{ org, users, pages }, adminData, { plans: planEntities }] = await Promise.all([
+        getOrganizationDetail(id),
+        getOrgAdminData(id),
+        getPlans(),
+    ])
+    const plans = planEntities.map((p) => ({ id: p.id, name: p.name }))
 
     if (!org) notFound()
+
+    const statusColor: Record<string, string> = {
+        active:    'bg-green-500/10 text-green-400 border-green-500/30',
+        trialing:  'bg-sky-500/10 text-sky-400 border-sky-500/30',
+        past_due:  'bg-amber-500/10 text-amber-400 border-amber-500/30',
+        canceled:  'bg-red-500/10 text-red-400 border-red-500/30',
+        suspended: 'bg-red-500/10 text-red-400 border-red-500/30',
+    }
 
     return (
         <div className="p-8 space-y-6">
@@ -37,18 +53,73 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ id: 
                 }
             />
 
-            {/* Org info */}
-            <div className="bg-card border border-border rounded-(--radius) p-5 space-y-3 max-w-md">
-                <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Informações</p>
-                <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">ID</span>
-                        <span className="text-foreground font-mono-data text-xs">{org.id}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Org info */}
+                <div className="bg-card border border-border rounded-(--radius) p-5 space-y-3">
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Informações</p>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">ID</span>
+                            <span className="text-foreground font-mono text-xs">{org.id}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Criada em</span>
+                            <span className="text-foreground text-xs">{new Date(org.created_at).toLocaleDateString('pt-BR')}</span>
+                        </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Criada em</span>
-                        <span className="text-foreground text-xs">{new Date(org.created_at).toLocaleDateString('pt-BR')}</span>
+                </div>
+
+                {/* Subscription + credits */}
+                <div className="bg-card border border-border rounded-(--radius) p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium flex items-center gap-1.5">
+                            <CreditCard className="w-3.5 h-3.5" />
+                            Assinatura e Créditos
+                        </p>
+                        <div className="flex items-center gap-2">
+                            {adminData.subscription && (
+                                <ChangePlanForm
+                                    orgId={id}
+                                    currentPlanId={adminData.subscription.planId as import('@/types/database').PlanId}
+                                    plans={plans}
+                                />
+                            )}
+                            <GrantCreditsButton orgId={id} orgName={org.name} />
+                        </div>
                     </div>
+
+                    {adminData.subscription ? (
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" /> Plano</span>
+                                <span className="text-foreground font-semibold">{adminData.subscription.planName}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Status</span>
+                                <span className={`px-2 py-0.5 text-xs font-bold border rounded-(--radius) ${statusColor[adminData.subscription.status] ?? ''}`}>
+                                    {adminData.subscription.status}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1.5"><Coins className="w-3.5 h-3.5" /> Créditos</span>
+                                <span className="text-foreground font-bold">{adminData.creditsBalance.toLocaleString('pt-BR')}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> Renovação</span>
+                                <span className="text-foreground text-xs">
+                                    {new Date(adminData.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <p className="text-muted-foreground text-sm">Sem assinatura ativa.</p>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1.5"><Coins className="w-3.5 h-3.5" /> Créditos</span>
+                                <span className="text-foreground font-bold">{adminData.creditsBalance.toLocaleString('pt-BR')}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

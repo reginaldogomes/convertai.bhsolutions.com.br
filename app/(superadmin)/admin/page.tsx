@@ -1,12 +1,14 @@
 import { getAdminStats, listAllOrganizations } from '@/actions/admin'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { ShieldCheck, Building2, Users, Globe } from 'lucide-react'
+import { ShieldCheck, Building2, Users, Globe, TrendingUp, Zap, Coins } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function AdminPage() {
     const [stats, orgs] = await Promise.all([getAdminStats(), listAllOrganizations()])
 
     const recentOrgs = orgs.slice(0, 8)
+
+    const mrrFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.mrr_brl)
 
     return (
         <div className="p-8 space-y-6">
@@ -16,7 +18,41 @@ export default async function AdminPage() {
                 icon={ShieldCheck}
             />
 
-            {/* Stats */}
+            {/* SaaS KPI row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-green-500/10">
+                        <TrendingUp className="w-5 h-5 text-green-500" />
+                    </span>
+                    <div>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">MRR</p>
+                        <p className="text-foreground text-2xl font-black">{mrrFormatted}</p>
+                        <p className="text-muted-foreground text-[10px]">receita recorrente mensal</p>
+                    </div>
+                </div>
+                <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                        <Zap className="w-5 h-5 text-primary" />
+                    </span>
+                    <div>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Assinaturas Ativas</p>
+                        <p className="text-foreground text-2xl font-black">{stats.active_subscriptions}</p>
+                        <p className="text-muted-foreground text-[10px]">planos pagos ativos</p>
+                    </div>
+                </div>
+                <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500/10">
+                        <Coins className="w-5 h-5 text-amber-500" />
+                    </span>
+                    <div>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Créditos em Circulação</p>
+                        <p className="text-foreground text-2xl font-black">{stats.total_credits_balance.toLocaleString('pt-BR')}</p>
+                        <p className="text-muted-foreground text-[10px]">saldo total das contas</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Account stats row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
                     <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[hsl(var(--primary-subtle))]">
