@@ -38,13 +38,47 @@ export async function GET(req: NextRequest) {
 
     if (existingProfile?.organization_id) return successRedirect()
 
-    // Novo usuário OAuth — provisionar org + perfil
+    // Novo usuário — nome a partir de metadados do convite ou do OAuth
     const name =
         (user.user_metadata?.full_name as string | undefined)?.trim() ||
         (user.user_metadata?.name as string | undefined)?.trim() ||
         user.email?.split('@')[0] ||
         'Usuário'
 
+    // ── Fluxo de convite: usuário foi convidado para uma org existente ──────────
+    const invitedOrgId = user.user_metadata?.invited_org_id as string | undefined
+    const invitedRole  = (user.user_metadata?.invited_role as string | undefined) ?? 'agent'
+
+    if (invitedOrgId) {
+        // Confirmar que a org ainda existe
+        const { data: org } = await admin
+            .from('organizations')
+            .select('id')
+            .eq('id', invitedOrgId)
+            .single()
+
+        if (!org) {
+            console.error('[auth/callback] Org convidada não encontrada:', invitedOrgId)
+            return errorRedirect('invite_org_not_found')
+        }
+
+        const { error: userError } = await admin.from('users').insert({
+            id: user.id,
+            organization_id: invitedOrgId,
+            name,
+            email: user.email ?? '',
+            role: invitedRole,
+        })
+
+        if (userError) {
+            console.error('[auth/callback] Falha ao provisionar usuário convidado:', userError)
+            return errorRedirect('provisioning_failed')
+        }
+
+        return successRedirect()
+    }
+
+    // ── Fluxo padrão: novo usuário cria sua própria organização ───────────────
     const orgName = `${name}'s Workspace`
 
     const { data: org, error: orgError } = await admin

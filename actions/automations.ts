@@ -5,6 +5,7 @@ import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import type { AutomationWorkflow } from '@/domain/interfaces'
 import { getErrorMessage } from './utils'
+import { canDo } from '@/lib/permissions'
 
 export async function createAutomation(
     prevState: { error: string; success: boolean; id?: string },
@@ -75,7 +76,8 @@ export async function toggleAutomation(id: string, active: boolean): Promise<{ s
 
 export async function deleteAutomation(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (!canDo(profile.role, 'deleteAutomation')) return { success: false, error: 'Sem permissão para excluir automações.' }
         await useCases.deleteAutomation().execute(id, orgId)
         revalidatePath('/automations')
         return { success: true }

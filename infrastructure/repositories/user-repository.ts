@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { IUserRepository, UserProfile, OrganizationDetails } from '@/domain/interfaces'
+import { OrgMember } from '@/domain/entities/org-member'
+import type { UserRole } from '@/types/database'
 
 export class SupabaseUserRepository implements IUserRepository {
     async findProfileByUserId(userId: string): Promise<UserProfile | null> {
@@ -69,5 +71,65 @@ export class SupabaseUserRepository implements IUserRepository {
         if (data.orgLogoUrl !== undefined) mapped.logo_url = data.orgLogoUrl
         if (data.orgDescription !== undefined) mapped.description = data.orgDescription
         await supabase.from('organizations').update(mapped).eq('id', orgId)
+    }
+
+    // ─── Gestão de membros ────────────────────────────────────────────────────
+
+    async findMembersByOrgId(orgId: string): Promise<OrgMember[]> {
+        const supabase = createAdminClient()
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, organization_id, name, email, role, avatar_url, created_at')
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: true })
+        if (error) throw error
+        return (data ?? []).map(OrgMember.fromRow)
+    }
+
+    async countMembersByOrgId(orgId: string): Promise<number> {
+        const supabase = createAdminClient()
+        const { count, error } = await supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', orgId)
+        if (error) throw error
+        return count ?? 0
+    }
+
+    async updateMemberRole(orgId: string, userId: string, role: UserRole): Promise<void> {
+        const supabase = createAdminClient()
+        const { error } = await supabase
+            .from('users')
+            .update({ role })
+            .eq('id', userId)
+            .eq('organization_id', orgId)
+        if (error) throw error
+    }
+
+    async removeMember(orgId: string, userId: string): Promise<void> {
+        const supabase = createAdminClient()
+        // Remove da tabela public.users
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', userId)
+            .eq('organization_id', orgId)
+        if (error) throw error
+        // Remove o usuário do Supabase Auth completamente
+        await supabase.auth.admin.deleteUser(userId)
+    }
+
+    async inviteMember(orgId: string, email: string, name: string, role: UserRole): Promise<void> {
+        const supabase = createAdminClient()
+        // inviteUserByEmail envia email com magic link e cria em auth.users
+        // user_metadata será lido pelo callback para provisionar na org correta
+        const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+            data: {
+                invited_org_id: orgId,
+                invited_role: role,
+                full_name: name,
+            },
+        })
+        if (error) throw error
     }
 }

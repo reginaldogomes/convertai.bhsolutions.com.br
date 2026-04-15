@@ -145,3 +145,72 @@ export class ListAllSubscriptionsUseCase {
         return success(list)
     }
 }
+
+// --- Get All Plans (admin, including inactive) ---
+
+export class ListAllPlansAdminUseCase {
+    constructor(private readonly planRepo: IPlanRepository) {}
+
+    async execute(): Promise<Result<Plan[]>> {
+        const plans = await this.planRepo.findAllAdmin()
+        return success(plans)
+    }
+}
+
+// --- Get Plan By ID ---
+
+export class GetPlanByIdUseCase {
+    constructor(private readonly planRepo: IPlanRepository) {}
+
+    async execute(id: string): Promise<Result<Plan | null>> {
+        const plan = await this.planRepo.findById(id as PlanId)
+        return success(plan)
+    }
+}
+
+// --- Upsert Plan (admin) ---
+
+const upsertPlanSchema = z.object({
+    name: z.string().min(2).max(100),
+    description: z.string().max(500).optional().default(''),
+    priceBrl: z.number().min(0),
+    monthlyCredits: z.number().int().min(0),
+    maxContacts: z.number().int().min(-1),
+    maxLandingPages: z.number().int().min(-1),
+    maxUsers: z.number().int().min(-1),
+    maxAutomations: z.number().int().min(-1),
+    features: z.array(z.string()),
+    isActive: z.boolean().default(true),
+    sortOrder: z.number().int().min(0).default(0),
+})
+
+export class UpsertPlanUseCase {
+    constructor(private readonly planRepo: IPlanRepository) {}
+
+    async execute(input: {
+        id?: string
+        name: string
+        description?: string
+        priceBrl: number
+        monthlyCredits: number
+        maxContacts: number
+        maxLandingPages: number
+        maxUsers: number
+        maxAutomations: number
+        features: string[]
+        isActive: boolean
+        sortOrder: number
+    }): Promise<Result<Plan>> {
+        const parsed = upsertPlanSchema.safeParse(input)
+        if (!parsed.success) {
+            return failure(new ValidationError(parsed.error.issues[0]?.message ?? 'Dados inválidos'))
+        }
+
+        const plan = await this.planRepo.upsert({
+            ...(input.id ? { id: input.id } : {}),
+            ...parsed.data,
+        })
+
+        return success(plan)
+    }
+}

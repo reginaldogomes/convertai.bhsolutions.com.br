@@ -15,5 +15,5 @@ export type { IInstagramContentRepository, IInstagramAccountRepository, IInstagr
 export type { IRagService } from './rag-service'
 export type { IProductRepository, CreateProductInput, UpdateProductInput } from './product-repository'
 export type { ICampaignRecipientRepository, CreateCampaignRecipientInput } from './campaign-recipient-repository'
-export type { IPlanRepository } from './plan-repository'
+export type { IPlanRepository, UpsertPlanInput } from './plan-repository'
 export type { ISubscriptionRepository, ICreditRepository, CreateSubscriptionInput, UpdateSubscriptionInput } from './subscription-repository'

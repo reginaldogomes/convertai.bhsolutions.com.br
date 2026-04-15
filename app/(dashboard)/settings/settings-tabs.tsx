@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { useActionState } from 'react'
-import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp } from 'lucide-react'
+import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp, Users, UserPlus, UserMinus, Shield, Crown, Eye, User as UserIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization } from '@/actions/organization'
+import { inviteMember, updateMemberRole, removeMember } from '@/actions/members'
+import { roleBadgeClass, roleLabel, ASSIGNABLE_ROLES } from '@/lib/permissions'
 import { BuyCreditsButton } from '@/components/crm/BuyCreditsButton'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import Link from 'next/link'
@@ -88,6 +90,21 @@ interface Props {
     subscription: PlainSubscription | null
     creditPacks: PlainCreditPack[]
     creditTransactions: PlainCreditTransaction[]
+    members: PlainOrgMember[]
+    currentUserId: string
+    currentRole: string
+}
+
+export interface PlainOrgMember {
+    id: string
+    name: string
+    email: string
+    role: string
+    avatarUrl: string | null
+    createdAt: string
+    initials: string
+    roleLabel: string
+    isOwner: boolean
 }
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -109,8 +126,8 @@ function formatCurrencyFromCents(value: number): string {
     })
 }
 
-export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions }: Props) {
-    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan'>('org')
+export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, currentUserId, currentRole }: Props) {
+    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team'>('org')
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
     const [aiState, aiAction, aiPending] = useActionState(updateAiGovernancePolicy, { error: '', success: false })
     const [purgeState, purgeAction, purgePending] = useActionState(purgeAiUsageHistory, {
@@ -240,6 +257,15 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                     className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <CreditCard className={`w-4 h-4 ${tab === 'plan' ? 'text-primary' : ''}`} /> Plano e Créditos
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'team' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTab('team')}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
+                >
+                    <Users className={`w-4 h-4 ${tab === 'team' ? 'text-primary' : ''}`} /> Equipe
                 </Button>
             </div>
 
@@ -897,6 +923,266 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                         </div>
                     </div>
                 )}
+
+                {tab === 'team' && (
+                    <TeamTab
+                        members={members}
+                        currentUserId={currentUserId}
+                        currentRole={currentRole}
+                    />
+                )}
+            </div>
+        </div>
+    )
+}
+
+// ─── TeamTab component ────────────────────────────────────────────────────────
+
+const ROLE_ICON: Record<string, React.ReactNode> = {
+    owner: <Crown className="w-3 h-3" />,
+    admin: <Shield className="w-3 h-3" />,
+    agent: <UserIcon className="w-3 h-3" />,
+    viewer: <Eye className="w-3 h-3" />,
+}
+
+interface TeamTabProps {
+    members: PlainOrgMember[]
+    currentUserId: string
+    currentRole: string
+}
+
+function TeamTab({ members, currentUserId, currentRole }: TeamTabProps) {
+    const [inviteState, inviteAction, invitePending] = useActionState(inviteMember, { error: '', success: false })
+    const [removeState, removeAction, removePending] = useActionState(removeMember, { error: '', success: false })
+    const [roleState, roleAction, rolePending] = useActionState(updateMemberRole, { error: '', success: false })
+    const [showInvite, setShowInvite] = useState(false)
+    const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
+
+    const canInvite = currentRole === 'owner' || currentRole === 'admin'
+    const canManage = currentRole === 'owner' || currentRole === 'admin'
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-card border border-border p-6 rounded-(--radius)">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <Users className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h2 className="text-foreground font-bold tracking-tight">Membros da Equipe</h2>
+                            <p className="text-muted-foreground text-sm mt-0.5">
+                                {members.length} membro{members.length !== 1 ? 's' : ''} na organização
+                            </p>
+                        </div>
+                    </div>
+                    {canInvite && (
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setShowInvite(v => !v)}
+                            className="h-9 px-4 text-xs font-bold uppercase tracking-wider gap-2 shrink-0"
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            Convidar
+                        </Button>
+                    )}
+                </div>
+
+                {/* Invite form */}
+                {showInvite && canInvite && (
+                    <div className="mb-6 p-4 border border-border rounded-(--radius) bg-[hsl(var(--background-tertiary))]">
+                        <h3 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wider">Convidar por E-mail</h3>
+                        {inviteState.success && (
+                            <InlineNotice variant="success" message="Convite enviado com sucesso! O usuário receberá um e-mail." className="mb-3" size="sm" />
+                        )}
+                        {inviteState.error && (
+                            <InlineNotice variant="destructive" message={inviteState.error} className="mb-3" size="sm" />
+                        )}
+                        <form action={inviteAction} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Nome</Label>
+                                <Input
+                                    name="name"
+                                    placeholder="Nome completo"
+                                    className="bg-background border-border text-foreground h-9 text-sm"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">E-mail</Label>
+                                <Input
+                                    name="email"
+                                    type="email"
+                                    placeholder="email@empresa.com"
+                                    className="bg-background border-border text-foreground h-9 text-sm"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-foreground-secondary text-xs uppercase tracking-wider">Papel</Label>
+                                <div className="flex gap-2">
+                                    <select
+                                        name="role"
+                                        defaultValue="agent"
+                                        className="flex-1 h-9 text-sm border border-border rounded-(--radius) bg-background text-foreground px-3"
+                                    >
+                                        {ASSIGNABLE_ROLES.map(r => (
+                                            <option key={r} value={r}>{roleLabel(r)}</option>
+                                        ))}
+                                    </select>
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        disabled={invitePending}
+                                        className="h-9 px-4 text-xs font-bold uppercase tracking-wider gap-1.5"
+                                    >
+                                        {invitePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                                        Enviar
+                                    </Button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {/* Feedback de remoção / role */}
+                {removeState.error && <InlineNotice variant="destructive" message={removeState.error} className="mb-4" size="sm" />}
+                {roleState.error && <InlineNotice variant="destructive" message={roleState.error} className="mb-4" size="sm" />}
+
+                {/* Members list */}
+                <div className="rounded-(--radius) border border-border overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead className="bg-muted/40">
+                            <tr>
+                                <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Membro</th>
+                                <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">E-mail</th>
+                                <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Papel</th>
+                                {canManage && (
+                                    <th className="text-right px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Ações</th>
+                                )}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {members.map(member => (
+                                <tr key={member.id} className="border-t border-border/60 hover:bg-muted/20 transition-colors">
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            {member.avatarUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span className="text-xs font-bold text-primary">{member.initials}</span>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <p className="font-medium text-foreground leading-none">
+                                                    {member.name}
+                                                    {member.id === currentUserId && (
+                                                        <span className="ml-2 text-xs text-muted-foreground">(você)</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-muted-foreground">{member.email}</td>
+                                    <td className="px-4 py-3">
+                                        {canManage && !member.isOwner && member.id !== currentUserId ? (
+                                            <form action={roleAction} className="inline-flex items-center gap-2">
+                                                <input type="hidden" name="userId" value={member.id} />
+                                                <select
+                                                    name="role"
+                                                    defaultValue={member.role}
+                                                    onChange={e => {
+                                                        // auto-submit on change
+                                                        const form = e.target.closest('form') as HTMLFormElement | null
+                                                        form?.requestSubmit()
+                                                    }}
+                                                    disabled={rolePending}
+                                                    className="h-7 text-xs border border-border rounded-(--radius) bg-background text-foreground px-2"
+                                                >
+                                                    {ASSIGNABLE_ROLES.map(r => (
+                                                        <option key={r} value={r}>{roleLabel(r)}</option>
+                                                    ))}
+                                                </select>
+                                            </form>
+                                        ) : (
+                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${roleBadgeClass(member.role)}`}>
+                                                {ROLE_ICON[member.role]}
+                                                {member.roleLabel}
+                                            </span>
+                                        )}
+                                    </td>
+                                    {canManage && (
+                                        <td className="px-4 py-3 text-right">
+                                            {!member.isOwner && member.id !== currentUserId && (
+                                                confirmRemove === member.id ? (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <form action={removeAction}>
+                                                            <input type="hidden" name="userId" value={member.id} />
+                                                            <Button
+                                                                type="submit"
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                disabled={removePending}
+                                                                className="h-7 px-3 text-xs font-bold gap-1"
+                                                            >
+                                                                {removePending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirmar'}
+                                                            </Button>
+                                                        </form>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setConfirmRemove(null)}
+                                                            className="h-7 px-3 text-xs"
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setConfirmRemove(member.id)}
+                                                        className="h-7 px-3 text-xs text-destructive hover:text-destructive gap-1"
+                                                    >
+                                                        <UserMinus className="w-3.5 h-3.5" />
+                                                        Remover
+                                                    </Button>
+                                                )
+                                            )}
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Role legend */}
+            <div className="bg-card border border-border p-6 rounded-(--radius)">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">Níveis de Acesso</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                        { role: 'owner', desc: 'Acesso total, incluindo plano, faturamento e transferência de propriedade.' },
+                        { role: 'admin', desc: 'Gerencia equipe, campanhas, contatos e configurações. Não acessa faturamento.' },
+                        { role: 'agent', desc: 'Cria e edita campanhas, contatos e negocia deals. Não gerencia equipe.' },
+                        { role: 'viewer', desc: 'Acesso somente leitura. Não pode criar ou modificar nada.' },
+                    ].map(({ role, desc }) => (
+                        <div key={role} className="flex items-start gap-3 p-3 rounded-(--radius) bg-[hsl(var(--background-tertiary))] border border-border">
+                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold shrink-0 mt-0.5 ${roleBadgeClass(role)}`}>
+                                {ROLE_ICON[role]}
+                                {roleLabel(role)}
+                            </span>
+                            <p className="text-xs text-muted-foreground">{desc}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     )

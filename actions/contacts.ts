@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { getErrorMessage } from './utils'
+import { canDo } from '@/lib/permissions'
 
 export async function createContact(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
@@ -30,7 +31,8 @@ export async function createContact(prevState: { error: string; success: boolean
 
 export async function deleteContact(contactId: string) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (!canDo(profile.role, 'deleteContact')) return { error: 'Sem permissão para excluir contatos.' }
         const result = await useCases.deleteContact().execute(orgId, contactId)
         if (!result.ok) return { error: getErrorMessage(result.error) }
         revalidatePath('/contacts')

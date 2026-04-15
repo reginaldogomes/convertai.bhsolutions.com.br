@@ -126,3 +126,74 @@ export async function listAllSubscriptions() {
     if (!result.ok) return { subscriptions: [], error: result.error.message }
     return { subscriptions: result.value, error: '' }
 }
+
+// ─── Admin: listar todos os planos (inclui inativos) ────────────────────────
+
+export async function listAllPlansAdmin() {
+    const ctx = await getAuthContext()
+    if (!ctx.isSuperAdmin) return { plans: [], error: 'Acesso negado' }
+
+    const result = await useCases.listAllPlansAdmin().execute()
+    if (!result.ok) return { plans: [], error: result.error.message }
+    return { plans: result.value, error: '' }
+}
+
+// ─── Admin: buscar plano por ID ────────────────────────────────────────────
+
+export async function getPlanById(id: string) {
+    const ctx = await getAuthContext()
+    if (!ctx.isSuperAdmin) return null
+
+    const result = await useCases.getPlanById().execute(id)
+    if (!result.ok) return null
+    return result.value
+}
+
+// ─── Admin: criar ou atualizar plano ────────────────────────────────────────
+
+export async function upsertPlan(prevState: unknown, formData: FormData) {
+    try {
+        const ctx = await getAuthContext()
+        if (!ctx.isSuperAdmin) return { error: 'Acesso negado', success: false }
+
+        const id = formData.get('id') as string | null
+        const name = formData.get('name') as string
+        const description = (formData.get('description') as string) ?? ''
+        const priceBrl = parseFloat(formData.get('priceBrl') as string)
+        const monthlyCredits = parseInt(formData.get('monthlyCredits') as string, 10)
+        const maxContacts = parseInt(formData.get('maxContacts') as string, 10)
+        const maxLandingPages = parseInt(formData.get('maxLandingPages') as string, 10)
+        const maxUsers = parseInt(formData.get('maxUsers') as string, 10)
+        const maxAutomations = parseInt(formData.get('maxAutomations') as string, 10)
+        const sortOrder = parseInt(formData.get('sortOrder') as string, 10) || 0
+        // checkbox: só envia 'on' quando marcado
+        const isActive = formData.get('isActiveCheckbox') === 'on'
+        const featuresRaw = (formData.get('features') as string) ?? ''
+        const features = featuresRaw
+            .split('\n')
+            .map((f) => f.trim())
+            .filter(Boolean)
+
+        const result = await useCases.upsertPlan().execute({
+            ...(id ? { id } : {}),
+            name,
+            description,
+            priceBrl,
+            monthlyCredits,
+            maxContacts,
+            maxLandingPages,
+            maxUsers,
+            maxAutomations,
+            features,
+            isActive,
+            sortOrder,
+        })
+
+        if (!result.ok) return { error: result.error.message, success: false }
+
+        revalidatePath('/admin/plans')
+        return { success: true, error: '', planId: result.value.id }
+    } catch (error) {
+        return { error: getErrorMessage(error), success: false }
+    }
+}

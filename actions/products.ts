@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { getErrorMessage } from './utils'
+import { canDo } from '@/lib/permissions'
 
 export async function createProduct(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
@@ -144,7 +145,8 @@ export async function toggleProductStatus(productId: string, activate: boolean) 
 
 export async function deleteProduct(productId: string) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (!canDo(profile.role, 'deleteProduct')) return { error: 'Sem permissão para excluir produtos.', success: false }
         const result = await useCases.deleteProduct().execute(orgId, productId)
         if (!result.ok) return { error: result.error.message, success: false }
 

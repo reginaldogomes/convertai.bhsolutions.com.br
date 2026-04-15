@@ -82,7 +82,17 @@ import {
     ChangePlanUseCase,
     GrantCreditsUseCase,
     ListAllSubscriptionsUseCase,
+    ListAllPlansAdminUseCase,
+    GetPlanByIdUseCase,
+    UpsertPlanUseCase,
 } from '@/application/use-cases/saas'
+import {
+    ListOrgMembersUseCase,
+    InviteMemberUseCase,
+    UpdateMemberRoleUseCase,
+    RemoveMemberUseCase,
+    TransferOwnershipUseCase,
+} from '@/application/use-cases/members'
 
 // Repository singletons (stateless, safe to reuse)
 const contactRepo = new SupabaseContactRepository()
@@ -206,6 +216,16 @@ export const useCases = {
     changePlan: () => new ChangePlanUseCase(planRepo, subscriptionRepo, creditRepo),
     grantCredits: () => new GrantCreditsUseCase(creditRepo),
     listAllSubscriptions: () => new ListAllSubscriptionsUseCase(subscriptionRepo),
+    listAllPlansAdmin: () => new ListAllPlansAdminUseCase(planRepo),
+    getPlanById: () => new GetPlanByIdUseCase(planRepo),
+    upsertPlan: () => new UpsertPlanUseCase(planRepo),
+
+    // Gestão de membros da organização
+    listOrgMembers: () => new ListOrgMembersUseCase(userRepo),
+    inviteMember: () => new InviteMemberUseCase(userRepo, planRepo),
+    updateMemberRole: () => new UpdateMemberRoleUseCase(userRepo),
+    removeMember: () => new RemoveMemberUseCase(userRepo),
+    transferOwnership: () => new TransferOwnershipUseCase(userRepo),
 } as const
 
 // Export singletons needed by API routes and server actions

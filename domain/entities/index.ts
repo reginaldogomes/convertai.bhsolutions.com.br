@@ -36,3 +36,4 @@ export type {
 export { DEFAULT_SECTION_CONTENT, SECTION_LABELS } from './landing-page-sections'
 export { Plan, type PlanProps } from './plan'
 export { Subscription, CreditPack, CreditTransaction, type SubscriptionProps, type CreditPackProps, type CreditTransactionProps } from './subscription'
+export { OrgMember } from './org-member'

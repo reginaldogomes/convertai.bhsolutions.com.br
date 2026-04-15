@@ -1,39 +1,73 @@
-import { listAllSubscriptions } from '@/actions/saas'
-import { getPlans } from '@/actions/saas'
+import { listAllSubscriptions, listAllPlansAdmin } from '@/actions/saas'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { CreditCard, Zap } from 'lucide-react'
+import { CreditCard, Zap, Plus, Pencil, CheckCircle2, XCircle, Users } from 'lucide-react'
 import { GrantCreditsButton } from '@/components/crm/GrantCreditsButton'
 import { ChangePlanForm } from './ChangePlanForm'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export default async function AdminPlansPage() {
     const [{ subscriptions }, { plans: planEntities }] = await Promise.all([
         listAllSubscriptions(),
-        getPlans(),
+        listAllPlansAdmin(),
     ])
-    const plans = planEntities.map((p) => ({ id: p.id, name: p.name, priceBrl: p.priceBrl }))
+
+    const activePlans = planEntities.filter(p => p.isActive)
+    const totalActiveSubscriptions = subscriptions.filter(s => s.status === 'active' || s.status === 'trialing').length
+    const totalCreditsGranted = subscriptions.reduce((acc, s) => acc + s.creditsBalance, 0)
+
+    const planOptions = activePlans.map((p) => ({ id: p.id, name: p.name, priceBrl: p.priceBrl }))
 
     return (
-        <div className="p-8 space-y-6">
-            <PageHeader
-                category="Super Admin"
-                title="Planos e Créditos"
-                icon={CreditCard}
-            />
+        <div className="p-8 space-y-8">
+            <div className="flex items-start justify-between gap-4">
+                <PageHeader
+                    category="Super Admin"
+                    title="Planos e Créditos"
+                    icon={CreditCard}
+                />
+                <Link href="/admin/plans/edit">
+                    <Button className="h-9 px-5 text-xs font-bold uppercase tracking-wider gap-2 shrink-0">
+                        <Plus className="w-4 h-4" />
+                        Novo Plano
+                    </Button>
+                </Link>
+            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {plans.map((plan) => {
-                    const count = subscriptions.filter(s => s.planId === plan.id && s.status === 'active').length
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
+                        <CreditCard className="w-5 h-5 text-primary" />
+                    </span>
+                    <div>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Planos Ativos</p>
+                        <p className="text-foreground text-2xl font-black">{activePlans.length}</p>
+                        <p className="text-muted-foreground text-xs">{planEntities.length - activePlans.length} inativos</p>
+                    </div>
+                </div>
+                <div className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
+                        <Users className="w-5 h-5 text-primary" />
+                    </span>
+                    <div>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">Assinaturas Ativas</p>
+                        <p className="text-foreground text-2xl font-black">{totalActiveSubscriptions}</p>
+                        <p className="text-muted-foreground text-xs">{subscriptions.length} total</p>
+                    </div>
+                </div>
+                {activePlans.slice(0, 2).map((plan) => {
+                    const count = subscriptions.filter(s => s.planId === plan.id && (s.status === 'active' || s.status === 'trialing')).length
                     return (
                         <div key={plan.id} className="bg-card border border-border rounded-(--radius) p-5 flex items-center gap-4">
-                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
                                 <Zap className="w-5 h-5 text-primary" />
                             </span>
                             <div>
                                 <p className="text-muted-foreground text-xs uppercase tracking-wider font-medium">{plan.name}</p>
                                 <p className="text-foreground text-2xl font-black">{count}</p>
                                 <p className="text-muted-foreground text-xs">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.priceBrl)}/mês
+                                    {plan.formattedPrice()}/mês · {plan.monthlyCredits.toLocaleString('pt-BR')} créditos
                                 </p>
                             </div>
                         </div>
@@ -41,10 +75,94 @@ export default async function AdminPlansPage() {
                 })}
             </div>
 
-            {/* All subscriptions */}
+            {/* Gestão de Planos */}
             <div className="bg-card border border-border rounded-(--radius)">
-                <div className="px-5 py-3 border-b border-border">
+                <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                    <div>
+                        <p className="text-foreground text-sm font-semibold">Gestão de Planos</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Crie e edite os planos disponíveis na plataforma.</p>
+                    </div>
+                    <Link href="/admin/plans/edit">
+                        <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-wider gap-1.5">
+                            <Plus className="w-3.5 h-3.5" /> Novo Plano
+                        </Button>
+                    </Link>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-border">
+                                <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Plano</th>
+                                <th className="text-left px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Preço</th>
+                                <th className="text-right px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Créditos/mês</th>
+                                <th className="text-right px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Contatos</th>
+                                <th className="text-right px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Assinantes</th>
+                                <th className="text-center px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Status</th>
+                                <th className="text-right px-5 py-3 text-muted-foreground text-xs uppercase tracking-wider font-medium">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {planEntities.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">
+                                        Nenhum plano cadastrado.
+                                    </td>
+                                </tr>
+                            ) : (
+                                planEntities.map((plan) => {
+                                    const subscribers = subscriptions.filter(s => s.planId === plan.id && (s.status === 'active' || s.status === 'trialing')).length
+                                    return (
+                                        <tr key={plan.id} className="border-b border-border/60 hover:bg-muted/20">
+                                            <td className="px-5 py-3">
+                                                <p className="text-foreground font-semibold">{plan.name}</p>
+                                                {plan.description && (
+                                                    <p className="text-muted-foreground text-xs mt-0.5">{plan.description}</p>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-3 text-foreground font-medium">
+                                                {plan.formattedPrice()}<span className="text-muted-foreground font-normal">/mês</span>
+                                            </td>
+                                            <td className="px-5 py-3 text-right font-bold text-foreground">
+                                                {plan.monthlyCredits.toLocaleString('pt-BR')}
+                                            </td>
+                                            <td className="px-5 py-3 text-right text-foreground-secondary">
+                                                {plan.maxContacts === -1 ? '∞' : plan.maxContacts.toLocaleString('pt-BR')}
+                                            </td>
+                                            <td className="px-5 py-3 text-right text-foreground-secondary font-medium">
+                                                {subscribers}
+                                            </td>
+                                            <td className="px-5 py-3 text-center">
+                                                {plan.isActive ? (
+                                                    <span className="inline-flex items-center gap-1 text-[hsl(var(--success))] text-xs font-bold uppercase">
+                                                        <CheckCircle2 className="w-3.5 h-3.5" /> Ativo
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-muted-foreground text-xs font-bold uppercase">
+                                                        <XCircle className="w-3.5 h-3.5" /> Inativo
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-3 text-right">
+                                                <Link href={`/admin/plans/edit?id=${plan.id}`}>
+                                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1.5">
+                                                        <Pencil className="w-3.5 h-3.5" /> Editar
+                                                    </Button>
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Assinaturas */}
+            <div className="bg-card border border-border rounded-(--radius)">
+                <div className="px-5 py-4 border-b border-border">
                     <p className="text-foreground text-sm font-semibold">Assinaturas ({subscriptions.length})</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">Saldo total em créditos: {totalCreditsGranted.toLocaleString('pt-BR')}</p>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -89,7 +207,7 @@ export default async function AdminPlansPage() {
                                         </td>
                                         <td className="px-5 py-3">
                                             <div className="flex items-center justify-end gap-2">
-                                                <ChangePlanForm orgId={sub.orgId} currentPlanId={sub.planId} plans={plans} />
+                                                <ChangePlanForm orgId={sub.orgId} currentPlanId={sub.planId} plans={planOptions} />
                                                 <GrantCreditsButton orgId={sub.orgId} orgName={sub.orgName} />
                                             </div>
                                         </td>

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SettingsTabs } from './settings-tabs'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction } from './settings-tabs'
+import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction, PlainOrgMember } from './settings-tabs'
 
 type AiGovernanceView = {
     available: boolean
@@ -164,13 +164,15 @@ export default async function SettingsPage() {
     let subscription: PlainSubscription | null = null
     let creditPacks: PlainCreditPack[] = []
     let creditTransactions: PlainCreditTransaction[] = []
+    let members: PlainOrgMember[] = []
 
     if (auth) {
         try {
-            const [subResult, packsResult, txResult] = await Promise.all([
+            const [subResult, packsResult, txResult, membersResult] = await Promise.all([
                 useCases.getSubscription().execute(auth.orgId),
                 useCases.getCreditPacks().execute(),
                 useCases.getCreditTransactions().execute(auth.orgId, 50),
+                useCases.listOrgMembers().execute(auth.orgId),
             ])
             if (subResult.ok) {
                 const s = subResult.value
@@ -207,6 +209,19 @@ export default async function SettingsPage() {
                     balanceAfter: tx.balanceAfter,
                 }))
             }
+            if (membersResult.ok) {
+                members = membersResult.value.map(m => ({
+                    id: m.id,
+                    name: m.name,
+                    email: m.email,
+                    role: m.role,
+                    avatarUrl: m.avatarUrl,
+                    createdAt: m.createdAt,
+                    initials: m.initials(),
+                    roleLabel: m.roleLabel(),
+                    isOwner: m.isOwner(),
+                }))
+            }
         } catch {
             // tabelas podem não existir ainda — ignore
         }
@@ -231,6 +246,9 @@ export default async function SettingsPage() {
                 subscription={subscription}
                 creditPacks={creditPacks}
                 creditTransactions={creditTransactions}
+                members={members}
+                currentUserId={auth?.userId ?? ''}
+                currentRole={auth?.profile.role ?? 'viewer'}
             />
         </div>
     )

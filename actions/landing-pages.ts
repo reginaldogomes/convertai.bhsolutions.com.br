@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases, ragService } from '@/application/services/container'
 import { getErrorMessage } from './utils'
+import { canDo } from '@/lib/permissions'
 import type { LandingPageSection, SectionType } from '@/domain/entities'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
@@ -582,7 +583,8 @@ export async function syncProductKnowledgeBase(pageId: string) {
 
 export async function deleteLandingPage(pageId: string) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (!canDo(profile.role, 'deleteLandingPage')) return { error: 'Sem permissão para excluir landing pages.', success: false }
         const pageResult = await useCases.getLandingPage().execute(orgId, pageId)
         if (!pageResult.ok) return { error: pageResult.error.message, success: false }
 
