@@ -20,11 +20,10 @@ const PRICE_TYPE_LABELS: Record<string, string> = {
 
 export default async function ProductsPage() {
     const auth = await tryGetAuthContext()
-    const products = auth
+    const allProducts = auth
         ? await useCases.listProducts().execute(auth.orgId)
         : []
-
-    const activeCount = products.filter(p => p.isActive()).length
+    const activeProducts = allProducts.filter(p => p.isActive())
 
     return (
         <div className="p-6 md:p-8 space-y-6">
@@ -34,15 +33,17 @@ export default async function ProductsPage() {
                 icon={Package}
                 actions={
                     <>
-                        <span className="text-muted-foreground text-xs font-mono-data">
-                            {activeCount} ativo{activeCount !== 1 ? 's' : ''} de {products.length}
-                        </span>
+                        {activeProducts.length > 0 && (
+                            <span className="text-muted-foreground text-xs font-mono-data">
+                                {activeProducts.length} ativo{activeProducts.length !== 1 ? 's' : ''}
+                            </span>
+                        )}
                         <CreateProductButton />
                     </>
                 }
             />
 
-            {products.length === 0 ? (
+            {activeProducts.length === 0 ? (
                 <div className="bg-card border border-border rounded-(--radius)">
                     <div className="py-20 px-6 text-center flex flex-col items-center justify-center">
                         <div className="w-14 h-14 rounded-2xl bg-[hsl(var(--primary-subtle))] flex items-center justify-center mb-5">
@@ -70,7 +71,7 @@ export default async function ProductsPage() {
 
                     {/* Rows */}
                     <div className="divide-y divide-border-subtle">
-                        {products.map((product) => {
+                        {activeProducts.map((product) => {
                             const status = STATUS_CONFIG[product.status] ?? STATUS_CONFIG.draft
                             return (
                                 <Link

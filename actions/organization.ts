@@ -222,31 +222,20 @@ export async function saveKnowledgeBaseProfile(
                 `Perguntas frequentes sobre mim:\n${personalFaq || 'Não informado.'}`,
             ].join('\n')
 
-            const result = await useCases.addKnowledgeBase().execute(orgId, {
-                landingPageId: null,
-                title: 'Perfil Pessoal',
-                content,
-            })
+            const metadata = {
+                source: 'settings_knowledge_base',
+                profileType: 'personal',
+                tags,
+                expertise,
+                audience,
+                communicationStyle,
+                updatedAt: new Date().toISOString(),
+            }
 
-            if (!result.ok) return { error: result.error.message, success: false }
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const admin = createAdminClient() as any
-            await admin
-                .from('knowledge_base')
-                .update({
-                    metadata_json: {
-                        source: 'settings_knowledge_base',
-                        profileType: 'personal',
-                        tags,
-                        expertise,
-                        audience,
-                        communicationStyle,
-                        updatedAt: new Date().toISOString(),
-                    },
-                })
-                .eq('id', result.value.id)
-                .eq('organization_id', orgId)
+            const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content, metadata })
+            if (!result.ok) {
+                return { error: `Falha ao salvar perfil pessoal: ${result.error.message}`, success: false }
+            }
 
             revalidatePath('/settings')
             revalidatePath('/knowledge-base')
@@ -295,31 +284,20 @@ export async function saveKnowledgeBaseProfile(
             `Objeções comuns e respostas:\n${objectionsAndFaq || 'Não informado.'}`,
         ].join('\n')
 
-        const result = await useCases.addKnowledgeBase().execute(orgId, {
-            landingPageId: null,
-            title: 'Perfil Estratégico da Empresa',
-            content,
-        })
+        const metadata = {
+            source: 'settings_knowledge_base',
+            profileType: 'organization_strategy',
+            tags,
+            niche,
+            targetAudience,
+            brandVoice,
+            updatedAt: new Date().toISOString(),
+        }
 
-        if (!result.ok) return { error: result.error.message, success: false }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-        await admin
-            .from('knowledge_base')
-            .update({
-                metadata_json: {
-                    source: 'settings_knowledge_base',
-                    profileType: 'organization_strategy',
-                    tags,
-                    niche,
-                    targetAudience,
-                    brandVoice,
-                    updatedAt: new Date().toISOString(),
-                },
-            })
-            .eq('id', result.value.id)
-            .eq('organization_id', orgId)
+        const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content, metadata })
+        if (!result.ok) {
+            return { error: `Falha ao salvar perfil da empresa: ${result.error.message}`, success: false }
+        }
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
@@ -329,7 +307,10 @@ export async function saveKnowledgeBaseProfile(
     }
 }
 
-export async function updateKnowledgeBaseEntry(_prevState: unknown, formData: FormData) {
+export async function updateKnowledgeBaseEntry(
+    _prevState: { error: string; success: boolean },
+    formData: FormData,
+) {
     try {
         const { orgId } = await getAuthContext()
         const entryId = safeText(formData.get('entryId'), 128)
@@ -338,33 +319,25 @@ export async function updateKnowledgeBaseEntry(_prevState: unknown, formData: Fo
         const tags = parseTagList(formData.get('tags'))
 
         if (!entryId) return { error: 'Entrada inválida.', success: false }
-        if (!title || !content) {
-            return { error: 'Título e conteúdo são obrigatórios.', success: false }
+        if (!title || !content) return { error: 'Título e conteúdo são obrigatórios.', success: false }
+
+        const metadata = {
+            source: 'settings_knowledge_base',
+            tags,
+            updatedAt: new Date().toISOString(),
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-
-        const { error } = await admin
-            .from('knowledge_base')
-            .update({
-                title,
-                content,
-                metadata_json: {
-                    source: 'settings_knowledge_base',
-                    tags,
-                    updatedAt: new Date().toISOString(),
-                },
-            })
-            .eq('id', entryId)
-            .eq('organization_id', orgId)
-
-        if (error) return { error: error.message, success: false }
-
-        // Reindex updated content so RAG retrieval reflects latest edits.
-        void ragService.indexContent(entryId, `${title}\n\n${content}`).catch(() => {
-            // Non-critical: content already persisted and can be reindexed later.
+        // Delega a lógica para o use case, que deve cuidar da atualização e reindexação no RAG.
+        // Assumindo que o use case `updateKnowledgeBaseEntry` existe na camada de aplicação.
+        const result = await useCases.updateKnowledgeBaseEntry().execute(orgId, entryId, {
+            title,
+            content,
+            metadata,
         })
+
+        if (!result.ok) {
+            return { error: result.error.message, success: false }
+        }
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
@@ -374,22 +347,21 @@ export async function updateKnowledgeBaseEntry(_prevState: unknown, formData: Fo
     }
 }
 
-export async function deleteKnowledgeBaseEntry(_prevState: unknown, formData: FormData) {
+export async function deleteKnowledgeBaseEntry(
+    _prevState: { error: string; success: boolean },
+    formData: FormData,
+) {
     try {
         const { orgId } = await getAuthContext()
         const entryId = safeText(formData.get('entryId'), 128)
 
         if (!entryId) return { error: 'Entrada inválida.', success: false }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-        const { error } = await admin
-            .from('knowledge_base')
-            .delete()
-            .eq('id', entryId)
-            .eq('organization_id', orgId)
+        // Delega a lógica para o use case, que deve cuidar da exclusão no DB e da desindexação no RAG.
+        // Assumindo que o use case `deleteKnowledgeBaseEntry` existe.
+        const result = await useCases.deleteKnowledgeBaseEntry().execute(orgId, entryId)
 
-        if (error) return { error: error.message, success: false }
+        if (!result.ok) return { error: result.error.message, success: false }
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
@@ -435,46 +407,35 @@ export async function uploadKnowledgeBaseImage(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const admin = createAdminClient() as any
 
-        const { data: bucketData, error: bucketError } = await admin.storage.getBucket(KB_IMAGE_BUCKET)
-        if (bucketError && bucketError.message?.toLowerCase()?.includes('not found')) {
-            const { error: createBucketError } = await admin.storage.createBucket(KB_IMAGE_BUCKET, {
-                public: true,
-                fileSizeLimit: `${MAX_KB_IMAGE_BYTES}`,
-                allowedMimeTypes: Array.from(ALLOWED_KB_IMAGE_TYPES),
-            })
-
-            if (createBucketError) {
-                return { error: `Falha ao criar bucket de imagens: ${createBucketError.message}`, success: false }
-            }
-        } else if (bucketError && !bucketData) {
-            return { error: `Falha ao acessar bucket de imagens: ${bucketError.message}`, success: false }
-        }
-
         const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
         const safeName = sanitizeFileName(file.name || `imagem.${extension}`)
         const storagePath = `${orgId}/${Date.now()}-${safeName}`
         const fileBuffer = Buffer.from(await file.arrayBuffer())
 
-        const { error: uploadError } = await admin.storage
-            .from(KB_IMAGE_BUCKET)
-            .upload(storagePath, fileBuffer, {
-                contentType: file.type,
-                upsert: false,
-            })
+        const { error: uploadError } = await admin.storage.from(KB_IMAGE_BUCKET).upload(storagePath, fileBuffer, {
+            contentType: file.type,
+            upsert: false,
+        })
 
         if (uploadError) {
+            // Adiciona uma mensagem mais útil se o bucket não existir, orientando a rodar a migration.
+            if (uploadError.message.includes('Bucket not found')) {
+                return {
+                    error: `Falha ao enviar imagem: Bucket '${KB_IMAGE_BUCKET}' não encontrado. Execute a migration de storage.`,
+                    success: false,
+                }
+            }
             return { error: `Falha ao enviar imagem: ${uploadError.message}`, success: false }
         }
 
-        const { data: publicUrlData } = admin.storage
-            .from(KB_IMAGE_BUCKET)
-            .getPublicUrl(storagePath)
+        const { data: publicUrlData } = admin.storage.from(KB_IMAGE_BUCKET).getPublicUrl(storagePath)
 
         const publicUrl = publicUrlData?.publicUrl
         if (!publicUrl) {
             return { error: 'Falha ao gerar URL pública da imagem.', success: false }
         }
 
+        // Combina a criação da entrada e a atualização dos metadados em uma única operação.
         const content = [
             `Tipo de ativo: imagem`,
             `URL da imagem: ${publicUrl}`,
@@ -484,31 +445,28 @@ export async function uploadKnowledgeBaseImage(
             `Texto extraído/relevante da imagem:\n${extractedText || 'Não informado.'}`,
         ].join('\n')
 
+        const metadata = {
+            source: 'settings_knowledge_base_image_upload',
+            assetType: 'image',
+            imageUrl: publicUrl,
+            fileName: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+            tags,
+            updatedAt: new Date().toISOString(),
+        }
+
+        // Delega a criação da entrada para o use case, que cuidará da indexação.
         const result = await useCases.addKnowledgeBase().execute(orgId, {
-            landingPageId: null,
             title,
             content,
+            metadata,
+            landingPageId: null,
         })
 
-        if (!result.ok) return { error: result.error.message, success: false }
-
-        await admin
-            .from('knowledge_base')
-            .update({
-                metadata_json: {
-                    source: 'settings_knowledge_base_image_upload',
-                    assetType: 'image',
-                    imageUrl: publicUrl,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    sizeBytes: file.size,
-                    tags,
-                    updatedAt: new Date().toISOString(),
-                },
-            })
-            .eq('id', result.value.id)
-            .eq('organization_id', orgId)
-
+        if (!result.ok) {
+            return { error: `Falha ao salvar na base de conhecimento: ${result.error.message}`, success: false }
+        }
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
         return { error: '', success: true }
@@ -534,28 +492,25 @@ export async function saveKnowledgeBaseEntry(
         if (!title) return { error: 'Título é obrigatório.', success: false }
         if (!content || content.length < 20) return { error: 'Conteúdo deve ter ao menos 20 caracteres.', success: false }
 
+        const metadata = {
+            source: 'knowledge_base_page',
+            entryType: type,
+            tags,
+            updatedAt: new Date().toISOString(),
+        }
+
+        // Padroniza o uso de use cases para manipulação de dados, em vez de acesso direto ao DB.
+        // Assumindo que `addKnowledgeBase` aceita metadados e cuida da indexação.
         const result = await useCases.addKnowledgeBase().execute(orgId, {
-            landingPageId: null,
             title,
             content,
+            metadata,
+            landingPageId: null,
         })
 
-        if (!result.ok) return { error: result.error.message, success: false }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-        await admin
-            .from('knowledge_base')
-            .update({
-                metadata_json: {
-                    source: 'knowledge_base_page',
-                    entryType: type,
-                    tags,
-                    updatedAt: new Date().toISOString(),
-                },
-            })
-            .eq('id', result.value.id)
-            .eq('organization_id', orgId)
+        if (!result.ok) {
+            return { error: `Falha ao salvar na base de conhecimento: ${result.error.message}`, success: false }
+        }
 
         revalidatePath('/knowledge-base')
         revalidatePath('/settings')

@@ -15,6 +15,7 @@ import {
     Check, Palette, FileText, MessageSquare, Zap, LayoutTemplate,
 } from 'lucide-react'
 import { HeroTemplatePicker } from '@/components/crm/HeroTemplatePicker'
+import { DesignSystemPicker } from '@/components/crm/DesignSystemPicker'
 import type { HeroLayoutPreset } from '@/components/crm/HeroTemplatePicker'
 import { DESIGN_PRESETS, DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
@@ -125,11 +126,6 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
     const [headline, setHeadline] = useState('')
     const [subheadline, setSubheadline] = useState('')
-    const [ctaText, setCtaText] = useState('')
-    const [ctaManuallyEdited, setCtaManuallyEdited] = useState(false)
-    const [chatbotName, setChatbotName] = useState('')
-    const [chatbotWelcomeMessage, setChatbotWelcomeMessage] = useState('')
-    const [chatbotSystemPrompt, setChatbotSystemPrompt] = useState('')
     const [heroLayoutPreset, setHeroLayoutPreset] = useState<HeroLayoutPreset>('central')
     const [designSystem, setDesignSystem] = useState<DesignSystem>(DEFAULT_DESIGN_SYSTEM)
     const [pendingDesignSystem, setPendingDesignSystem] = useState<DesignSystem | null>(null)
@@ -138,6 +134,12 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
     const [imageModel, setImageModel] = useState<ImageModelId>('gemini-2.5-flash-image')
 
     const [aiPrompt, setAiPrompt] = useState('')
+    const [chatbotName, setChatbotName] = useState('')
+    const [ctaText, setCtaText] = useState('')
+    const [ctaManuallyEdited, setCtaManuallyEdited] = useState(false)
+    const [chatbotWelcomeMessage, setChatbotWelcomeMessage] = useState('')
+    const [chatbotSystemPrompt, setChatbotSystemPrompt] = useState('')
+
     const { state: generation, reset: resetGeneration, generateSections, isGenerating, hasValidSections } = useGenerateSections()
 
     // Server action
@@ -317,7 +319,6 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
         { label: 'Paleta de cores', done: true },
         { label: 'Seções geradas por IA', done: aiGenerated },
         { label: 'Produto vinculado', done: !!selectedProductId },
-        { label: 'System prompt do bot', done: !!chatbotSystemPrompt.trim() },
     ]
     const readinessScore = readinessItems.filter(i => i.done).length
     const readinessTotal = readinessItems.length
@@ -680,67 +681,7 @@ export function NewLandingPageForm({ products }: NewLandingPageFormProps) {
                         {/* Paleta de Cores */}
                         <div className="space-y-4">
                             <SectionHeader icon={Palette} title="Paleta de Cores" description={aiGenerated ? 'A IA selecionou o tema ideal. Você pode alterar se preferir.' : 'Escolha a paleta visual da landing page.'} />
-
-                            {designSystemAlert && (
-                                <div className={`text-xs rounded-md px-3 py-2 border ${
-                                    hasPendingThemeChange
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                        : 'bg-[hsl(var(--success-subtle))] text-[hsl(var(--success))] border-[hsl(var(--success))]/30'
-                                }`}>
-                                    {designSystemAlert}
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {DESIGN_PRESETS.map((preset) => {
-                                    const isSelected = isSameDesignSystem(designSystem, preset.designSystem)
-                                    const isPending = !!pendingDesignSystem && isSameDesignSystem(pendingDesignSystem, preset.designSystem)
-                                    return (
-                                        <button
-                                            key={preset.id}
-                                            type="button"
-                                            onClick={() => handlePresetSelect(preset.designSystem)}
-                                            className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition-all ${
-                                                isPending
-                                                    ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-300'
-                                                    : isSelected
-                                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                                                    : 'border-border hover:border-primary/30 hover:bg-secondary/50'
-                                            }`}
-                                        >
-                                            <div className="flex gap-1 shrink-0">
-                                                {[preset.designSystem.palette.primary, preset.designSystem.palette.secondary, preset.designSystem.palette.accent].map((color, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className="w-4 h-4 rounded-full border border-white/20"
-                                                        style={{ backgroundColor: color }}
-                                                    />
-                                                ))}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-foreground truncate">{preset.name}</p>
-                                                {isPending && <p className="text-[10px] text-amber-700 mt-0.5">Pendente</p>}
-                                            </div>
-                                            {isSelected && !isPending && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-auto" />}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant={hasPendingThemeChange ? 'default' : 'outline'}
-                                    disabled={!hasPendingThemeChange}
-                                    onClick={applyPendingTheme}
-                                    className="h-9 px-4 text-xs font-semibold"
-                                >
-                                    Aplicar tema
-                                </Button>
-                                {hasPendingThemeChange && (
-                                    <span className="text-xs text-muted-foreground">Existem mudanças de tema pendentes.</span>
-                                )}
-                            </div>
+                            <DesignSystemPicker value={designSystem} onChange={setDesignSystem} />
                         </div>
 
                         {/* Chatbot */}

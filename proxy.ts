@@ -1,8 +1,56 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createAdminClient } from './lib/supabase/admin'
 
 export async function proxy(request: NextRequest) {
-    const pathname = request.nextUrl.pathname
+    const url = request.nextUrl
+    // Use `nextUrl.hostname` para obter o host sem a porta,
+    // evitando loops de redirecionamento em ambiente de desenvolvimento (localhost).
+    // O header 'host' pode incluir a porta (ex: 'localhost:3000'), causando a falha na comparação.
+    const hostname = url.hostname
+    const pathname = url.pathname
+
+    // Domínio principal da aplicação (ex: app.convertai.com.br)
+    const appDomain = new URL(process.env.NEXT_PUBLIC_APP_URL!).hostname
+
+    // Se não for o domínio principal, é um potencial domínio customizado
+    if (hostname !== appDomain) {
+        const admin = createAdminClient()
+        // Lógica atualizada para buscar o site e suas páginas
+        const { data: domainData } = await admin
+            .from('custom_domains')
+            .select('site_id, sites(landing_pages(slug, is_homepage))')
+            .eq('domain', hostname)
+            .eq('status', 'active')
+            .maybeSingle()
+
+        // O Supabase retorna 'sites' como um objeto se for to-one, ou array se for to-many.
+        // Normalizamos para um objeto para segurança.
+        const site = domainData?.sites ? (Array.isArray(domainData.sites) ? domainData.sites[0] : domainData.sites) : null
+
+        if (site && Array.isArray(site.landing_pages)) {
+            let pageToRender: { slug: string } | undefined;
+
+            // Se o caminho for a raiz ('/'), procura a página marcada como homepage.
+            if (pathname === '/') {
+                pageToRender = site.landing_pages.find(p => p.is_homepage);
+            } else {
+                // Para outros caminhos (ex: '/sobre'), procura uma página com esse slug.
+                const requestedSlug = pathname.replace(/^\//, '');
+                pageToRender = site.landing_pages.find(p => p.slug === requestedSlug);
+            }
+
+            if (pageToRender) {
+                // Reescreve a requisição para a rota interna da página pública (`/p/[slug]`),
+                // mantendo a URL do domínio personalizado no navegador do usuário.
+                return NextResponse.rewrite(new URL(`/p/${pageToRender.slug}`, request.url));
+            }
+        }
+
+        // Por segurança, redirecionamos para o app principal.
+        // Futuramente, pode-se exibir uma página 404 customizada do próprio site.
+        return NextResponse.redirect(new URL(process.env.NEXT_PUBLIC_APP_URL!))
+    }
 
     // Public landing routes and APIs must never require dashboard auth.
     const isPublicLandingRoute = pathname.startsWith('/p/')
@@ -11,6 +59,8 @@ export async function proxy(request: NextRequest) {
         pathname === '/api/analytics/track' ||
         pathname === '/api/landing-pages/lead'
 
+    // A lógica abaixo é para o domínio principal da aplicação.
+    // Se a rota for pública, pulamos a verificação de autenticação.
     if (isPublicLandingRoute || isPublicLandingApi) {
         return NextResponse.next({ request })
     }
@@ -80,6 +130,8 @@ export default proxy
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|api/webhooks|p/|api/chat|api/analytics/track|api/landing-pages/lead).*)',
+        // Corresponde a todos os caminhos de requisição, exceto arquivos estáticos, imagens, favicon e webhooks.
+        // O middleware é executado em todas as outras rotas para lidar com domínios personalizados e autenticação.
+        '/((?!_next/static|_next/image|favicon.ico|api/webhooks/).*)',
     ],
 }

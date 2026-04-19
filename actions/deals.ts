@@ -7,17 +7,33 @@ import type { PipelineStage } from '@/types/database'
 import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getErrorMessage } from './utils'
+import { z } from 'zod'
+
+const createDealSchema = z.object({
+    contactId: z.string({ required_error: 'Contato é obrigatório.' }).uuid('ID de contato inválido.'),
+    title: z.string().min(1, 'O título do negócio é obrigatório.'),
+    pipelineStage: z.string().min(1, 'A etapa do funil é obrigatória.'),
+    value: z.coerce.number({ invalid_type_error: 'Valor inválido.' }).min(0, 'O valor não pode ser negativo.').default(0),
+})
 
 export async function createDeal(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
         const { orgId } = await getAuthContext()
 
-        const result = await useCases.createDeal().execute(orgId, {
-            contactId: formData.get('contact_id') as string,
-            title: formData.get('title') as string,
-            pipelineStage: formData.get('pipeline_stage') as string,
-            value: Number(formData.get('value')),
+        const parsed = createDealSchema.safeParse({
+            contactId: formData.get('contact_id'),
+            title: formData.get('title'),
+            pipelineStage: formData.get('pipeline_stage'),
+            value: formData.get('value'),
         })
+
+        if (!parsed.success) {
+            const errorMessage = parsed.error.flatten().fieldErrors
+            const firstError = Object.values(errorMessage).flat()[0] ?? 'Dados de entrada inválidos.'
+            return { error: firstError, success: false }
+        }
+
+        const result = await useCases.createDeal().execute(orgId, parsed.data)
 
         if (!result.ok) return { error: result.error.message, success: false }
 

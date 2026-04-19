@@ -24,6 +24,7 @@ import {
     SupabaseInstagramAutoConfigRepository,
     SupabaseProductRepository,
     SupabasePlanRepository,
+    SupabaseSiteRepository,
     SupabaseSubscriptionRepository,
     SupabaseCreditRepository,
 } from '@/infrastructure/repositories'
@@ -32,6 +33,7 @@ import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase, Del
 import { CreateDealUseCase, MoveDealUseCase, ListDealsUseCase } from '@/application/use-cases/deals'
 import { SendMessageUseCase, ListThreadsUseCase } from '@/application/use-cases/messages'
 import { GetDashboardStatsUseCase } from '@/application/use-cases/dashboard'
+import { CreateSiteUseCase, ListSitesUseCase } from '@/application/use-cases/sites'
 import { CreateCampaignUseCase, UpdateCampaignUseCase, SendCampaignUseCase, GetCampaignUseCase, GetCrmContextUseCase } from '@/application/use-cases/campaigns'
 import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase, UpdateOrganizationUseCase, GetCampaignRecipientsUseCase } from '@/application/use-cases/queries'
 import {
@@ -113,6 +115,7 @@ const campaignRecipientRepo = new SupabaseCampaignRecipientRepository()
 const planRepo = new SupabasePlanRepository()
 const subscriptionRepo = new SupabaseSubscriptionRepository()
 const creditRepo = new SupabaseCreditRepository()
+const siteRepo = new SupabaseSiteRepository()
 
 // Service singletons
 const DEV_MOCK = process.env.DEV_MOCK_INTEGRATIONS === 'true'
@@ -142,6 +145,10 @@ export const useCases = {
     // Messages
     sendMessage: () => new SendMessageUseCase(messageRepo, contactRepo, whatsAppService, emailService, smsService),
     listThreads: () => new ListThreadsUseCase(messageRepo),
+
+    // Sites
+    listSites: () => new ListSitesUseCase(siteRepo),
+    createSite: () => new CreateSiteUseCase(siteRepo),
 
     // Dashboard
     getDashboardStats: () => new GetDashboardStatsUseCase(
@@ -229,4 +236,4 @@ export const useCases = {
 } as const
 
 // Export singletons needed by API routes and server actions
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo, creditRepo, subscriptionRepo, planRepo }
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo, creditRepo, subscriptionRepo, planRepo, siteRepo }

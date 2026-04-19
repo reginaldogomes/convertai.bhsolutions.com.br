@@ -646,3 +646,24 @@ function isColorDark(hex: string): boolean {
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
     return luminance < 0.5
 }
+
+export async function getLandingPagesForSelect() {
+    try {
+        const { orgId } = await getAuthContext()
+        // Em um cenário ideal, isso chamaria um use case.
+        // Para simplicidade, usamos o use case existente de listagem.
+        const result = await useCases.listLandingPages().execute(orgId, {
+            limit: 500, // Limite generoso para um select
+            filters: { status: 'published' },
+        })
+
+        if (!result.ok) {
+            return { pages: [], error: result.error.message }
+        }
+
+        const pages = result.value.pages.map(p => ({ id: p.id, name: p.name }))
+        return { pages, error: null }
+    } catch (error) {
+        return { pages: [], error: getErrorMessage(error) }
+    }
+}

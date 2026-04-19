@@ -92,6 +92,7 @@ export function NewProductForm() {
     // AI state
     const [aiContext, setAiContext] = useState('')
     const [isGenerating, setIsGenerating] = useState(false)
+    const [generatingField, setGeneratingField] = useState<string | null>(null)
     const [aiError, setAiError] = useState('')
     const [aiGenerated, setAiGenerated] = useState(false)
     const lastGenerationSignatureRef = useRef<string | null>(null)
@@ -172,6 +173,48 @@ export function NewProductForm() {
             setIsGenerating(false)
         }
     }, [name, type, aiContext, slugManuallyEdited, aiGenerated])
+
+    const handleGenerateField = useCallback(async (field: string) => {
+        if (!name.trim() || isGenerating || generatingField) return
+
+        setGeneratingField(field)
+        setAiError('')
+
+        try {
+            // This would ideally call a more specific endpoint
+            const res = await fetch('/api/products/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name.trim(),
+                    type,
+                    context: aiContext.trim() || undefined,
+                    targetField: field, // Hypothetical API param
+                }),
+            })
+
+            if (!res.ok) {
+                const apiError = await parseApiError(res, `Erro ${res.status}`)
+                throw new Error(formatErrorWithRequestId(apiError.message, apiError.requestId))
+            }
+
+            const data = await res.json()
+
+            // Update the specific field based on response
+            switch (field) {
+                case 'shortDescription': setShortDescription(data.shortDescription || ''); break
+                case 'fullDescription': setFullDescription(data.fullDescription || ''); break
+                case 'targetAudience': setTargetAudience(data.targetAudience || ''); break
+                case 'differentials': setDifferentials(data.differentials || ''); break
+                case 'tags': setTags((data.tags || []).join(', ')); break
+            }
+        } catch (err) {
+            // Display error inline for field generation
+            setAiError(err instanceof Error ? err.message : `Erro ao gerar campo ${field}`)
+        } finally {
+            setGeneratingField(null)
+        }
+    }, [name, type, aiContext, isGenerating, generatingField])
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -328,18 +371,33 @@ export function NewProductForm() {
                         <div className="space-y-4">
                             <SectionHeader icon={FileText} title="Descrição" description="Textos usados nas landing pages e como contexto para o agente IA." />
                             <div className="space-y-1.5">
-                                <Label htmlFor="shortDescription" className="text-xs font-semibold text-foreground">Descrição Curta</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="shortDescription" className="text-xs font-semibold text-foreground">Descrição Curta</Label>
+                                    <Button type="button" variant="ghost" size="xs" className="h-6 px-1.5 text-muted-foreground hover:text-primary" onClick={() => handleGenerateField('shortDescription')} disabled={isGenerating || !!generatingField}>
+                                        {generatingField === 'shortDescription'
+                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            : <Wand2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
                                 <Input
                                     id="shortDescription" name="shortDescription"
                                     value={shortDescription}
                                     onChange={e => setShortDescription(e.target.value)}
                                     placeholder="Uma frase que resume o produto..."
                                     className="bg-background border-input h-9"
+                                    disabled={!!generatingField}
                                 />
                                 <p className="text-[11px] text-muted-foreground">Usada como headline nas landing pages e pelo agente IA.</p>
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="fullDescription" className="text-xs font-semibold text-foreground">Descrição Completa</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="fullDescription" className="text-xs font-semibold text-foreground">Descrição Completa</Label>
+                                    <Button type="button" variant="ghost" size="xs" className="h-6 px-1.5 text-muted-foreground hover:text-primary" onClick={() => handleGenerateField('fullDescription')} disabled={isGenerating || !!generatingField}>
+                                        {generatingField === 'fullDescription'
+                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            : <Wand2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
                                 <Textarea
                                     id="fullDescription" name="fullDescription"
                                     value={fullDescription}
@@ -347,6 +405,7 @@ export function NewProductForm() {
                                     placeholder="Descreva em detalhes o que é o produto, para quem é, e como funciona..."
                                     rows={8}
                                     className="bg-background border-input text-sm"
+                                    disabled={!!generatingField}
                                 />
                                 <p className="text-[11px] text-muted-foreground">Quanto mais detalhada, melhor o chatbot IA atende os visitantes. Alimenta o RAG.</p>
                             </div>
@@ -507,7 +566,14 @@ export function NewProductForm() {
                         <div className="space-y-4">
                             <SectionHeader icon={Target} title="Público e Diferenciais" description="Contexto para o agente IA qualificar leads e montar argumentos de venda." />
                             <div className="space-y-1.5">
-                                <Label htmlFor="targetAudience" className="text-xs font-semibold text-foreground">Público-alvo</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="targetAudience" className="text-xs font-semibold text-foreground">Público-alvo</Label>
+                                    <Button type="button" variant="ghost" size="xs" className="h-6 px-1.5 text-muted-foreground hover:text-primary" onClick={() => handleGenerateField('targetAudience')} disabled={isGenerating || !!generatingField}>
+                                        {generatingField === 'targetAudience'
+                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            : <Wand2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
                                 <Textarea
                                     id="targetAudience" name="targetAudience"
                                     value={targetAudience}
@@ -515,11 +581,19 @@ export function NewProductForm() {
                                     placeholder="Descreva o perfil do cliente ideal deste produto..."
                                     rows={3}
                                     className="bg-background border-input text-sm"
+                                    disabled={!!generatingField}
                                 />
                                 <p className="text-[11px] text-muted-foreground">O agente IA usará para qualificar leads e personalizar atendimento.</p>
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="differentials" className="text-xs font-semibold text-foreground">Diferenciais</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="differentials" className="text-xs font-semibold text-foreground">Diferenciais</Label>
+                                    <Button type="button" variant="ghost" size="xs" className="h-6 px-1.5 text-muted-foreground hover:text-primary" onClick={() => handleGenerateField('differentials')} disabled={isGenerating || !!generatingField}>
+                                        {generatingField === 'differentials'
+                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            : <Wand2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
                                 <Textarea
                                     id="differentials" name="differentials"
                                     value={differentials}
@@ -527,16 +601,25 @@ export function NewProductForm() {
                                     placeholder="O que torna este produto único no mercado..."
                                     rows={3}
                                     className="bg-background border-input text-sm"
+                                    disabled={!!generatingField}
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="tags" className="text-xs font-semibold text-foreground">Tags</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="tags" className="text-xs font-semibold text-foreground">Tags</Label>
+                                    <Button type="button" variant="ghost" size="xs" className="h-6 px-1.5 text-muted-foreground hover:text-primary" onClick={() => handleGenerateField('tags')} disabled={isGenerating || !!generatingField}>
+                                        {generatingField === 'tags'
+                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            : <Wand2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
                                 <Input
                                     id="tags" name="tags"
                                     value={tags}
                                     onChange={e => setTags(e.target.value)}
                                     placeholder="marketing, digital, curso (separados por vírgula)"
                                     className="bg-background border-input h-9"
+                                    disabled={!!generatingField}
                                 />
                                 <p className="text-[11px] text-muted-foreground">Separadas por vírgula. Usadas para filtros, SEO e categorização.</p>
                             </div>
@@ -548,26 +631,28 @@ export function NewProductForm() {
                         )}
 
                         {/* Submit */}
-                        <div className="flex items-center gap-3 pt-2">
-                            <Button type="submit" disabled={isPending} className="h-10 px-8">
-                                {isPending ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Criando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-4 h-4 mr-2" />
-                                        Criar Produto
-                                    </>
-                                )}
-                            </Button>
-                            <Button type="button" variant="ghost" asChild className="h-10">
-                                <Link href="/products">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Voltar
-                                </Link>
-                            </Button>
+                        <div className="sticky bottom-0 bg-card/80 backdrop-blur-sm py-4 border-t border-border">
+                            <div className="flex items-center gap-3 ">
+                                <Button type="submit" disabled={isPending} className="h-10 px-8">
+                                    {isPending ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Criando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="w-4 h-4 mr-2" />
+                                            Criar Produto
+                                        </>
+                                    )}
+                                </Button>
+                                <Button type="button" variant="ghost" asChild className="h-10">
+                                    <Link href="/products">
+                                        <ArrowLeft className="w-4 h-4 mr-2" />
+                                        Voltar
+                                    </Link>
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </div>

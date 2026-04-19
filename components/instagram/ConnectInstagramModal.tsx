@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { disconnectInstagram } from '@/actions/instagram'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +13,9 @@ import {
     ChevronRight,
     Loader2,
     Unplug,
+    RefreshCw,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const SETUP_STEPS = [
     'Ter uma conta Business ou Creator no Instagram',
@@ -20,6 +23,47 @@ const SETUP_STEPS = [
     'App configurado no Meta Developer Dashboard com o produto "Facebook Login"',
     'Redirect URI cadastrada nas configurações do app',
 ]
+
+const HOW_IT_WORKS_STEPS = [
+    { step: '1', text: 'Clique em "Conectar com Facebook" abaixo' },
+    { step: '2', text: 'Faça login e autorize as permissões' },
+    { step: '3', text: 'Selecione a Página do Facebook vinculada ao Instagram' },
+    { step: '4', text: 'Pronto! Sua conta será conectada automaticamente' },
+]
+
+const REQUESTED_PERMISSIONS = [
+    { perm: 'pages_show_list', desc: 'Listar suas páginas' },
+    { perm: 'instagram_basic', desc: 'Dados básicos do perfil' },
+    { perm: 'instagram_content_publish', desc: 'Publicar conteúdo' },
+    { perm: 'instagram_manage_insights', desc: 'Métricas e insights' },
+]
+
+const ACTIVE_FEATURES = ['Publicar Posts', 'Publicar Reels', 'Publicar Stories', 'Ver Métricas']
+
+const clientId = process.env.NEXT_PUBLIC_META_APP_ID
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
+const redirectUri = `${appUrl}/api/instagram/callback`
+
+// Facebook Login flow — uses Facebook App ID + Graph API scopes
+const scope = [
+    'pages_show_list',
+    'pages_read_engagement',
+    'instagram_basic',
+    'instagram_content_publish',
+    'instagram_manage_insights',
+    'business_management',
+].join(',')
+
+const authUrl = clientId
+    ? [
+          'https://www.facebook.com/v21.0/dialog/oauth?',
+          `client_id=${clientId}`,
+          `&redirect_uri=${encodeURIComponent(redirectUri)}`,
+          `&scope=${scope}`,
+          '&response_type=code',
+          '&auth_type=rerequest',
+      ].join('')
+    : ''
 
 interface ConnectInstagramModalProps {
     isConnected?: boolean
@@ -29,30 +73,8 @@ interface ConnectInstagramModalProps {
 export function ConnectInstagramModal({ isConnected, username }: ConnectInstagramModalProps) {
     const [open, setOpen] = useState(false)
     const [connecting, setConnecting] = useState(false)
+    const [disconnecting, setDisconnecting] = useState(false)
     const [error, setError] = useState('')
-
-    const clientId = process.env.NEXT_PUBLIC_META_APP_ID
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-    const redirectUri = `${appUrl}/api/instagram/callback`
-
-    // Facebook Login flow — uses Facebook App ID + Graph API scopes
-    const scope = [
-        'pages_show_list',
-        'pages_read_engagement',
-        'instagram_basic',
-        'instagram_content_publish',
-        'instagram_manage_insights',
-        'business_management',
-    ].join(',')
-
-    const authUrl = [
-        'https://www.facebook.com/v21.0/dialog/oauth?',
-        `client_id=${clientId}`,
-        `&redirect_uri=${encodeURIComponent(redirectUri)}`,
-        `&scope=${scope}`,
-        '&response_type=code',
-        '&auth_type=rerequest',
-    ].join('')
 
     // Check for callback errors in URL
     useEffect(() => {
@@ -79,17 +101,32 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
         if (connected === 'true') {
             window.history.replaceState({}, '', window.location.pathname)
         }
-    }, [])
+    }, []) // <- Array de dependências já está correto, ótimo!
 
-    const handleConnect = () => {
-        if (!clientId) {
+    const handleConnect = useCallback(() => {
+        if (!clientId || !authUrl) {
             setError('NEXT_PUBLIC_META_APP_ID não configurado no .env.local')
             return
         }
         setConnecting(true)
         setError('')
         window.location.href = authUrl
-    }
+    }, [])
+
+    const handleDisconnect = useCallback(async () => {
+        setDisconnecting(true)
+        setError('')
+        const result = await disconnectInstagram()
+        if (result.error) {
+            toast.error('Falha ao desconectar', { description: result.error })
+            setError(result.error)
+        } else {
+            toast.success('Conta do Instagram desconectada.')
+            setOpen(false)
+            // A revalidação do path no server action deve atualizar a UI
+        }
+        setDisconnecting(false)
+    }, [])
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -138,7 +175,7 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                             <div className="space-y-2">
                                 <p className="text-xs text-muted-foreground">Funcionalidades ativas:</p>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {['Publicar Posts', 'Publicar Reels', 'Publicar Stories', 'Ver Métricas'].map(f => (
+                                    {ACTIVE_FEATURES.map(f => (
                                         <div key={f} className="flex items-center gap-1.5 text-xs text-foreground">
                                             <CheckCircle2 className="w-3 h-3 text-[hsl(var(--success))]" />
                                             {f}
@@ -147,15 +184,31 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                                 </div>
                             </div>
 
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={handleConnect}
-                                className="h-9 w-full text-xs font-bold uppercase tracking-wider"
-                            >
-                                <Unplug className="w-3.5 h-3.5" />
-                                Reconectar conta
-                            </Button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={handleDisconnect}
+                                    disabled={disconnecting}
+                                    className="h-9 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
+                                    Desconectar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={handleConnect}
+                                    disabled={connecting}
+                                    className="h-9 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                    Reconectar
+                                </Button>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground text-center">
+                                Reconectar é útil para atualizar permissões ou vincular outra conta.
+                            </p>
                         </div>
                     )}
 
@@ -177,12 +230,7 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                             <div className="space-y-2.5">
                                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Como funciona</p>
                                 <div className="space-y-2">
-                                    {[
-                                        { step: '1', text: 'Clique em "Conectar com Facebook" abaixo' },
-                                        { step: '2', text: 'Faça login e autorize as permissões' },
-                                        { step: '3', text: 'Selecione a Página do Facebook vinculada ao Instagram' },
-                                        { step: '4', text: 'Pronto! Sua conta será conectada automaticamente' },
-                                    ].map(s => (
+                                    {HOW_IT_WORKS_STEPS.map(s => (
                                         <div key={s.step} className="flex items-center gap-3">
                                             <span className="w-6 h-6 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                                                 {s.step}
@@ -210,12 +258,7 @@ export function ConnectInstagramModal({ isConnected, username }: ConnectInstagra
                             <div className="space-y-2.5">
                                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Permissões solicitadas</p>
                                 <div className="grid grid-cols-2 gap-1.5">
-                                    {[
-                                        { perm: 'pages_show_list', desc: 'Listar suas páginas' },
-                                        { perm: 'instagram_basic', desc: 'Dados básicos do perfil' },
-                                        { perm: 'instagram_content_publish', desc: 'Publicar conteúdo' },
-                                        { perm: 'instagram_manage_insights', desc: 'Métricas e insights' },
-                                    ].map(p => (
+                                    {REQUESTED_PERMISSIONS.map(p => (
                                         <div key={p.perm} className="p-2 border border-border bg-muted/50 rounded-(--radius)">
                                             <p className="text-[9px] font-mono-data text-muted-foreground">{p.perm}</p>
                                             <p className="text-[10px] text-foreground mt-0.5">{p.desc}</p>

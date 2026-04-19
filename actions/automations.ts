@@ -6,6 +6,27 @@ import { useCases } from '@/application/services/container'
 import type { AutomationWorkflow } from '@/domain/interfaces'
 import { getErrorMessage } from './utils'
 import { canDo } from '@/lib/permissions'
+import { z } from 'zod'
+
+// Schema for parsing workflow JSON from a string
+const workflowSchema = z.string().transform((str, ctx) => {
+    try {
+        // Use a default for empty strings or parse
+        return JSON.parse(str || '{"steps":[]}') as AutomationWorkflow
+    } catch (e) {
+        ctx.addIssue({ code: 'custom', message: 'Formato de workflow JSON inválido.' })
+        return z.NEVER
+    }
+})
+
+// Schema for creating an automation
+const createAutomationSchema = z.object({
+    name: z.string({ required_error: 'O nome é obrigatório.' }).min(1, 'O nome é obrigatório.'),
+    triggerEvent: z
+        .string({ required_error: 'O gatilho do evento é obrigatório.' })
+        .min(1, 'O gatilho do evento é obrigatório.'),
+    workflowJson: workflowSchema.default('{"steps":[]}'),
+})
 
 export async function createAutomation(
     prevState: { error: string; success: boolean; id?: string },
@@ -14,16 +35,19 @@ export async function createAutomation(
     try {
         const { orgId } = await getAuthContext()
 
-        const workflowRaw = formData.get('workflow_json') as string
-        const workflowJson: AutomationWorkflow = workflowRaw
-            ? (JSON.parse(workflowRaw) as AutomationWorkflow)
-            : { steps: [] }
-
-        const result = await useCases.createAutomation().execute(orgId, {
-            name: formData.get('name') as string,
-            triggerEvent: formData.get('trigger_event') as string,
-            workflowJson,
+        const parsed = createAutomationSchema.safeParse({
+            name: formData.get('name'),
+            triggerEvent: formData.get('trigger_event'),
+            workflowJson: formData.get('workflow_json'),
         })
+
+        if (!parsed.success) {
+            const errorMessage = parsed.error.flatten().fieldErrors
+            const firstError = Object.values(errorMessage).flat()[0] ?? 'Dados de entrada inválidos.'
+            return { error: firstError, success: false }
+        }
+
+        const result = await useCases.createAutomation().execute(orgId, parsed.data)
 
         if (!result.ok) return { error: result.error.message, success: false }
 
@@ -34,6 +58,30 @@ export async function createAutomation(
     }
 }
 
+const optionalString = z
+    .string()
+    .nullable()
+    .transform(val => val || undefined)
+
+const workflowForUpdate = z
+    .string()
+    .nullable()
+    .transform((str, ctx) => {
+        if (!str) return undefined
+        try {
+            return JSON.parse(str) as AutomationWorkflow
+        } catch (e) {
+            ctx.addIssue({ code: 'custom', message: 'Formato de workflow JSON inválido.' })
+            return z.NEVER
+        }
+    })
+
+const updateAutomationSchema = z.object({
+    name: optionalString,
+    triggerEvent: optionalString,
+    workflowJson: workflowForUpdate,
+})
+
 export async function updateAutomation(
     id: string,
     prevState: { error: string; success: boolean },
@@ -42,16 +90,19 @@ export async function updateAutomation(
     try {
         const { orgId } = await getAuthContext()
 
-        const workflowRaw = formData.get('workflow_json') as string
-        const workflowJson: AutomationWorkflow | undefined = workflowRaw
-            ? (JSON.parse(workflowRaw) as AutomationWorkflow)
-            : undefined
-
-        const result = await useCases.updateAutomation().execute(id, orgId, {
-            name: (formData.get('name') as string) || undefined,
-            triggerEvent: (formData.get('trigger_event') as string) || undefined,
-            workflowJson,
+        const parsed = updateAutomationSchema.safeParse({
+            name: formData.get('name'),
+            triggerEvent: formData.get('trigger_event'),
+            workflowJson: formData.get('workflow_json'),
         })
+
+        if (!parsed.success) {
+            const errorMessage = parsed.error.flatten().fieldErrors
+            const firstError = Object.values(errorMessage).flat()[0] ?? 'Dados de entrada inválidos.'
+            return { error: firstError, success: false }
+        }
+
+        const result = await useCases.updateAutomation().execute(id, orgId, parsed.data)
 
         if (!result.ok) return { error: result.error.message, success: false }
 

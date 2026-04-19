@@ -78,36 +78,9 @@ export interface Database {
                 Update: Partial<Database['public']['Tables']['organizations']['Insert']>
                 Relationships: []
             }
-                    website: string | null
-                    address: string | null
-                    city: string | null
-                    state: string | null
-                    zip_code: string | null
-                    country: string | null
-                    logo_url: string | null
-                    description: string | null
-                    created_at: string
-                }
-                Insert: {
-                    id?: string
-                    name: string
-                    email?: string | null
-                    phone?: string | null
-                    website?: string | null
-                    address?: string | null
-                    city?: string | null
-                    state?: string | null
-                    zip_code?: string | null
-                    country?: string | null
-                    logo_url?: string | null
-                    description?: string | null
-                    created_at?: string
-                }
-                Update: Partial<Database['public']['Tables']['organizations']['Insert']>
-                Relationships: []
-            }
             users: {
                 Row: {
+
                     id: string
                     organization_id: string
                     name: string
@@ -829,6 +802,26 @@ export interface Database {
                 Update: never
                 Relationships: []
             }
+            sites: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    name: string
+                    created_at: string
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    name: string
+                    created_at?: string
+                    updated_at?: string | null
+                }
+                Update: Partial<Database['public']['Tables']['sites']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'sites_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
 
         }
         Views: {
@@ -859,3 +852,10 @@ export interface Database {
         }
     }
 }
+
+/**
+ * Utility type to extract the Row type for a given table name.
+ * Usage: DatabaseRow<'contacts'>, DatabaseRow<'sites'>, etc.
+ */
+export type DatabaseRow<T extends keyof Database['public']['Tables']> =
+    Database['public']['Tables'][T]['Row']

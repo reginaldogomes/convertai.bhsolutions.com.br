@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/auth'
 import {
-    LayoutDashboard, Users, TrendingUp, MessageSquare, Mail,
-    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram, Package, FileText, BarChart3, BookOpen,
+    LayoutDashboard, Users, TrendingUp, MessageSquare, Mail, Monitor,
+    Zap, Bot, Settings, LogOut, Globe, ShieldCheck, Instagram, Package, FileText, BarChart3, BookOpen
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './ThemeToggle'
@@ -32,6 +32,7 @@ const navItems = [
         section: 'Marketing',
         items: [
             { href: '/landing-pages', label: 'Landing Pages', icon: Globe },
+        { href: '/sites', label: 'Sites', icon: Monitor },
             { href: '/campaigns', label: 'Campanhas', icon: Mail },
         ],
     },

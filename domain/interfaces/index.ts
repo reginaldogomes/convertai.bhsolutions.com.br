@@ -17,3 +17,4 @@ export type { IProductRepository, CreateProductInput, UpdateProductInput } from 
 export type { ICampaignRecipientRepository, CreateCampaignRecipientInput } from './campaign-recipient-repository'
 export type { IPlanRepository, UpsertPlanInput } from './plan-repository'
 export type { ISubscriptionRepository, ICreditRepository, CreateSubscriptionInput, UpdateSubscriptionInput } from './subscription-repository'
+export type { ISiteRepository, CreateSiteInput } from './site-repository'

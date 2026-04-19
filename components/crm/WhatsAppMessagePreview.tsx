@@ -87,13 +87,19 @@ export function WhatsAppMessagePreview({ body, standalone = false }: WhatsAppMes
 }
 
 function formatWhatsAppText(text: string): string {
-    // Escape HTML first
-    let html = text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
+    // 1. Função para escapar caracteres HTML
+    const escapeHtml = (unsafe: string) =>
+        unsafe
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
 
-    // Highlight variables {{nome}}, {{telefone}}
+    // 2. Escapa o texto inteiro como primeira etapa para garantir a segurança
+    let html = escapeHtml(text)
+
+    // 3. Aplica formatação especial para variáveis (agora sobre o texto já seguro)
     html = html.replace(
         /\{\{(\w+)\}\}/g,
         '<span style="background:rgba(0,168,132,0.25);color:#25d366;border-radius:3px;padding:0 3px;font-size:12px;">{{$1}}</span>',
@@ -111,7 +117,7 @@ function formatWhatsAppText(text: string): string {
     // Monospace: ```texto```
     html = html.replace(/```([^`]+)```/g, '<code style="font-family:monospace;background:rgba(255,255,255,0.1);padding:0 2px;border-radius:2px;">$1</code>')
 
-    // Newlines
+    // Converte quebras de linha para <br>
     html = html.replace(/\n/g, '<br/>')
 
     return html

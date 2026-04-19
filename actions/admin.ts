@@ -83,32 +83,30 @@ export async function getAdminStats(): Promise<AdminStats> {
     await requireSuperAdmin()
     const admin = createAdminClient()
 
-    const [{ data: orgs }, { data: users }, { data: lps }, { data: activeSubs }, { data: orgsCredits }] = await Promise.all([
-        admin.from('organizations').select('id').neq('id', PLATFORM_ORG_ID),
-        admin.from('users').select('id').neq('organization_id', PLATFORM_ORG_ID),
-        admin.from('landing_pages').select('id'),
-        admin
-            .from('organization_subscriptions')
-            .select('plan_id, plans(price_brl)')
-            .eq('status', 'active')
-            .neq('organization_id', PLATFORM_ORG_ID),
-        admin.from('organizations').select('credits_balance').neq('id', PLATFORM_ORG_ID),
-    ])
+    const { data, error } = await admin.rpc('get_admin_stats').single()
 
-    const mrr_brl = (activeSubs ?? []).reduce((sum, sub) => {
-        const price = (sub.plans as unknown as { price_brl: number })?.price_brl ?? 0
-        return sum + price
-    }, 0)
-
-    const total_credits_balance = (orgsCredits ?? []).reduce((sum, o) => sum + (o.credits_balance ?? 0), 0)
+    if (error) {
+        // O erro abaixo geralmente indica que a função RPC 'get_admin_stats' não existe no banco de dados.
+        // Execute a migração do Supabase para criá-la.
+        console.error('Erro ao buscar estatísticas de admin via RPC. Objeto de erro completo:', JSON.stringify(error, null, 2))
+        // Retorna zero em caso de falha para não quebrar a página de admin.
+        return {
+            total_orgs: 0,
+            total_users: 0,
+            total_landing_pages: 0,
+            mrr_brl: 0,
+            active_subscriptions: 0,
+            total_credits_balance: 0,
+        }
+    }
 
     return {
-        total_orgs: orgs?.length ?? 0,
-        total_users: users?.length ?? 0,
-        total_landing_pages: lps?.length ?? 0,
-        mrr_brl,
-        active_subscriptions: activeSubs?.length ?? 0,
-        total_credits_balance,
+        total_orgs: data.total_orgs ?? 0,
+        total_users: data.total_users ?? 0,
+        total_landing_pages: data.total_landing_pages ?? 0,
+        mrr_brl: data.mrr_brl ?? 0,
+        active_subscriptions: data.active_subscriptions ?? 0,
+        total_credits_balance: data.total_credits_balance ?? 0,
     }
 }
 
@@ -129,9 +127,9 @@ export async function getOrgAdminData(orgId: string): Promise<OrgAdminData> {
 
     return {
         subscription: sub ? {
-            planId: sub.plan_id,
-            planName: (sub.plans as unknown as { name: string })?.name ?? sub.plan_id,
-            priceBrl: (sub.plans as unknown as { price_brl: number })?.price_brl ?? 0,
+            planId: sub.plan_id as string,
+            planName: (sub.plans as { name: string } | null)?.name ?? sub.plan_id,
+            priceBrl: (sub.plans as { price_brl: number } | null)?.price_brl ?? 0,
             status: sub.status,
             currentPeriodEnd: sub.current_period_end,
         } : null,
@@ -143,21 +141,19 @@ export async function listAllOrganizations(): Promise<OrgSummary[]> {
     await requireSuperAdmin()
     const admin = createAdminClient()
 
-    const [{ data: orgs }, { data: userCounts }, { data: lpCounts }] = await Promise.all([
-        admin
-            .from('organizations')
-            .select('id, name, created_at')
-            .neq('id', PLATFORM_ORG_ID)
-            .order('created_at', { ascending: false }),
-        admin.from('users').select('organization_id').neq('organization_id', PLATFORM_ORG_ID),
-        admin.from('landing_pages').select('organization_id'),
-    ])
+    const { data, error } = await admin.rpc('get_all_organizations_summary')
 
-    return (orgs ?? []).map(org => ({
-        ...org,
-        user_count: userCounts?.filter(u => u.organization_id === org.id).length ?? 0,
-        landing_page_count: lpCounts?.filter(l => l.organization_id === org.id).length ?? 0,
-    }))
+    if (error) {
+        // O erro abaixo geralmente indica que a função RPC 'get_all_organizations_summary' não existe no banco de dados.
+        // Execute as migrações do Supabase para criá-la.
+        console.error('Erro ao buscar resumo de organizações via RPC:', { message: error.message, code: error.code })
+        // Em caso de falha (ex: a migração ainda não foi executada), retornamos uma lista vazia
+        // para evitar que a página de admin quebre.
+        return []
+    }
+
+    // O tipo já corresponde a OrgSummary[]
+    return (data as OrgSummary[]) ?? []
 }
 
 export async function getOrganizationDetail(orgId: string) {
@@ -202,7 +198,7 @@ export async function listAllUsers(): Promise<AdminUserRow[]> {
         role: u.role,
         created_at: u.created_at,
         org_id: u.organization_id,
-        org_name: (u.organizations as unknown as { name: string })?.name ?? '—',
+        org_name: (u.organizations as { name: string } | null)?.name ?? '—',
     }))
 }
 
@@ -222,7 +218,7 @@ export async function listAllLandingPages(): Promise<AdminLandingPageRow[]> {
         status: lp.status,
         created_at: lp.created_at,
         org_id: lp.organization_id,
-        org_name: (lp.organizations as unknown as { name: string })?.name ?? '—',
+        org_name: (lp.organizations as { name: string } | null)?.name ?? '—',
     }))
 }
 
@@ -232,23 +228,21 @@ export async function listSuperAdmins(): Promise<SuperAdminUser[]> {
     await requireSuperAdmin()
     const admin = createAdminClient()
 
-    const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 })
-    const saUsers = (authData?.users ?? []).filter(u => u.app_metadata?.is_super_admin === true)
+    // Otimizado: Busca diretamente na tabela pública, que é muito mais performático
+    // graças à coluna 'is_super_admin' sincronizada por um gatilho no banco.
+    const { data: profiles, error } = await admin
+        .from('users')
+        .select('id, email, name, created_at')
+        .eq('is_super_admin', true)
+        .order('created_at', { ascending: false })
 
-    const ids = saUsers.map(u => u.id)
-    const { data: profiles } = ids.length > 0
-        ? await admin.from('users').select('id, name').in('id', ids)
-        : { data: [] as { id: string; name: string }[] }
+    if (error) {
+        console.error('Erro ao listar super admins:', { message: error.message, code: error.code })
+        // Em caso de erro (ex: migração não executada), retorna vazio para não quebrar a UI.
+        return []
+    }
 
-    return saUsers.map(u => {
-        const profile = (profiles ?? []).find(p => p.id === u.id)
-        return {
-            id: u.id,
-            email: u.email ?? '—',
-            name: profile?.name ?? (u.user_metadata?.name as string | undefined) ?? '—',
-            createdAt: u.created_at,
-        }
-    })
+    return (profiles ?? []).map(p => ({ id: p.id, email: p.email ?? '—', name: p.name ?? '—', createdAt: p.created_at }))
 }
 
 export async function promoteToSuperAdmin(
@@ -261,16 +255,29 @@ export async function promoteToSuperAdmin(
         if (!email) return { error: 'E-mail obrigatório.', success: false }
 
         const admin = createAdminClient()
-        const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 })
-        const target = authData?.users?.find(u => u.email?.toLowerCase() === email)
-        if (!target) return { error: 'Nenhum usuário cadastrado com este e-mail.', success: false }
 
-        if (target.app_metadata?.is_super_admin === true)
+        // Otimizado: Busca o usuário pelo e-mail na tabela pública primeiro,
+        // evitando a listagem de todos os usuários da plataforma.
+        const { data: targetUser, error: findError } = await admin
+            .from('users')
+            .select('id, is_super_admin')
+            .eq('email', email)
+            .single()
+
+        if (findError || !targetUser) {
+            return { error: 'Nenhum usuário cadastrado com este e-mail.', success: false }
+        }
+
+        if (targetUser.is_super_admin) {
             return { error: 'Este usuário já é super admin.', success: false }
+        }
 
-        await admin.auth.admin.updateUserById(target.id, {
-            app_metadata: { ...target.app_metadata, is_super_admin: true },
+        // A atualização continua sendo no `auth.users` para disparar o gatilho de sincronização.
+        const { error: updateError } = await admin.auth.admin.updateUserById(targetUser.id, {
+            app_metadata: { is_super_admin: true },
         })
+
+        if (updateError) throw updateError
 
         revalidatePath('/admin/admins')
         return { success: true, error: '' }
@@ -356,7 +363,7 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
 
     // Custo real de IA no mês (em cents)
     const { data: aiCosts } = await admin
-        .from('ai_usage_log')
+        .from('ai_usage_events')
         .select('estimated_cost_cents')
         .eq('status', 'success')
         .gte('created_at', startOfMonth.toISOString())
@@ -389,7 +396,10 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
         .order('sort_order')
 
     const plans = (plansData ?? []).map(p => {
-        const costPerCreditBrl = p.price_brl / p.monthly_credits
+        const price = Number(p.price_brl)
+        const credits = Number(p.monthly_credits)
+        const costPerCreditBrl = credits > 0 ? price / credits : 0
+
         // estimativa de custo real médio de API por crédito
         // baseado em mix: 60% AI Flash (10 cr), 30% WhatsApp (5 cr), 10% email (1 cr)
         const estApiCostPerCredit =
@@ -397,7 +407,7 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
              0.3 * REAL_API_COSTS_BRL_CENTS.whatsapp_per_msg / 5 +
              0.1 * REAL_API_COSTS_BRL_CENTS.email_per_recipient / 1) / 100 // convert cents → R$
 
-        const marginPercent = ((costPerCreditBrl - estApiCostPerCredit) / costPerCreditBrl) * 100
+        const marginPercent = costPerCreditBrl > 0 ? ((costPerCreditBrl - estApiCostPerCredit) / costPerCreditBrl) * 100 : 0
 
         return {
             id: p.id,

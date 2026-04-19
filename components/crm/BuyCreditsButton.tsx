@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useActionState } from 'react'
 import { ShoppingCart, Loader2, Zap, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +11,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog'
 import { InlineNotice } from '@/components/ui/inline-notice'
+import { requestCreditPurchase } from '@/actions/payment'
 import type { PlainCreditPack } from '@/app/(dashboard)/settings/settings-tabs'
 
 interface BuyCreditsButtonProps {
@@ -20,24 +21,13 @@ interface BuyCreditsButtonProps {
 export function BuyCreditsButton({ packs }: BuyCreditsButtonProps) {
     const [open, setOpen] = useState(false)
     const [selected, setSelected] = useState<string | null>(null)
-    const [result, setResult] = useState<{ success?: boolean; error?: string; checkoutUrl?: string; packName?: string; priceBrl?: string } | null>(null)
-    const [isPending, startTransition] = useTransition()
-
-    const handleBuy = () => {
-        if (!selected) return
-        startTransition(async () => {
-            const formData = new FormData()
-            formData.append('packId', selected)
-            // requestCreditPurchase is async, import dynamically to avoid bundling in client
-            const { requestCreditPurchase } = await import('@/actions/saas')
-            const res = await requestCreditPurchase(null, formData)
-            setResult(res)
-        })
-    }
+    const [state, formAction, isPending] = useActionState(requestCreditPurchase, null)
 
     const handleOpenChange = (value: boolean) => {
         setOpen(value)
-        if (!value) { setSelected(null); setResult(null) }
+        if (!value) {
+            setSelected(null)
+        }
     }
 
     return (
@@ -56,22 +46,14 @@ export function BuyCreditsButton({ packs }: BuyCreditsButtonProps) {
                     </DialogTitle>
                 </DialogHeader>
 
-                {result?.success ? (
-                    <div className="space-y-4">
-                        <InlineNotice variant="success" message={`Redirecionando para checkout: ${result.packName} — ${result.priceBrl}`} />
-                        <Button asChild className="w-full">
-                            <a href={result.checkoutUrl ?? '#'}>Ir para checkout</a>
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {result?.error && (
-                            <InlineNotice variant="destructive" message={result.error} className="mb-2" size="sm" />
+                <form action={formAction} className="space-y-3">
+                    {state?.error && (
+                        <InlineNotice variant="destructive" message={state.error} className="mb-2" size="sm" />
                         )}
 
                         <p className="text-muted-foreground text-sm">Escolha um pacote de créditos:</p>
 
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                             {packs.map((pack) => (
                                 <button
                                     key={pack.id}
@@ -96,8 +78,10 @@ export function BuyCreditsButton({ packs }: BuyCreditsButtonProps) {
                             ))}
                         </div>
 
-                        <Button
-                            onClick={handleBuy}
+                    <input type="hidden" name="packId" value={selected ?? ''} />
+
+                    <Button
+                        type="submit"
                             disabled={!selected || isPending}
                             className="w-full h-9 text-xs font-bold uppercase tracking-wider"
                         >
@@ -107,8 +91,7 @@ export function BuyCreditsButton({ packs }: BuyCreditsButtonProps) {
                                 <><ShoppingCart className="w-4 h-4 mr-2" /> Confirmar Compra</>
                             )}
                         </Button>
-                    </div>
-                )}
+                </form>
             </DialogContent>
         </Dialog>
     )

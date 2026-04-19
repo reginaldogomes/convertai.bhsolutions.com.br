@@ -9,13 +9,20 @@ export async function createInstagramContent(prevState: { error: string; success
     try {
         const { orgId } = await getAuthContext()
 
-        const mediaUrlsRaw = formData.get('media_urls') as string || '[]'
+        const mediaUrlsRaw = (formData.get('media_urls') as string) || '[]'
         const hashtagsRaw = formData.get('hashtags') as string || ''
+        let mediaUrls: string[] = []
+
+        try {
+            mediaUrls = JSON.parse(mediaUrlsRaw)
+        } catch {
+            return { error: 'Formato inválido para as URLs de mídia.', success: false }
+        }
 
         const result = await useCases.createInstagramContent().execute(orgId, {
-            type: formData.get('type') as string || 'post',
+            type: (formData.get('type') as string) || 'post',
             caption: formData.get('caption') as string || '',
-            mediaUrls: JSON.parse(mediaUrlsRaw),
+            mediaUrls: mediaUrls,
             hashtags: hashtagsRaw.split(',').map(h => h.trim().replace(/^#/, '')).filter(Boolean),
         })
 
@@ -33,13 +40,20 @@ export async function updateInstagramContent(prevState: { error: string; success
         const { orgId } = await getAuthContext()
         const contentId = formData.get('content_id') as string
 
-        const mediaUrlsRaw = formData.get('media_urls') as string
-        const hashtagsRaw = formData.get('hashtags') as string
+        const mediaUrlsRaw = formData.get('media_urls') as string | null
+        const hashtagsRaw = formData.get('hashtags') as string | null
+        let mediaUrls: string[] | undefined
+
+        try {
+            if (mediaUrlsRaw) mediaUrls = JSON.parse(mediaUrlsRaw)
+        } catch {
+            return { error: 'Formato inválido para as URLs de mídia.', success: false }
+        }
 
         const result = await useCases.updateInstagramContent().execute(orgId, contentId, {
             type: formData.get('type') as string | undefined,
             caption: formData.get('caption') as string | undefined,
-            mediaUrls: mediaUrlsRaw ? JSON.parse(mediaUrlsRaw) : undefined,
+            mediaUrls,
             hashtags: hashtagsRaw ? hashtagsRaw.split(',').map(h => h.trim().replace(/^#/, '')).filter(Boolean) : undefined,
         })
 
@@ -75,6 +89,23 @@ export async function deleteInstagramContent(contentId: string) {
 
         revalidatePath('/instagram')
         return { error: '', success: true }
+    } catch (error) {
+        return { error: getErrorMessage(error), success: false }
+    }
+}
+
+export async function disconnectInstagram() {
+    try {
+        const { orgId } = await getAuthContext()
+        // Assumindo que existe um use case para revogar os tokens e limpar os dados da conexão.
+        const result = await useCases.disconnectInstagram().execute(orgId)
+
+        if (!result.ok) {
+            return { error: result.error.message, success: false }
+        }
+
+        revalidatePath('/instagram')
+        return { success: true, error: '' }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
     }

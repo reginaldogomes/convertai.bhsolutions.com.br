@@ -1,5 +1,7 @@
 import { DomainError } from '@/domain/errors'
 
+export type ErrorPayload = { message: string; code: string | null }
+
 /**
  * Mapeamento centralizado: código de erro de domínio → mensagem pt-BR segura para o cliente.
  * Erros com mensagem variável (VALIDATION_ERROR, ENTITY_NOT_FOUND) usam error.message diretamente
@@ -24,20 +26,32 @@ const DOMAIN_ERROR_MESSAGES: Record<string, string | null> = {
  * - DomainError desconhecido → error.message (assumindo que foi criado com texto seguro)
  * - Erro inesperado (Supabase, SDK, rede, etc.) → mensagem genérica + log no servidor
  *
- * Nunca expõe detalhes internos, stack traces ou mensagens de banco de dados ao cliente.
+ * Retorna um objeto com a mensagem e um código de erro de domínio, se aplicável.
+ * Nunca expõe detalhes internos, stack traces ou mensagens de banco de dados.
  */
-export function getErrorMessage(error: unknown): string {
+export function getErrorPayload(error: unknown): ErrorPayload {
     if (error instanceof DomainError) {
         const mapped = DOMAIN_ERROR_MESSAGES[error.code]
         // null = usar error.message (mensagem específica e segura definida no use case)
-        if (mapped === null) return error.message
+        if (mapped === null) {
+            return { message: error.message, code: error.code }
+        }
         // string = mensagem genérica mapeada para o código
-        if (mapped) return mapped
+        if (mapped) {
+            return { message: mapped, code: error.code }
+        }
         // código desconhecido — confiar no message do DomainError
-        return error.message
+        return { message: error.message, code: error.code }
     }
 
     // Erro inesperado: loga internamente, nunca expõe ao cliente
     console.error('[Server Action] Erro inesperado:', error)
-    return 'Erro interno do servidor. Tente novamente em instantes.'
+    return {
+        message: 'Erro interno do servidor. Tente novamente em instantes.',
+        code: 'INTERNAL_SERVER_ERROR',
+    }
+}
+
+export function getErrorMessage(error: unknown): string {
+    return getErrorPayload(error).message
 }
