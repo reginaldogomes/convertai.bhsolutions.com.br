@@ -121,7 +121,7 @@ export async function getOrgAdminData(orgId: string): Promise<OrgAdminData> {
     const [{ data: sub }, { data: org }] = await Promise.all([
         admin
             .from('organization_subscriptions')
-            .select('plan_id, status, current_period_end, plans(name, price_brl)')
+            .select('plan_id, status, current_period_end')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -129,11 +129,25 @@ export async function getOrgAdminData(orgId: string): Promise<OrgAdminData> {
         admin.from('organizations').select('credits_balance').eq('id', orgId).single(),
     ])
 
+    let planName = sub?.plan_id ?? ''
+    let planPriceBrl = 0
+
+    if (sub?.plan_id) {
+        const { data: plan } = await admin
+            .from('plans')
+            .select('name, price_brl')
+            .eq('id', sub.plan_id)
+            .maybeSingle()
+
+        planName = plan?.name ?? sub.plan_id
+        planPriceBrl = plan?.price_brl ?? 0
+    }
+
     return {
         subscription: sub ? {
             planId: sub.plan_id as string,
-            planName: (sub.plans as { name: string } | null)?.name ?? sub.plan_id,
-            priceBrl: (sub.plans as { price_brl: number } | null)?.price_brl ?? 0,
+            planName,
+            priceBrl: planPriceBrl,
             status: sub.status,
             currentPeriodEnd: sub.current_period_end,
         } : null,
