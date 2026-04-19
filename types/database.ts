@@ -843,6 +843,27 @@ export interface Database {
                     similarity: number
                 }>
             }
+            get_admin_stats: {
+                Args: Record<string, never>
+                Returns: {
+                    total_orgs: number
+                    total_users: number
+                    total_landing_pages: number
+                    mrr_brl: number
+                    active_subscriptions: number
+                    total_credits_balance: number
+                }
+            }
+            get_all_organizations_summary: {
+                Args: Record<string, never>
+                Returns: Array<{
+                    id: string
+                    name: string
+                    created_at: string
+                    user_count: number
+                    landing_page_count: number
+                }>
+            }
         }
         Enums: {
             [_ in never]: never
