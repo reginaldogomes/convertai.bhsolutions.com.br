@@ -246,21 +246,39 @@ export async function listSuperAdmins(): Promise<SuperAdminUser[]> {
     await requireSuperAdmin()
     const admin = createAdminClient()
 
-    // Otimizado: Busca diretamente na tabela pública, que é muito mais performático
-    // graças à coluna 'is_super_admin' sincronizada por um gatilho no banco.
-    const { data: profiles, error } = await admin
-        .from('users')
-        .select('id, email, name, created_at')
-        .eq('is_super_admin', true)
-        .order('created_at', { ascending: false })
+    try {
+        const superAdmins: SuperAdminUser[] = []
+        let page = 1
 
-    if (error) {
-        console.error('Erro ao listar super admins:', { message: error.message, code: error.code })
-        // Em caso de erro (ex: migração não executada), retorna vazio para não quebrar a UI.
+        // A API de auth é paginada; iteramos até acabar os resultados.
+        // Isso evita depender de coluna materializada que pode não existir no schema tipado.
+        for (;;) {
+            const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+            if (error) throw error
+
+            const users = data.users ?? []
+            if (users.length === 0) break
+
+            for (const user of users) {
+                const isSuperAdmin = Boolean(user.app_metadata?.is_super_admin)
+                if (!isSuperAdmin) continue
+                superAdmins.push({
+                    id: user.id,
+                    email: user.email ?? '—',
+                    name: ((user.user_metadata?.name as string | undefined) ?? user.email ?? '—'),
+                    createdAt: user.created_at,
+                })
+            }
+
+            if (users.length < 200) break
+            page += 1
+        }
+
+        return superAdmins.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    } catch (error) {
+        console.error('Erro ao listar super admins:', getErrorMessage(error))
         return []
     }
-
-    return (profiles ?? []).map(p => ({ id: p.id, email: p.email ?? '—', name: p.name ?? '—', createdAt: p.created_at }))
 }
 
 export async function promoteToSuperAdmin(
@@ -278,7 +296,7 @@ export async function promoteToSuperAdmin(
         // evitando a listagem de todos os usuários da plataforma.
         const { data: targetUser, error: findError } = await admin
             .from('users')
-            .select('id, is_super_admin')
+            .select('id')
             .eq('email', email)
             .single()
 
@@ -286,7 +304,13 @@ export async function promoteToSuperAdmin(
             return { error: 'Nenhum usuário cadastrado com este e-mail.', success: false }
         }
 
-        if (targetUser.is_super_admin) {
+        const { data: authUserData, error: authUserError } = await admin.auth.admin.getUserById(targetUser.id)
+        if (authUserError || !authUserData.user) {
+            return { error: 'Não foi possível validar permissões do usuário.', success: false }
+        }
+
+        const isAlreadySuperAdmin = Boolean(authUserData.user.app_metadata?.is_super_admin)
+        if (isAlreadySuperAdmin) {
             return { error: 'Este usuário já é super admin.', success: false }
         }
 
