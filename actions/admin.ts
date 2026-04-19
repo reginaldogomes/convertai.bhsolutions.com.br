@@ -59,6 +59,8 @@ export interface AdminStats {
     total_credits_balance: number
 }
 
+type AdminStatsRpcRow = Partial<AdminStats> | null
+
 export interface OrgAdminData {
     subscription: {
         planId: string
@@ -100,13 +102,15 @@ export async function getAdminStats(): Promise<AdminStats> {
         }
     }
 
+    const stats = (data as AdminStatsRpcRow) ?? null
+
     return {
-        total_orgs: data.total_orgs ?? 0,
-        total_users: data.total_users ?? 0,
-        total_landing_pages: data.total_landing_pages ?? 0,
-        mrr_brl: data.mrr_brl ?? 0,
-        active_subscriptions: data.active_subscriptions ?? 0,
-        total_credits_balance: data.total_credits_balance ?? 0,
+        total_orgs: stats?.total_orgs ?? 0,
+        total_users: stats?.total_users ?? 0,
+        total_landing_pages: stats?.total_landing_pages ?? 0,
+        mrr_brl: stats?.mrr_brl ?? 0,
+        active_subscriptions: stats?.active_subscriptions ?? 0,
+        total_credits_balance: stats?.total_credits_balance ?? 0,
     }
 }
 
