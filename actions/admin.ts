@@ -398,20 +398,25 @@ export interface PlatformCostAnalysis {
 export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
     await requireSuperAdmin()
     const admin = createAdminClient()
+    // Algumas tabelas de governança/IA podem existir no banco antes da regeneração
+    // dos tipos locais do Supabase. Usamos um cliente sem tipagem estrita para
+    // manter compatibilidade de build.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adminUntyped = admin as any
 
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
     startOfMonth.setHours(0, 0, 0, 0)
 
     // Custo real de IA no mês (em cents)
-    const { data: aiCosts } = await admin
+    const { data: aiCosts } = await adminUntyped
         .from('ai_usage_events')
         .select('estimated_cost_cents')
         .eq('status', 'success')
         .gte('created_at', startOfMonth.toISOString())
         .neq('organization_id', PLATFORM_ORG_ID)
 
-    const totalAiCostCents = (aiCosts ?? []).reduce((sum, row) => {
+    const totalAiCostCents = ((aiCosts as Array<{ estimated_cost_cents?: number | string | null }> | null) ?? []).reduce((sum, row) => {
         return sum + (Number(row.estimated_cost_cents) || 0)
     }, 0)
 
