@@ -232,7 +232,7 @@ export async function saveKnowledgeBaseProfile(
                 updatedAt: new Date().toISOString(),
             }
 
-            const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content, metadata })
+            const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content, metadata } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
             if (!result.ok) {
                 return { error: `Falha ao salvar perfil pessoal: ${result.error.message}`, success: false }
             }
@@ -294,7 +294,7 @@ export async function saveKnowledgeBaseProfile(
             updatedAt: new Date().toISOString(),
         }
 
-        const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content, metadata })
+        const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content, metadata } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         if (!result.ok) {
             return { error: `Falha ao salvar perfil da empresa: ${result.error.message}`, success: false }
         }
@@ -462,7 +462,7 @@ export async function uploadKnowledgeBaseImage(
             content,
             metadata,
             landingPageId: null,
-        })
+        } as any)
 
         if (!result.ok) {
             return { error: `Falha ao salvar na base de conhecimento: ${result.error.message}`, success: false }
@@ -506,7 +506,7 @@ export async function saveKnowledgeBaseEntry(
             content,
             metadata,
             landingPageId: null,
-        })
+        } as any)
 
         if (!result.ok) {
             return { error: `Falha ao salvar na base de conhecimento: ${result.error.message}`, success: false }

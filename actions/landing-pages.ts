@@ -102,7 +102,7 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 : promptFromForm.length > 0
                 ? promptFromForm
                 : productFallbackPrompt
-
+            
             let knowledgeBaseContext = ''
             const ragFilters: RagSearchFilters = {
                 brandName: (formData.get('name') as string) || linkedProduct?.name || undefined,
@@ -110,7 +110,14 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 targetAudience: linkedProduct?.targetAudience || undefined,
                 intentKeywords: extractIntentKeywords(generationPrompt),
             }
-
+            
+            // Metadata para entradas de KB geradas a partir do contexto do produto/LP
+            const generatedMetadata = {
+                source: 'landing_page_generation',
+                generatedFrom: linkedProduct ? 'product_context' : 'ai_prompt',
+                updatedAt: new Date().toISOString(),
+            }
+            
             const ragMatches = await ragService.search(generationPrompt, orgId, undefined, ragFilters)
             const prioritizedMatches = linkedProduct
                 ? (() => {
@@ -125,7 +132,7 @@ export async function createLandingPage(prevState: { error: string; success: boo
                 : ragMatches.slice(0, 5)
 
             if (prioritizedMatches.length > 0) {
-                knowledgeBaseContext = prioritizedMatches
+                knowledgeBaseContext = prioritizedMatches // TODO: Considerar indexar este contexto na KB se for relevante para futuras buscas.
                     .map((doc, index) => `[${index + 1}] ${doc.title}\n${doc.content}`)
                     .join('\n\n---\n\n')
             }
@@ -159,6 +166,12 @@ export async function createLandingPage(prevState: { error: string; success: boo
             })) as unknown as LandingPageSection[]
 
             if (linkedProduct) {
+                // Adiciona uma entrada na base de conhecimento com o contexto do produto usado para geração
+                await useCases.addKnowledgeBase().execute(orgId, {
+                    title: `Contexto de Geração para LP: ${linkedProduct.name}`,
+                    content: productContext || generationPrompt,
+                    metadata: { ...generatedMetadata, entryType: 'product_context_for_lp', productId: linkedProduct.id }
+                } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
                 sections = anchorSectionsWithProductData(linkedProduct, sections)
             }
 
@@ -502,11 +515,18 @@ export async function addKnowledgeBaseEntry(prevState: { error: string; success:
     try {
         const { orgId } = await getAuthContext()
 
+        const metadata = {
+            source: 'landing_page_entry_form',
+            entryType: 'general',
+            updatedAt: new Date().toISOString(),
+        }
+
         const result = await useCases.addKnowledgeBase().execute(orgId, {
             landingPageId: (formData.get('landingPageId') as string) || null,
             title: formData.get('title') as string,
             content: formData.get('content') as string,
-        })
+            metadata, // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
+        } as any)
 
         if (!result.ok) return { error: result.error.message, success: false }
 
@@ -533,6 +553,11 @@ export async function syncProductKnowledgeBase(pageId: string) {
         const product = productResult.value
         const entries: Array<{ title: string; content: string }> = []
 
+        const baseMetadata = {
+            source: 'product_sync_knowledge_base',
+            landingPageId: pageId,
+            productId: product.id,
+        }
         // Main overview
         const overview = [
             `${product.name} — ${product.isProduct() ? 'Produto Digital' : 'Serviço Digital'}`,
@@ -542,25 +567,28 @@ export async function syncProductKnowledgeBase(pageId: string) {
             product.differentials ? `\nDiferenciais: ${product.differentials}` : '',
             product.price !== null ? `\nPreço: ${product.formattedPrice}` : '',
         ].filter(Boolean).join('\n')
-        entries.push({ title: `Sobre: ${product.name}`, content: overview })
+        entries.push({ title: `Sobre: ${product.name}`, content: overview, metadata: { ...baseMetadata, entryType: 'product_overview', updatedAt: new Date().toISOString() } })
 
         if (product.features.length > 0) {
             entries.push({
                 title: `Funcionalidades: ${product.name}`,
                 content: product.features.map(f => `• ${f.title}: ${f.description}`).join('\n'),
-            })
+                metadata: { ...baseMetadata, entryType: 'product_features', updatedAt: new Date().toISOString() }
+            } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         }
         if (product.benefits.length > 0) {
             entries.push({
                 title: `Benefícios: ${product.name}`,
                 content: product.benefits.map(b => `• ${b.title}: ${b.description}`).join('\n'),
-            })
+                metadata: { ...baseMetadata, entryType: 'product_benefits', updatedAt: new Date().toISOString() }
+            } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         }
         if (product.faqs.length > 0) {
             entries.push({
                 title: `Perguntas Frequentes: ${product.name}`,
                 content: product.faqs.map(f => `Pergunta: ${f.question}\nResposta: ${f.answer}`).join('\n\n'),
-            })
+                metadata: { ...baseMetadata, entryType: 'product_faqs', updatedAt: new Date().toISOString() }
+            } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         }
 
         // Index all entries
@@ -569,7 +597,8 @@ export async function syncProductKnowledgeBase(pageId: string) {
             const result = await useCases.addKnowledgeBase().execute(orgId, {
                 landingPageId: pageId,
                 title: entry.title,
-                content: entry.content,
+                content: entry.content, // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
+                metadata: entry.metadata,
             })
             if (result.ok) indexed++
         }

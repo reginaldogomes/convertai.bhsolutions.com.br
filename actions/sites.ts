@@ -8,6 +8,23 @@ import { useCases } from '@/application/services/container'
 import { getAuthContext } from '@/infrastructure/auth'
 import { getErrorMessage } from './utils'
 
+export async function listSites() {
+    try {
+        const { orgId } = await getAuthContext()
+        // Assumes a `listSites` use case exists that returns all sites for an organization.
+        const result = await useCases.listSites().execute(orgId)
+
+        if (!result.ok) {
+            return { sites: [], error: result.error.message }
+        }
+
+        // The use case should return a list of site entities.
+        return { sites: result.value, error: null }
+    } catch (error) {
+        return { sites: [], error: getErrorMessage(error) }
+    }
+}
+
 // Define um schema para validação dos dados do formulário usando Zod.
 const CreateSiteSchema = z.object({
     name: z
