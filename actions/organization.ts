@@ -222,17 +222,11 @@ export async function saveKnowledgeBaseProfile(
                 `Perguntas frequentes sobre mim:\n${personalFaq || 'Não informado.'}`,
             ].join('\n')
 
-            const metadata = {
-                source: 'settings_knowledge_base',
-                profileType: 'personal',
-                tags,
-                expertise,
-                audience,
-                communicationStyle,
-                updatedAt: new Date().toISOString(),
-            }
-
-            const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content, metadata })
+            const result = await useCases.addKnowledgeBase().execute(orgId, {
+                landingPageId: null,
+                title: 'Perfil Pessoal',
+                content,
+            })
             if (!result.ok) {
                 return { error: `Falha ao salvar perfil pessoal: ${result.error.message}`, success: false }
             }
@@ -284,17 +278,11 @@ export async function saveKnowledgeBaseProfile(
             `Objeções comuns e respostas:\n${objectionsAndFaq || 'Não informado.'}`,
         ].join('\n')
 
-        const metadata = {
-            source: 'settings_knowledge_base',
-            profileType: 'organization_strategy',
-            tags,
-            niche,
-            targetAudience,
-            brandVoice,
-            updatedAt: new Date().toISOString(),
-        }
-
-        const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content, metadata })
+        const result = await useCases.addKnowledgeBase().execute(orgId, {
+            landingPageId: null,
+            title: 'Perfil Estratégico da Empresa',
+            content,
+        })
         if (!result.ok) {
             return { error: `Falha ao salvar perfil da empresa: ${result.error.message}`, success: false }
         }
@@ -321,23 +309,26 @@ export async function updateKnowledgeBaseEntry(
         if (!entryId) return { error: 'Entrada inválida.', success: false }
         if (!title || !content) return { error: 'Título e conteúdo são obrigatórios.', success: false }
 
-        const metadata = {
-            source: 'settings_knowledge_base',
-            tags,
-            updatedAt: new Date().toISOString(),
+        const admin = createAdminClient()
+        const { error: updateError } = await admin
+            .from('knowledge_base')
+            .update({
+                title,
+                content,
+                metadata_json: {
+                    source: 'settings_knowledge_base',
+                    tags,
+                    updatedAt: new Date().toISOString(),
+                },
+            })
+            .eq('id', entryId)
+            .eq('organization_id', orgId)
+
+        if (updateError) {
+            return { error: updateError.message, success: false }
         }
 
-        // Delega a lógica para o use case, que deve cuidar da atualização e reindexação no RAG.
-        // Assumindo que o use case `updateKnowledgeBaseEntry` existe na camada de aplicação.
-        const result = await useCases.updateKnowledgeBaseEntry().execute(orgId, entryId, {
-            title,
-            content,
-            metadata,
-        })
-
-        if (!result.ok) {
-            return { error: result.error.message, success: false }
-        }
+        await ragService.indexContent(entryId, `${title}\n\n${content}`)
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
@@ -357,11 +348,14 @@ export async function deleteKnowledgeBaseEntry(
 
         if (!entryId) return { error: 'Entrada inválida.', success: false }
 
-        // Delega a lógica para o use case, que deve cuidar da exclusão no DB e da desindexação no RAG.
-        // Assumindo que o use case `deleteKnowledgeBaseEntry` existe.
-        const result = await useCases.deleteKnowledgeBaseEntry().execute(orgId, entryId)
+        const admin = createAdminClient()
+        const { error: deleteError } = await admin
+            .from('knowledge_base')
+            .delete()
+            .eq('id', entryId)
+            .eq('organization_id', orgId)
 
-        if (!result.ok) return { error: result.error.message, success: false }
+        if (deleteError) return { error: deleteError.message, success: false }
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')

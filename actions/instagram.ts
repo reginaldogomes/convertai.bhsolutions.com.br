@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
-import { useCases } from '@/application/services/container'
+import { useCases, instagramAccountRepo } from '@/application/services/container'
 import { getErrorMessage } from './utils'
 
 export async function createInstagramContent(prevState: { error: string; success: boolean }, formData: FormData) {
@@ -97,11 +97,9 @@ export async function deleteInstagramContent(contentId: string) {
 export async function disconnectInstagram() {
     try {
         const { orgId } = await getAuthContext()
-        // Assumindo que existe um use case para revogar os tokens e limpar os dados da conexão.
-        const result = await useCases.disconnectInstagram().execute(orgId)
-
-        if (!result.ok) {
-            return { error: result.error.message, success: false }
+        const disconnected = await instagramAccountRepo.delete(orgId)
+        if (!disconnected) {
+            return { error: 'Não foi possível desconectar a conta do Instagram.', success: false }
         }
 
         revalidatePath('/instagram')
