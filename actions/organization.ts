@@ -222,7 +222,11 @@ export async function saveKnowledgeBaseProfile(
                 `Perguntas frequentes sobre mim:\n${personalFaq || 'Não informado.'}`,
             ].join('\n')
 
-            const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content })
+            const result = await useCases.addKnowledgeBase().execute(orgId, {
+                landingPageId: null,
+                title: 'Perfil Pessoal',
+                content,
+            })
             if (!result.ok) {
                 return { error: `Falha ao salvar perfil pessoal: ${result.error.message}`, success: false }
             }
@@ -274,7 +278,11 @@ export async function saveKnowledgeBaseProfile(
             `Objeções comuns e respostas:\n${objectionsAndFaq || 'Não informado.'}`,
         ].join('\n')
 
-        const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content })
+        const result = await useCases.addKnowledgeBase().execute(orgId, {
+            landingPageId: null,
+            title: 'Perfil Estratégico da Empresa',
+            content,
+        })
         if (!result.ok) {
             return { error: `Falha ao salvar perfil da empresa: ${result.error.message}`, success: false }
         }
