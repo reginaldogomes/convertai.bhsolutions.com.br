@@ -19,13 +19,15 @@ const workflowSchema = z.string().transform((str, ctx) => {
     }
 })
 
+const DEFAULT_WORKFLOW: AutomationWorkflow = { steps: [] }
+
 // Schema for creating an automation
 const createAutomationSchema = z.object({
     name: z.string().min(1, 'O nome é obrigatório.'),
     triggerEvent: z
         .string()
         .min(1, 'O gatilho do evento é obrigatório.'),
-    workflowJson: workflowSchema.default({ steps: [] } as AutomationWorkflow),
+    workflowJson: workflowSchema.default(DEFAULT_WORKFLOW),
 })
 
 export async function createAutomation(
