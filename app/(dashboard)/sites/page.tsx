@@ -1,17 +1,14 @@
 import Link from 'next/link'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAuthContext } from '@/infrastructure/auth'
-import { useCases } from '@/application/services/container'
 import { Globe, Plus } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-// Força a página a ser sempre renderizada dinamicamente no servidor.
-// Embora já seja o comportamento padrão para páginas que usam dynamic functions
-// como `getAuthContext`, tornar isso explícito pode ajudar a resolver
-// problemas de cache ou de build que possam estar ocorrendo.
+import { useCases } from '@/application/services/container'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getAuthContext } from '@/infrastructure/auth'
+
 export const dynamic = 'force-dynamic'
 
 export default async function SitesPage() {
@@ -20,19 +17,13 @@ export default async function SitesPage() {
 
     return (
         <div className="flex flex-col gap-8">
-            <PageHeader
-                category="Gerenciamento"
-                title="Seus Sites"
-                icon={Globe}
-            >
-                {sites.length === 0 && (
-                    <Button asChild>
-                        <Link href="/sites/create">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Criar Novo Site
-                        </Link>
-                    </Button>
-                )}
+            <PageHeader category="Gerenciamento" title="Seus Sites" icon={Globe}>
+                <Button asChild>
+                    <Link href="/sites/create">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Criar Novo Site
+                    </Link>
+                </Button>
             </PageHeader>
 
             <Card>
