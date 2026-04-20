@@ -14,6 +14,16 @@ type DomainActionState = {
     message?: string
 }
 
+type CustomDomainRow = {
+    id: string
+    domain: string
+    status: 'pending' | 'active' | 'error' | string
+    created_at: string
+    verified_at: string | null
+    target_page_id: string | null
+    landing_pages: { name: string; slug: string } | null
+}
+
 export async function addCustomDomain(prevState: DomainActionState, formData: FormData): Promise<DomainActionState> {
     try {
         const { orgId } = await getAuthContext()
@@ -29,12 +39,14 @@ export async function addCustomDomain(prevState: DomainActionState, formData: Fo
         }
 
         const admin = createAdminClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const adminUntyped = admin as any
 
         // TODO: Integrar com a API do provedor de hospedagem (ex: Vercel) para adicionar o domínio
         // e obter os registros DNS que o usuário precisa configurar.
         // Por enquanto, vamos apenas adicionar ao banco com status 'pending'.
 
-        const { error: insertError } = await admin.from('custom_domains').insert({
+        const { error: insertError } = await adminUntyped.from('custom_domains').insert({
             organization_id: orgId,
             domain: domain,
             target_page_id: targetPageId || null,
@@ -62,8 +74,10 @@ export async function listCustomDomains() {
     try {
         const { orgId } = await getAuthContext()
         const supabase = await createClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabaseUntyped = supabase as any
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseUntyped
             .from('custom_domains')
             .select('id, domain, status, created_at, verified_at, target_page_id, landing_pages ( name, slug )')
             .eq('organization_id', orgId)
@@ -72,7 +86,7 @@ export async function listCustomDomains() {
         if (error) throw error
 
         return {
-            domains: data.map(d => ({
+            domains: ((data as CustomDomainRow[] | null) ?? []).map(d => ({
                 id: d.id,
                 domain: d.domain,
                 status: d.status as 'pending' | 'active' | 'error',
@@ -80,8 +94,8 @@ export async function listCustomDomains() {
                 verifiedAt: d.verified_at,
                 target: d.landing_pages ? {
                     id: d.target_page_id,
-                    name: (d.landing_pages as { name: string }).name,
-                    slug: (d.landing_pages as { slug: string }).slug,
+                    name: d.landing_pages.name,
+                    slug: d.landing_pages.slug,
                 } : null,
             })),
             error: null
@@ -101,10 +115,12 @@ export async function deleteCustomDomain(prevState: { error?: string }, formData
         }
 
         const admin = createAdminClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const adminUntyped = admin as any
 
         // TODO: Integrar com a API do provedor de hospedagem (ex: Vercel) para remover o domínio do projeto.
 
-        const { error } = await admin.from('custom_domains').delete().match({ id: domainId, organization_id: orgId })
+        const { error } = await adminUntyped.from('custom_domains').delete().match({ id: domainId, organization_id: orgId })
 
         if (error) throw error
 
@@ -125,6 +141,8 @@ export async function checkDomainStatus(prevState: { error?: string; message?: s
         }
 
         const admin = createAdminClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const adminUntyped = admin as any
         const cnameTarget = process.env.NEXT_PUBLIC_CUSTOM_DOMAIN_CNAME_TARGET || 'cname.convertai.bhsolutions.com.br'
 
         let status: 'active' | 'error' | 'pending' = 'pending'
@@ -141,8 +159,9 @@ export async function checkDomainStatus(prevState: { error?: string; message?: s
                 status = 'error'
                 verificationDetails = { reason: 'invalid_cname_target', found: foundCname, expected: cnameTarget }
             }
-        } catch (err: any) {
-            if (err.code === 'ENODATA' || err.code === 'ENOTFOUND') {
+        } catch (err: unknown) {
+            const dnsErr = err as { code?: string; message?: string }
+            if (dnsErr.code === 'ENODATA' || dnsErr.code === 'ENOTFOUND') {
                 // Nenhum CNAME encontrado, verifica se há registros A conflitantes
                 try {
                     const aRecords = await resolve(domain, 'A')
@@ -150,20 +169,21 @@ export async function checkDomainStatus(prevState: { error?: string; message?: s
                         status = 'error'
                         verificationDetails = { reason: 'conflicting_a_record', found: aRecords }
                     }
-                } catch (aErr: any) {
+                } catch (aErr: unknown) {
+                    const dnsAErr = aErr as { code?: string }
                     // Se também não houver registro A, o domínio não está configurado
-                    if (aErr.code === 'ENODATA' || aErr.code === 'ENOTFOUND') {
+                    if (dnsAErr.code === 'ENODATA' || dnsAErr.code === 'ENOTFOUND') {
                         verificationDetails = { reason: 'not_configured' }
                     }
                 }
             } else {
                 // Outros erros de DNS
                 status = 'error'
-                verificationDetails = { reason: 'dns_lookup_failed', error: err.message }
+                verificationDetails = { reason: 'dns_lookup_failed', error: dnsErr.message ?? 'unknown' }
             }
         }
 
-        const { error: updateError } = await admin.from('custom_domains').update({
+        const { error: updateError } = await adminUntyped.from('custom_domains').update({
             status,
             verification_data: verificationDetails,
             verified_at: status === 'active' ? new Date().toISOString() : null,

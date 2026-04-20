@@ -59,6 +59,8 @@ export interface AdminStats {
     total_credits_balance: number
 }
 
+type AdminStatsRpcRow = Partial<AdminStats> | null
+
 export interface OrgAdminData {
     subscription: {
         planId: string
@@ -100,13 +102,15 @@ export async function getAdminStats(): Promise<AdminStats> {
         }
     }
 
+    const stats = (data as AdminStatsRpcRow) ?? null
+
     return {
-        total_orgs: data.total_orgs ?? 0,
-        total_users: data.total_users ?? 0,
-        total_landing_pages: data.total_landing_pages ?? 0,
-        mrr_brl: data.mrr_brl ?? 0,
-        active_subscriptions: data.active_subscriptions ?? 0,
-        total_credits_balance: data.total_credits_balance ?? 0,
+        total_orgs: stats?.total_orgs ?? 0,
+        total_users: stats?.total_users ?? 0,
+        total_landing_pages: stats?.total_landing_pages ?? 0,
+        mrr_brl: stats?.mrr_brl ?? 0,
+        active_subscriptions: stats?.active_subscriptions ?? 0,
+        total_credits_balance: stats?.total_credits_balance ?? 0,
     }
 }
 
@@ -117,7 +121,7 @@ export async function getOrgAdminData(orgId: string): Promise<OrgAdminData> {
     const [{ data: sub }, { data: org }] = await Promise.all([
         admin
             .from('organization_subscriptions')
-            .select('plan_id, status, current_period_end, plans(name, price_brl)')
+            .select('plan_id, status, current_period_end')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -125,11 +129,25 @@ export async function getOrgAdminData(orgId: string): Promise<OrgAdminData> {
         admin.from('organizations').select('credits_balance').eq('id', orgId).single(),
     ])
 
+    let planName = sub?.plan_id ?? ''
+    let planPriceBrl = 0
+
+    if (sub?.plan_id) {
+        const { data: plan } = await admin
+            .from('plans')
+            .select('name, price_brl')
+            .eq('id', sub.plan_id)
+            .maybeSingle()
+
+        planName = plan?.name ?? sub.plan_id
+        planPriceBrl = plan?.price_brl ?? 0
+    }
+
     return {
         subscription: sub ? {
-            planId: sub.plan_id as string,
-            planName: (sub.plans as { name: string } | null)?.name ?? sub.plan_id,
-            priceBrl: (sub.plans as { price_brl: number } | null)?.price_brl ?? 0,
+            planId: sub.plan_id ?? '',
+            planName,
+            priceBrl: planPriceBrl,
             status: sub.status,
             currentPeriodEnd: sub.current_period_end,
         } : null,
@@ -228,21 +246,39 @@ export async function listSuperAdmins(): Promise<SuperAdminUser[]> {
     await requireSuperAdmin()
     const admin = createAdminClient()
 
-    // Otimizado: Busca diretamente na tabela pública, que é muito mais performático
-    // graças à coluna 'is_super_admin' sincronizada por um gatilho no banco.
-    const { data: profiles, error } = await admin
-        .from('users')
-        .select('id, email, name, created_at')
-        .eq('is_super_admin', true)
-        .order('created_at', { ascending: false })
+    try {
+        const superAdmins: SuperAdminUser[] = []
+        let page = 1
 
-    if (error) {
-        console.error('Erro ao listar super admins:', { message: error.message, code: error.code })
-        // Em caso de erro (ex: migração não executada), retorna vazio para não quebrar a UI.
+        // A API de auth é paginada; iteramos até acabar os resultados.
+        // Isso evita depender de coluna materializada que pode não existir no schema tipado.
+        for (;;) {
+            const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+            if (error) throw error
+
+            const users = data.users ?? []
+            if (users.length === 0) break
+
+            for (const user of users) {
+                const isSuperAdmin = Boolean(user.app_metadata?.is_super_admin)
+                if (!isSuperAdmin) continue
+                superAdmins.push({
+                    id: user.id,
+                    email: user.email ?? '—',
+                    name: ((user.user_metadata?.name as string | undefined) ?? user.email ?? '—'),
+                    createdAt: user.created_at,
+                })
+            }
+
+            if (users.length < 200) break
+            page += 1
+        }
+
+        return superAdmins.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    } catch (error) {
+        console.error('Erro ao listar super admins:', getErrorMessage(error))
         return []
     }
-
-    return (profiles ?? []).map(p => ({ id: p.id, email: p.email ?? '—', name: p.name ?? '—', createdAt: p.created_at }))
 }
 
 export async function promoteToSuperAdmin(
@@ -260,7 +296,7 @@ export async function promoteToSuperAdmin(
         // evitando a listagem de todos os usuários da plataforma.
         const { data: targetUser, error: findError } = await admin
             .from('users')
-            .select('id, is_super_admin')
+            .select('id')
             .eq('email', email)
             .single()
 
@@ -268,7 +304,13 @@ export async function promoteToSuperAdmin(
             return { error: 'Nenhum usuário cadastrado com este e-mail.', success: false }
         }
 
-        if (targetUser.is_super_admin) {
+        const { data: authUserData, error: authUserError } = await admin.auth.admin.getUserById(targetUser.id)
+        if (authUserError || !authUserData.user) {
+            return { error: 'Não foi possível validar permissões do usuário.', success: false }
+        }
+
+        const isAlreadySuperAdmin = Boolean(authUserData.user.app_metadata?.is_super_admin)
+        if (isAlreadySuperAdmin) {
             return { error: 'Este usuário já é super admin.', success: false }
         }
 
@@ -356,20 +398,25 @@ export interface PlatformCostAnalysis {
 export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
     await requireSuperAdmin()
     const admin = createAdminClient()
+    // Algumas tabelas de governança/IA podem existir no banco antes da regeneração
+    // dos tipos locais do Supabase. Usamos um cliente sem tipagem estrita para
+    // manter compatibilidade de build.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adminUntyped = admin as any
 
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
     startOfMonth.setHours(0, 0, 0, 0)
 
     // Custo real de IA no mês (em cents)
-    const { data: aiCosts } = await admin
+    const { data: aiCosts } = await adminUntyped
         .from('ai_usage_events')
         .select('estimated_cost_cents')
         .eq('status', 'success')
         .gte('created_at', startOfMonth.toISOString())
         .neq('organization_id', PLATFORM_ORG_ID)
 
-    const totalAiCostCents = (aiCosts ?? []).reduce((sum, row) => {
+    const totalAiCostCents = ((aiCosts as Array<{ estimated_cost_cents?: number | string | null }> | null) ?? []).reduce((sum, row) => {
         return sum + (Number(row.estimated_cost_cents) || 0)
     }, 0)
 
