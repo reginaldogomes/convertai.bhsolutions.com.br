@@ -128,8 +128,8 @@ export async function getOrgAdminData(orgId: string): Promise<OrgAdminData> {
     return {
         subscription: sub ? {
             planId: sub.plan_id as string,
-            planName: (sub.plans as { name: string } | null)?.name ?? sub.plan_id,
-            priceBrl: (sub.plans as { price_brl: number } | null)?.price_brl ?? 0,
+            planName: (sub.plans as unknown as { name: string } | null)?.name ?? sub.plan_id,
+            priceBrl: (sub.plans as unknown as { price_brl: number } | null)?.price_brl ?? 0,
             status: sub.status,
             currentPeriodEnd: sub.current_period_end,
         } : null,
