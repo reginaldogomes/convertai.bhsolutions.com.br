@@ -228,21 +228,30 @@ export async function listSuperAdmins(): Promise<SuperAdminUser[]> {
     await requireSuperAdmin()
     const admin = createAdminClient()
 
-    // Otimizado: Busca diretamente na tabela pública, que é muito mais performático
-    // graças à coluna 'is_super_admin' sincronizada por um gatilho no banco.
-    const { data: profiles, error } = await admin
-        .from('users')
-        .select('id, email, name, created_at')
-        .eq('is_super_admin', true)
-        .order('created_at', { ascending: false })
+    // A busca otimizada na tabela 'users' falha se a coluna 'is_super_admin' não existir.
+    // Como fallback, listamos os usuários do Auth e filtramos pela metadata.
+    // Isso é menos performático e pode não funcionar em instâncias com mais de 1000 usuários sem paginação.
+    // TODO: Garantir que a migração do banco que adiciona a coluna 'is_super_admin' e seu gatilho de sincronização seja aplicada.
+    const {
+        data: { users },
+        error,
+    } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
 
     if (error) {
         console.error('Erro ao listar super admins:', { message: error.message, code: error.code })
         // Em caso de erro (ex: migração não executada), retorna vazio para não quebrar a UI.
         return []
     }
+    const superAdmins = users.filter(u => u.app_metadata?.is_super_admin === true)
 
-    return (profiles ?? []).map(p => ({ id: p.id, email: p.email ?? '—', name: p.name ?? '—', createdAt: p.created_at }))
+    return superAdmins.map(p => ({
+        id: p.id,
+        email: p.email ?? '—',
+        // O nome do usuário geralmente está em user_metadata.
+        // O nome na tabela 'users' pública deve ser um reflexo disso.
+        name: (p.user_metadata as { name?: string })?.name ?? p.email ?? '—',
+        createdAt: p.created_at,
+    }))
 }
 
 export async function promoteToSuperAdmin(
@@ -256,11 +265,10 @@ export async function promoteToSuperAdmin(
 
         const admin = createAdminClient()
 
-        // Otimizado: Busca o usuário pelo e-mail na tabela pública primeiro,
-        // evitando a listagem de todos os usuários da plataforma.
+        // Busca o usuário na tabela pública para obter o ID.
         const { data: targetUser, error: findError } = await admin
             .from('users')
-            .select('id, is_super_admin')
+            .select('id')
             .eq('email', email)
             .single()
 
@@ -268,13 +276,19 @@ export async function promoteToSuperAdmin(
             return { error: 'Nenhum usuário cadastrado com este e-mail.', success: false }
         }
 
-        if (targetUser.is_super_admin) {
+        // Com o ID, busca o usuário completo no Auth para verificar o status de super admin.
+        const { data: authUserResponse, error: authError } = await admin.auth.admin.getUserById(targetUser.id)
+        if (authError || !authUserResponse?.user) {
+            return { error: 'Falha ao buscar dados de autenticação do usuário.', success: false }
+        }
+        const authUser = authUserResponse.user
+
+        if (authUser.app_metadata?.is_super_admin === true) {
             return { error: 'Este usuário já é super admin.', success: false }
         }
 
-        // A atualização continua sendo no `auth.users` para disparar o gatilho de sincronização.
         const { error: updateError } = await admin.auth.admin.updateUserById(targetUser.id, {
-            app_metadata: { is_super_admin: true },
+            app_metadata: { ...authUser.app_metadata, is_super_admin: true },
         })
 
         if (updateError) throw updateError
