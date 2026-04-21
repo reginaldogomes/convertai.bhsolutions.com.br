@@ -383,7 +383,7 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
         .gte('created_at', startOfMonth.toISOString())
         .neq('organization_id', PLATFORM_ORG_ID)
 
-    const totalAiCostCents = (aiCosts ?? []).reduce((sum, row) => {
+    const totalAiCostCents = (aiCosts ?? []).reduce((sum: number, row: { estimated_cost_cents: unknown }) => {
         return sum + (Number(row.estimated_cost_cents) || 0)
     }, 0)
 
