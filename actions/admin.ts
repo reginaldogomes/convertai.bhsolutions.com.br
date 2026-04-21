@@ -101,12 +101,12 @@ export async function getAdminStats(): Promise<AdminStats> {
     }
 
     return {
-        total_orgs: data.total_orgs ?? 0,
-        total_users: data.total_users ?? 0,
-        total_landing_pages: data.total_landing_pages ?? 0,
-        mrr_brl: data.mrr_brl ?? 0,
-        active_subscriptions: data.active_subscriptions ?? 0,
-        total_credits_balance: data.total_credits_balance ?? 0,
+        total_orgs: (data as any)?.total_orgs ?? 0,
+        total_users: (data as any)?.total_users ?? 0,
+        total_landing_pages: (data as any)?.total_landing_pages ?? 0,
+        mrr_brl: (data as any)?.mrr_brl ?? 0,
+        active_subscriptions: (data as any)?.active_subscriptions ?? 0,
+        total_credits_balance: (data as any)?.total_credits_balance ?? 0,
     }
 }
 
