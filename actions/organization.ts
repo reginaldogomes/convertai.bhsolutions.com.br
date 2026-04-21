@@ -329,14 +329,21 @@ export async function updateKnowledgeBaseEntry(
 
         // Delega a lógica para o use case, que deve cuidar da atualização e reindexação no RAG.
         // Assumindo que o use case `updateKnowledgeBaseEntry` existe na camada de aplicação.
-        const result = await useCases.updateKnowledgeBaseEntry().execute(orgId, entryId, {
-            title,
-            content,
-            metadata,
-        })
+        // TODO: Mover esta lógica para um use case `updateKnowledgeBaseEntry` que também
+        //       se encarregue de re-indexar o conteúdo no serviço de RAG.
+        const admin = createAdminClient() as any
+        const { error } = await admin
+            .from('knowledge_base_entries')
+            .update({
+                title,
+                content,
+                metadata_json: metadata,
+            })
+            .eq('id', entryId)
+            .eq('organization_id', orgId)
 
-        if (!result.ok) {
-            return { error: result.error.message, success: false }
+        if (error) {
+            return { error: `Falha ao atualizar entrada: ${error.message}`, success: false }
         }
 
         revalidatePath('/settings')
@@ -359,9 +366,18 @@ export async function deleteKnowledgeBaseEntry(
 
         // Delega a lógica para o use case, que deve cuidar da exclusão no DB e da desindexação no RAG.
         // Assumindo que o use case `deleteKnowledgeBaseEntry` existe.
-        const result = await useCases.deleteKnowledgeBaseEntry().execute(orgId, entryId)
+        // TODO: Mover esta lógica para um use case `deleteKnowledgeBaseEntry` que também
+        //       se encarregue de remover a entrada do índice do RAG.
+        const admin = createAdminClient() as any
+        const { error } = await admin
+            .from('knowledge_base_entries')
+            .delete()
+            .eq('id', entryId)
+            .eq('organization_id', orgId)
 
-        if (!result.ok) return { error: result.error.message, success: false }
+        if (error) {
+            return { error: `Falha ao excluir entrada: ${error.message}`, success: false }
+        }
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
