@@ -369,7 +369,7 @@ export interface PlatformCostAnalysis {
 
 export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
     await requireSuperAdmin()
-    const admin = createAdminClient()
+    const admin = createAdminClient() as any
 
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
