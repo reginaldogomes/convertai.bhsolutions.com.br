@@ -409,7 +409,12 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
         .select('id, name, price_brl, monthly_credits')
         .order('sort_order')
 
-    const plans = (plansData ?? []).map(p => {
+    const plans = (plansData ?? []).map((p: {
+        id: string
+        name: string
+        price_brl: unknown
+        monthly_credits: unknown
+    }) => {
         const price = Number(p.price_brl)
         const credits = Number(p.monthly_credits)
         const costPerCreditBrl = credits > 0 ? price / credits : 0
