@@ -165,10 +165,26 @@ export default async function SettingsPage() {
     let creditPacks: PlainCreditPack[] = []
     let creditTransactions: PlainCreditTransaction[] = []
     let members: PlainOrgMember[] = []
+    let customDomainsData: Array<{
+        id: string
+        domain: string
+        status: 'pending' | 'active' | 'error'
+        createdAt: string
+        verifiedAt: string | null
+        target: {
+            id: string | null
+            name: string
+            slug: string
+        } | null
+    }> = []
+    let landingPagesData: Array<{
+        id: string
+        name: string
+    }> = []
 
     if (auth) {
         try {
-            const [subResult, packsResult, txResult, membersResult] = await Promise.all([
+            const [subResult, packsResult, txResult, membersResult, customDomainsResult, landingPagesResult] = await Promise.all([
                 useCases.getSubscription().execute(auth.orgId),
                 useCases.getCreditPacks().execute(),
                 useCases.getCreditTransactions().execute(auth.orgId, 50),
@@ -222,6 +238,41 @@ export default async function SettingsPage() {
                     isOwner: m.isOwner(),
                 }))
             }
+            if (landingPagesResult.ok) {
+                landingPagesData = landingPagesResult.value.map(lp => ({
+                    id: lp.id,
+                    name: lp.name,
+                }))
+                const pagesMap = new Map(landingPagesResult.value.map(lp => [
+                    lp.id,
+                    { name: lp.name, slug: lp.slug },
+                ]))
+                if (customDomainsResult.ok) {
+                    customDomainsData = customDomainsResult.value.map(cd => ({
+                        id: cd.id,
+                        domain: cd.domain,
+                        status: cd.status,
+                        createdAt: cd.createdAt.toISOString(),
+                        verifiedAt: null,
+                        target: cd.targetPageId && pagesMap.has(cd.targetPageId)
+                            ? {
+                                id: cd.targetPageId,
+                                name: pagesMap.get(cd.targetPageId)!.name,
+                                slug: pagesMap.get(cd.targetPageId)!.slug,
+                            }
+                            : null,
+                    }))
+                }
+            } else if (customDomainsResult.ok) {
+                customDomainsData = customDomainsResult.value.map(cd => ({
+                    id: cd.id,
+                    domain: cd.domain,
+                    status: cd.status,
+                    createdAt: cd.createdAt.toISOString(),
+                    verifiedAt: null,
+                    target: null,
+                }))
+            }
         } catch {
             // tabelas podem não existir ainda — ignore
         }
@@ -248,6 +299,8 @@ export default async function SettingsPage() {
                 creditTransactions={creditTransactions}
                 members={members}
                 currentUserId={auth?.userId ?? ''}
+                customDomains={customDomainsData}
+                landingPages={landingPagesData}
                 currentRole={auth?.profile.role ?? 'viewer'}
             />
         </div>

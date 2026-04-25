@@ -91,7 +91,7 @@ export async function adminChangePlan(prevState: unknown, formData: FormData) {
         const result = await useCases.changePlan().execute(orgId, { planId, notes: notes ?? undefined })
         if (!result.ok) return { error: result.error.message, success: false }
 
-        revalidateTag('plans')
+        revalidateTag('plans', 'default')
         revalidatePath('/admin/plans')
         return { success: true, error: '' }
     } catch (error) {
@@ -165,12 +165,12 @@ const planUpsertSchema = z.object({
     id: z.string().optional().nullable(),
     name: z.string().min(1, { message: 'O nome do plano é obrigatório.' }),
     description: z.string().default(''),
-    priceBrl: z.coerce.number({ invalid_type_error: 'Preço inválido.' }).min(0, 'O preço não pode ser negativo.'),
-    monthlyCredits: z.coerce.number({ invalid_type_error: 'Créditos mensais inválidos.' }).int().min(0),
-    maxContacts: z.coerce.number({ invalid_type_error: 'Nº máximo de contatos inválido.' }).int(),
-    maxLandingPages: z.coerce.number({ invalid_type_error: 'Nº máximo de landing pages inválido.' }).int(),
-    maxUsers: z.coerce.number({ invalid_type_error: 'Nº máximo de usuários inválido.' }).int().min(1),
-    maxAutomations: z.coerce.number({ invalid_type_error: 'Nº máximo de automações inválido.' }).int(),
+    priceBrl: z.coerce.number({ error: 'Preço inválido.' }).min(0, 'O preço não pode ser negativo.'),
+    monthlyCredits: z.coerce.number({ error: 'Créditos mensais inválidos.' }).int().min(0),
+    maxContacts: z.coerce.number({ error: 'Nº máximo de contatos inválido.' }).int(),
+    maxLandingPages: z.coerce.number({ error: 'Nº máximo de landing pages inválido.' }).int(),
+    maxUsers: z.coerce.number({ error: 'Nº máximo de usuários inválido.' }).int().min(1),
+    maxAutomations: z.coerce.number({ error: 'Nº máximo de automações inválido.' }).int(),
     sortOrder: z.coerce.number().int().default(0),
     isActive: z.preprocess((val) => val === 'on', z.boolean()),
     features: z.preprocess(
@@ -205,11 +205,16 @@ export async function upsertPlan(prevState: unknown, formData: FormData) {
             return { error: firstError, success: false }
         }
 
-        const result = await useCases.upsertPlan().execute(parsed.data)
+        const inputData = {
+            ...parsed.data,
+            id: parsed.data.id ?? undefined,
+        }
+
+        const result = await useCases.upsertPlan().execute(inputData)
 
         if (!result.ok) return { error: result.error.message, success: false }
 
-        revalidateTag('plans')
+        revalidateTag('plans', 'default')
         revalidatePath('/admin/plans')
         return { success: true, error: '', planId: result.value.id }
     } catch (error) {

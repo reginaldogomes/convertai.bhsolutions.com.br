@@ -9,6 +9,7 @@ export { KnowledgeBase, type KnowledgeBaseProps } from './knowledge-base'
 export { ChatSession, ChatMessage, type ChatSessionProps, type ChatMessageProps } from './chat-session'
 export { InstagramContent, type InstagramContentProps, type InstagramMetrics } from './instagram-content'
 export { Product, type ProductProps, type ProductFeature, type ProductBenefit, type ProductFaq } from './product'
+export { CustomDomain } from './custom-domain'
 export type {
     SectionType,
     LandingPageSection,

@@ -19,13 +19,25 @@ const workflowSchema = z.string().transform((str, ctx) => {
     }
 })
 
+const workflowJsonField = z
+    .string()
+    .default('{"steps":[]}')
+    .transform((str, ctx) => {
+        try {
+            return JSON.parse(str || '{"steps":[]}') as AutomationWorkflow
+        } catch (e) {
+            ctx.addIssue({ code: 'custom', message: 'Formato de workflow JSON inválido.' })
+            return z.NEVER
+        }
+    })
+
 // Schema for creating an automation
 const createAutomationSchema = z.object({
-    name: z.string({ required_error: 'O nome é obrigatório.' }).min(1, 'O nome é obrigatório.'),
+    name: z.string().min(1, 'O nome é obrigatório.'),
     triggerEvent: z
-        .string({ required_error: 'O gatilho do evento é obrigatório.' })
+        .string()
         .min(1, 'O gatilho do evento é obrigatório.'),
-    workflowJson: workflowSchema.default('{"steps":[]}'),
+    workflowJson: workflowJsonField,
 })
 
 export async function createAutomation(

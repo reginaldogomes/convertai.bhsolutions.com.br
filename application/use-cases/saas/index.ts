@@ -127,6 +127,29 @@ export class GrantCreditsUseCase {
     }
 }
 
+export class GrantCreditsFromPackUseCase {
+    constructor(private readonly creditRepo: ICreditRepository) {}
+
+    async execute(orgId: string, userId: string, packId: string): Promise<Result<number>> {
+        const packs = await this.creditRepo.listPacks()
+        const pack = packs.find((item) => item.id === packId)
+        if (!pack) {
+            return failure(new EntityNotFoundError('Pacote de créditos'))
+        }
+
+        const newBalance = await this.creditRepo.add(
+            orgId,
+            pack.credits,
+            'purchase',
+            `Compra do pacote ${pack.name}`,
+            packId,
+            userId,
+        )
+
+        return success(newBalance)
+    }
+}
+
 // --- List All Subscriptions (super admin) ---
 
 export class ListAllSubscriptionsUseCase {

@@ -80,7 +80,7 @@ export async function handleStripeWebhook(request: Request) {
         return new Response('Configuration error', { status: 500 })
     }
 
-    const signature = headers().get('stripe-signature')
+    const signature = (await headers()).get('stripe-signature')
 
     // Importação dinâmica para evitar que o 'stripe' seja empacotado no cliente.
     const StripeJS = (await import('stripe')).default

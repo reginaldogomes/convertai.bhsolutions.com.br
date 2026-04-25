@@ -27,13 +27,15 @@ import {
     SupabaseSiteRepository,
     SupabaseSubscriptionRepository,
     SupabaseCreditRepository,
+    SupabaseCustomDomainRepository,
 } from '@/infrastructure/repositories'
 
 import { CreateContactUseCase, ListContactsUseCase, GetContactDetailUseCase, DeleteContactUseCase } from '@/application/use-cases/contacts'
 import { CreateDealUseCase, MoveDealUseCase, ListDealsUseCase } from '@/application/use-cases/deals'
 import { SendMessageUseCase, ListThreadsUseCase } from '@/application/use-cases/messages'
 import { GetDashboardStatsUseCase } from '@/application/use-cases/dashboard'
-import { CreateSiteUseCase, ListSitesUseCase } from '@/application/use-cases/sites'
+import { CreateSiteUseCase, ListSitesUseCase, GetSiteDetailUseCase, UpdateSiteUseCase, DeleteSiteUseCase } from '@/application/use-cases/sites'
+import { ListCustomDomainsUseCase, GetCustomDomainUseCase, AddCustomDomainUseCase, UpdateCustomDomainUseCase, CheckCustomDomainStatusUseCase, DeleteCustomDomainUseCase } from '@/application/use-cases/custom-domains'
 import { CreateCampaignUseCase, UpdateCampaignUseCase, SendCampaignUseCase, GetCampaignUseCase, GetCrmContextUseCase } from '@/application/use-cases/campaigns'
 import { ListCampaignsUseCase, ListContactSelectsUseCase, GetUserSettingsUseCase, ListRecipientsUseCase, UpdateOrganizationUseCase, GetCampaignRecipientsUseCase } from '@/application/use-cases/queries'
 import {
@@ -63,6 +65,7 @@ import {
     DeleteInstagramContentUseCase,
     PublishInstagramContentUseCase,
     ConnectInstagramAccountUseCase,
+    DisconnectInstagramAccountUseCase,
     GetAutoConfigUseCase,
     SaveAutoConfigUseCase,
     ToggleAutoConfigUseCase,
@@ -83,6 +86,7 @@ import {
     GetCreditPacksUseCase,
     ChangePlanUseCase,
     GrantCreditsUseCase,
+    GrantCreditsFromPackUseCase,
     ListAllSubscriptionsUseCase,
     ListAllPlansAdminUseCase,
     GetPlanByIdUseCase,
@@ -116,6 +120,7 @@ const planRepo = new SupabasePlanRepository()
 const subscriptionRepo = new SupabaseSubscriptionRepository()
 const creditRepo = new SupabaseCreditRepository()
 const siteRepo = new SupabaseSiteRepository()
+const customDomainRepo = new SupabaseCustomDomainRepository()
 
 // Service singletons
 const DEV_MOCK = process.env.DEV_MOCK_INTEGRATIONS === 'true'
@@ -148,7 +153,18 @@ export const useCases = {
 
     // Sites
     listSites: () => new ListSitesUseCase(siteRepo),
+    getSiteDetail: () => new GetSiteDetailUseCase(siteRepo),
     createSite: () => new CreateSiteUseCase(siteRepo),
+    updateSite: () => new UpdateSiteUseCase(siteRepo),
+    deleteSite: () => new DeleteSiteUseCase(siteRepo),
+
+    // Custom Domains
+    listCustomDomains: () => new ListCustomDomainsUseCase(customDomainRepo),
+    getCustomDomain: () => new GetCustomDomainUseCase(customDomainRepo),
+    addCustomDomain: () => new AddCustomDomainUseCase(customDomainRepo),
+    updateCustomDomain: () => new UpdateCustomDomainUseCase(customDomainRepo),
+    checkCustomDomainStatus: () => new CheckCustomDomainStatusUseCase(customDomainRepo),
+    deleteCustomDomain: () => new DeleteCustomDomainUseCase(customDomainRepo),
 
     // Dashboard
     getDashboardStats: () => new GetDashboardStatsUseCase(
@@ -202,6 +218,7 @@ export const useCases = {
     deleteInstagramContent: () => new DeleteInstagramContentUseCase(instagramContentRepo),
     publishInstagramContent: () => new PublishInstagramContentUseCase(instagramContentRepo, instagramAccountRepo, instagramService),
     connectInstagramAccount: () => new ConnectInstagramAccountUseCase(instagramAccountRepo, instagramService),
+    disconnectInstagram: () => new DisconnectInstagramAccountUseCase(instagramAccountRepo),
     getAutoConfig: () => new GetAutoConfigUseCase(instagramAutoConfigRepo),
     saveAutoConfig: () => new SaveAutoConfigUseCase(instagramAutoConfigRepo),
     toggleAutoConfig: () => new ToggleAutoConfigUseCase(instagramAutoConfigRepo),
@@ -222,6 +239,7 @@ export const useCases = {
     getCreditPacks: () => new GetCreditPacksUseCase(creditRepo),
     changePlan: () => new ChangePlanUseCase(planRepo, subscriptionRepo, creditRepo),
     grantCredits: () => new GrantCreditsUseCase(creditRepo),
+    grantCreditsFromPack: () => new GrantCreditsFromPackUseCase(creditRepo),
     listAllSubscriptions: () => new ListAllSubscriptionsUseCase(subscriptionRepo),
     listAllPlansAdmin: () => new ListAllPlansAdminUseCase(planRepo),
     getPlanById: () => new GetPlanByIdUseCase(planRepo),
@@ -236,4 +254,4 @@ export const useCases = {
 } as const
 
 // Export singletons needed by API routes and server actions
-export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo, creditRepo, subscriptionRepo, planRepo, siteRepo }
+export { landingPageRepo, knowledgeBaseRepo, chatSessionRepo, contactRepo, analyticsRepo, ragService, userRepo, instagramAccountRepo, instagramService, instagramAutoConfigRepo, productRepo, creditRepo, subscriptionRepo, planRepo, siteRepo, customDomainRepo }

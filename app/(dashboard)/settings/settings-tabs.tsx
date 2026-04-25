@@ -11,6 +11,7 @@ import { inviteMember, updateMemberRole, removeMember } from '@/actions/members'
 import { roleBadgeClass, roleLabel, ASSIGNABLE_ROLES } from '@/lib/permissions'
 import { BuyCreditsButton } from '@/components/crm/BuyCreditsButton'
 import { InlineNotice } from '@/components/ui/inline-notice'
+import { CustomDomainsSettings } from './custom-domains-settings'
 import Link from 'next/link'
 
 export interface PlainSubscription {
@@ -93,6 +94,22 @@ interface Props {
     members: PlainOrgMember[]
     currentUserId: string
     currentRole: string
+    customDomains: Array<{
+        id: string
+        domain: string
+        status: 'pending' | 'active' | 'error'
+        createdAt: string
+        verifiedAt: string | null
+        target: {
+            id: string | null
+            name: string
+            slug: string
+        } | null
+    }>
+    landingPages: Array<{
+        id: string
+        name: string
+    }>
 }
 
 export interface PlainOrgMember {
@@ -126,8 +143,8 @@ function formatCurrencyFromCents(value: number): string {
     })
 }
 
-export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, currentUserId, currentRole }: Props) {
-    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team'>('org')
+export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, currentUserId, currentRole, customDomains, landingPages }: Props) {
+    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team' | 'custom-domains'>('org')
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
     const [aiState, aiAction, aiPending] = useActionState(updateAiGovernancePolicy, { error: '', success: false })
     const [purgeState, purgeAction, purgePending] = useActionState(purgeAiUsageHistory, {
@@ -266,6 +283,15 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                     className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Users className={`w-4 h-4 ${tab === 'team' ? 'text-primary' : ''}`} /> Equipe
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'custom-domains' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTab('custom-domains')}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
+                >
+                    <Globe className={`w-4 h-4 ${tab === 'custom-domains' ? 'text-primary' : ''}`} /> Domínios Personalizados
                 </Button>
             </div>
 
@@ -929,6 +955,13 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                         members={members}
                         currentUserId={currentUserId}
                         currentRole={currentRole}
+                    />
+                )}
+
+                {tab === 'custom-domains' && (
+                    <CustomDomainsSettings
+                        domains={customDomains}
+                        pages={landingPages}
                     />
                 )}
             </div>

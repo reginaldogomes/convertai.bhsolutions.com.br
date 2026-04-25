@@ -24,16 +24,17 @@ export default async function SitesPage() {
                 category="Gerenciamento"
                 title="Seus Sites"
                 icon={Globe}
-            >
-                {sites.length === 0 && (
-                    <Button asChild>
-                        <Link href="/sites/create">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Criar Novo Site
-                        </Link>
-                    </Button>
-                )}
-            </PageHeader>
+                actions={
+                    sites.length === 0 && (
+                        <Button asChild>
+                            <Link href="/sites/create">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Criar Novo Site
+                            </Link>
+                        </Button>
+                    )
+                }
+            />
 
             <Card>
                 <CardHeader>

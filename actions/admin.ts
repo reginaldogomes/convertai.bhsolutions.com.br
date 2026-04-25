@@ -431,8 +431,8 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
         return {
             id: p.id,
             name: p.name,
-            priceBrl: Number(p.price_brl),
-            monthlyCredits: p.monthly_credits,
+            priceBrl: price,
+            monthlyCredits: credits,
             costPerCreditBrl: Number(costPerCreditBrl.toFixed(4)),
             estimatedApiCostPerCredit: Number(estApiCostPerCredit.toFixed(4)),
             marginPercent: Number(marginPercent.toFixed(1)),
@@ -442,7 +442,7 @@ export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
     // Breakdown por tipo de operação
     // Referência: créditos cobrados × valor por plano Starter (cheapest)
     const CREDIT_COSTS_REF = { AI_GENERATION: 10, WHATSAPP_PER_MESSAGE: 5, SMS_PER_MESSAGE: 2, EMAIL_PER_RECIPIENT: 1 }
-    const starterCostPerCredit = plans.find(p => p.id === 'starter')?.costPerCreditBrl ?? 0.197
+    const starterCostPerCredit = plans.find((p: { id: string; costPerCreditBrl: number }) => p.id === 'starter')?.costPerCreditBrl ?? 0.197
 
     const costBreakdown: CostBreakdownItem[] = [
         {

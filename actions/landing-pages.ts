@@ -567,7 +567,7 @@ export async function syncProductKnowledgeBase(pageId: string) {
             product.differentials ? `\nDiferenciais: ${product.differentials}` : '',
             product.price !== null ? `\nPreço: ${product.formattedPrice}` : '',
         ].filter(Boolean).join('\n')
-        entries.push({ title: `Sobre: ${product.name}`, content: overview, metadata: { ...baseMetadata, entryType: 'product_overview', updatedAt: new Date().toISOString() } })
+        entries.push({ title: `Sobre: ${product.name}`, content: overview, metadata: { ...baseMetadata, entryType: 'product_overview', updatedAt: new Date().toISOString() } } as any)
 
         if (product.features.length > 0) {
             entries.push({
@@ -597,8 +597,7 @@ export async function syncProductKnowledgeBase(pageId: string) {
             const result = await useCases.addKnowledgeBase().execute(orgId, {
                 landingPageId: pageId,
                 title: entry.title,
-                content: entry.content, // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
-                metadata: entry.metadata,
+                content: entry.content,
             })
             if (result.ok) indexed++
         }
@@ -679,19 +678,9 @@ function isColorDark(hex: string): boolean {
 export async function getLandingPagesForSelect() {
     try {
         const { orgId } = await getAuthContext()
-        // Em um cenário ideal, isso chamaria um use case.
-        // Para simplicidade, usamos o use case existente de listagem.
-        const result = await useCases.listLandingPages().execute(orgId, {
-            limit: 500, // Limite generoso para um select
-            filters: { status: 'published' },
-        })
+        const pages = await useCases.listLandingPages().execute(orgId)
 
-        if (!result.ok) {
-            return { pages: [], error: result.error.message }
-        }
-
-        const pages = result.value.pages.map(p => ({ id: p.id, name: p.name }))
-        return { pages, error: null }
+        return { pages: pages.map(p => ({ id: p.id, name: p.name })), error: null }
     } catch (error) {
         return { pages: [], error: getErrorMessage(error) }
     }

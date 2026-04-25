@@ -226,6 +226,16 @@ export class ConnectInstagramAccountUseCase {
     }
 }
 
+export class DisconnectInstagramAccountUseCase {
+    constructor(private readonly accountRepo: IInstagramAccountRepository) {}
+
+    async execute(orgId: string): Promise<Result<null>> {
+        const deleted = await this.accountRepo.delete(orgId)
+        if (!deleted) return failure(new ValidationError('Falha ao desconectar o Instagram'))
+        return success(null)
+    }
+}
+
 // --- Auto Content Config ---
 
 const autoConfigSchema = z.object({

@@ -14,3 +14,4 @@ export { SupabaseCampaignRecipientRepository } from './campaign-recipient-reposi
 export { SupabasePlanRepository } from './plan-repository'
 export { SupabaseSubscriptionRepository, SupabaseCreditRepository } from './subscription-repository'
 export { SupabaseSiteRepository } from './supabase-site-repository'
+export { SupabaseCustomDomainRepository } from './supabase-custom-domain-repository'

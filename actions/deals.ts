@@ -10,10 +10,10 @@ import { getErrorMessage } from './utils'
 import { z } from 'zod'
 
 const createDealSchema = z.object({
-    contactId: z.string({ required_error: 'Contato é obrigatório.' }).uuid('ID de contato inválido.'),
+    contactId: z.string({ error: 'Contato é obrigatório.' }).uuid('ID de contato inválido.'),
     title: z.string().min(1, 'O título do negócio é obrigatório.'),
     pipelineStage: z.string().min(1, 'A etapa do funil é obrigatória.'),
-    value: z.coerce.number({ invalid_type_error: 'Valor inválido.' }).min(0, 'O valor não pode ser negativo.').default(0),
+    value: z.coerce.number({ error: 'Valor inválido.' }).min(0, 'O valor não pode ser negativo.').default(0),
 })
 
 export async function createDeal(prevState: { error: string; success: boolean }, formData: FormData) {
