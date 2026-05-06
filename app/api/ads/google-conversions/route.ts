@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 import { z } from 'zod'
 

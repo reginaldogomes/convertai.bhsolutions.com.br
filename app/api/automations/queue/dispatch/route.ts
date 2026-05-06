@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { processAutomationQueue } from '@/lib/automation-dispatcher'
 import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 

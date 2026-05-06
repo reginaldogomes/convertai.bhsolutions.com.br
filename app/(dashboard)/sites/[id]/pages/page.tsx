@@ -3,13 +3,7 @@ import { useCases } from '@/application/services/container'
 import { getErrorMessage } from '@/actions/utils'
 import { SitePagesClient } from './site-pages-client'
 
-export default async function SitePagesPage({
-    params,
-}: {
-    params: { id: string }
-}) {
-    const { id } = params
-
+export default async function SitePagesPage() {
     try {
         const auth = await tryGetAuthContext()
         if (!auth) {
@@ -28,9 +22,9 @@ export default async function SitePagesPage({
             updatedAt: page.updatedAt,
         }))
 
-        return <SitePagesClient siteId={id} initialLandingPages={plainLandingPages} />
+        return <SitePagesClient initialLandingPages={plainLandingPages} />
     } catch (error) {
         const errorMessage = getErrorMessage(error)
-        return <SitePagesClient siteId={id} initialLandingPages={[]} initialError={errorMessage} />
+        return <SitePagesClient initialLandingPages={[]} initialError={errorMessage} />
     }
 }

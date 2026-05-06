@@ -40,7 +40,7 @@ const initialState = { error: '', success: false, message: '' }
 const deleteInitialState = { error: undefined, success: false, message: '' }
 
 function DeleteDomainForm({ domainId }: { domainId: string }) {
-    const [state, action, pending] = useActionState(deleteCustomDomain, deleteInitialState)
+    const [, action, pending] = useActionState(deleteCustomDomain, deleteInitialState)
     
     return (
         <form action={action}>
@@ -186,7 +186,7 @@ export function CustomDomainsSettings({ domains, pages }: CustomDomainsSettingsP
                                     <li key={domain.id} className="p-4 flex items-center justify-between hover:bg-muted/30">
                                         <div className="flex items-center gap-4">
                                             <StatusIcon className={`w-5 h-5 ${statusColor} shrink-0`} />
-                                            <div className="flex-grow">
+                                            <div className="grow">
                                                 <p className="font-semibold text-foreground">{domain.domain}</p>
                                                 <div className="text-sm text-muted-foreground flex items-center gap-4">
                                                     <span>

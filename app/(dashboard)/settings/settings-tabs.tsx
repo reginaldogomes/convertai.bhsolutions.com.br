@@ -170,6 +170,7 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
     }, [aiUsageEvents])
 
     const filteredEvents = useMemo(() => {
+        // eslint-disable-next-line react-hooks/purity
         const now = Date.now()
         const periodMs = period === '24h'
             ? 24 * 60 * 60 * 1000

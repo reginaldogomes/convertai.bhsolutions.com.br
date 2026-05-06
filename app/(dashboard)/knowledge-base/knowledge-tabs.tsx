@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useMemo, useState, useEffect } from 'react'
+import { useActionState, useMemo, useState, useEffect, useRef } from 'react'
 import {
     BookOpen, Plus, Search, Tag, Trash2, Pencil, ChevronDown, ChevronUp,
     FileText, Image as ImageIcon, HelpCircle, Megaphone, Settings2, Layers,
@@ -105,10 +105,17 @@ function EntryCard({ entry }: { entry: KnowledgeEntryView }) {
     const [editing, setEditing] = useState(false)
     const [content, setContent] = useState(entry.content)
     const [updateState, updateAction, updatePending] = useActionState(updateKnowledgeBaseEntry, { error: '', success: false })
-    const [deleteState, deleteAction, deletePending] = useActionState(deleteKnowledgeBaseEntry, { error: '', success: false })
+    const [, deleteAction, deletePending] = useActionState(deleteKnowledgeBaseEntry, { error: '', success: false })
+    const successHandled = useRef(false)
 
     useEffect(() => {
-        if (updateState.success) setEditing(false)
+        if (updateState.success && !successHandled.current) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setEditing(false)
+            successHandled.current = true
+        } else if (!updateState.success) {
+            successHandled.current = false
+        }
     }, [updateState.success])
 
     return (
@@ -229,9 +236,17 @@ function EntriesTab({ entries }: { entries: KnowledgeEntryView[] }) {
     const [newState, newAction, newPending] = useActionState(saveKnowledgeBaseEntry, { error: '', success: false })
     const [showForm, setShowForm] = useState(false)
     const [newContent, setNewContent] = useState('')
+    const newSuccessHandled = useRef(false)
 
     useEffect(() => {
-        if (newState.success) { setShowForm(false); setNewContent('') }
+        if (newState.success && !newSuccessHandled.current) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setShowForm(false)
+            setNewContent('')
+            newSuccessHandled.current = true
+        } else if (!newState.success) {
+            newSuccessHandled.current = false
+        }
     }, [newState.success])
 
     const allTags = useMemo(() => {

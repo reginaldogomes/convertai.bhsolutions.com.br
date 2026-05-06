@@ -1,7 +1,7 @@
 import { useCases } from '@/application/services/container'
 import { getAuthContext } from '@/infrastructure/auth'
 import { notFound } from 'next/navigation'
-import { Users, Building, Phone, Mail, Clock } from 'lucide-react'
+import { Building, Phone, Mail, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { DeleteContactButton } from '@/components/crm/DeleteContactButton'
 

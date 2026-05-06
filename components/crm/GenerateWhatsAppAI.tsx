@@ -48,7 +48,7 @@ export function GenerateWhatsAppAI({ channel, campaignName, onGenerated }: Gener
     const [open, setOpen] = useState(false)
     const [objective, setObjective] = useState('')
     const [tone, setTone] = useState('casual')
-    const [audience, setAudience] = useState('')
+    const [audience] = useState('')
     const [details, setDetails] = useState('')
     const [completion, setCompletion] = useState('')
     const [generationError, setGenerationError] = useState('')

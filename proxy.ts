@@ -19,14 +19,13 @@ export async function proxy(request: NextRequest) {
         // Lógica atualizada para buscar o site e suas páginas
         const { data: domainData } = await admin
             .from('custom_domains')
-            .select('site_id, sites(landing_pages(slug, is_homepage))')
+            .select('target_page_id, landing_pages!inner(site_id, sites(landing_pages(slug, is_homepage)))')
             .eq('domain', hostname)
             .eq('status', 'active')
             .maybeSingle()
 
-        // O Supabase retorna 'sites' como um objeto se for to-one, ou array se for to-many.
-        // Normalizamos para um objeto para segurança.
-        const site = domainData?.sites ? (Array.isArray(domainData.sites) ? domainData.sites[0] : domainData.sites) : null
+        // O domínio customizado aponta para uma página específica
+        const site = domainData?.landing_pages?.sites
 
         if (site && Array.isArray(site.landing_pages)) {
             let pageToRender: { slug: string } | undefined;

@@ -38,6 +38,7 @@ function useCustomPresets() {
     const [presets, setPresets] = useState<DesignPreset[]>([])
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPresets(loadCustomPresets())
     }, [])
 
@@ -709,7 +710,7 @@ function CustomEditor({
                             </Button>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                            A paleta ficará disponível em "Paletas Prontas" neste navegador.
+                            A paleta ficará disponível em &ldquo;Paletas Prontas&rdquo; neste navegador.
                         </p>
                     </div>
                 )}

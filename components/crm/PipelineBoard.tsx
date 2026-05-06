@@ -50,12 +50,13 @@ export function PipelineBoard({ initialDeals, contacts }: { initialDeals: DealIt
     useEffect(() => {
         if (state?.success) {
             toast.success('Deal criado com sucesso!')
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDealModalOpen(false)
             router.refresh()
         } else if (state?.error) {
             toast.error(state.error)
         }
-    }, [state])
+    }, [state, router])
 
     // Very simplified drag and drop without external libraries for this template
     const handleDrop = async (e: React.DragEvent, stageId: PipelineStage) => {

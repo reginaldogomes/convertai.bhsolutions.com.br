@@ -392,13 +392,14 @@ function normalizeSections(sections: Array<{ type: typeof availableSectionTypes[
         features: 3,
         benefits_grid: 4,
         process_steps: 5,
-        pricing: 6,
-        gallery: 7,
-        video: 8,
-        testimonials: 9,
-        faq: 10,
-        cta_banner: 11,
-        contact_form: 12,
+        about_expert: 6,
+        pricing: 7,
+        gallery: 8,
+        video: 9,
+        testimonials: 10,
+        faq: 11,
+        cta_banner: 12,
+        contact_form: 13,
     }
 
     // Keep a conversion-friendly progression even if AI returns mixed ordering.

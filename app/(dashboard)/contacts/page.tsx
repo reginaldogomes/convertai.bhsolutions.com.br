@@ -1,8 +1,7 @@
 import { tryGetAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
-import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Users, Search } from 'lucide-react'
+import { Users } from 'lucide-react'
 import Link from 'next/link'
 import { AddContactButton } from '@/components/crm/AddContactButton'
 

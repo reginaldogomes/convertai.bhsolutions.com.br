@@ -131,15 +131,15 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
             index: true,
             follow: true,
             nocache: false,
-            maxSnippet: -1,
-            maxImagePreview: 'large',
-            maxVideoPreview: -1,
+            'max-snippet': -1,
+            'max-image-preview': 'large',
+            'max-video-preview': -1,
             googleBot: {
                 index: true,
                 follow: true,
-                maxSnippet: -1,
-                maxImagePreview: 'large',
-                maxVideoPreview: -1,
+                'max-snippet': -1,
+                'max-image-preview': 'large',
+                'max-video-preview': -1,
             },
         },
         openGraph: {
@@ -369,7 +369,7 @@ function sanitizeSections(value: unknown): LandingPageSection[] {
             type,
             order: typeof obj.order === 'number' ? obj.order : index,
             visible: typeof obj.visible === 'boolean' ? obj.visible : true,
-            content: content as LandingPageSection['content'],
+            content: content as unknown as LandingPageSection['content'],
         } as LandingPageSection)
     }
 

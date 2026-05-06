@@ -1,8 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { Globe, Settings, FileText, Link } from 'lucide-react'
-import { createSite, generateSitePlan, updateSite, deleteSite } from '@/actions/sites'
+import { Globe, Settings, Link, ExternalLink } from 'lucide-react'
+import { createSite, generateSitePlan } from '@/actions/sites'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,8 @@ interface PlainSite {
     id: string
     name: string
     createdAt: string // ISO string
+    publicUrl?: string | null
+    defaultUrl?: string // URL padrão gerada pelo sistema
 }
 
 interface SitePlan {
@@ -40,23 +42,14 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
     const [state, action, pending] = useActionState(createSite, { error: '' })
     const [planState, planAction, planPending] = useActionState(generateSitePlan, { error: '', plan: null as SitePlan | null })
     const [siteName, setSiteName] = useState('')
-    const [updateState, setUpdateState] = useState({ error: '', success: false })
-    const [deleteState, setDeleteState] = useState({ error: '', success: false })
     const router = useRouter()
 
     useEffect(() => {
         if (planState.plan?.suggestedName && !siteName) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSiteName(planState.plan.suggestedName)
         }
     }, [planState.plan, siteName])
-
-    const handleViewLandingPages = (siteId: string | undefined) => {
-        if (!siteId || siteId === 'undefined') {
-            return
-        }
-
-        router.push(`/sites/${siteId}/pages`)
-    }
 
     const handleViewCustomDomains = (siteId: string | undefined) => {
         if (!siteId || siteId === 'undefined') {
@@ -64,6 +57,15 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
         }
 
         router.push(`/sites/${siteId}/settings?tab=custom-domains`)
+    }
+
+    const handleOpenSite = (publicUrl?: string | null, defaultUrl?: string) => {
+        const urlToOpen = publicUrl || defaultUrl
+        if (!urlToOpen) {
+            return
+        }
+
+        window.open(urlToOpen, '_blank', 'noopener')
     }
 
     return (
@@ -125,9 +127,27 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                                                 <p className="text-sm text-muted-foreground">
                                                     Criado em {new Date(site.createdAt).toLocaleDateString('pt-BR')}
                                                 </p>
+                                                {site.publicUrl ? (
+                                                    <p className="text-sm text-foreground-secondary mt-1 break-all">
+                                                        Site público: {site.publicUrl}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                        Nenhum domínio público ativo.
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col items-end gap-2">
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                className="h-8"
+                                                onClick={() => handleOpenSite(site.publicUrl, site.defaultUrl)}
+                                            >
+                                                <ExternalLink className="w-4 h-4 mr-1" />
+                                                Acessar site
+                                            </Button>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -354,21 +374,13 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                                             </h4>
                                             <p className="text-blue-700 dark:text-blue-300 text-sm mt-1">
                                                 Cada organização pode ter apenas um site ativo. Para criar um novo site,
-                                                primeiro exclua o site atual através do botão "Configurar".
+                                                primeiro exclua o site atual através do botão &ldquo;Configurar&rdquo;.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Button
-                                        variant="outline"
-                                        className="justify-start h-9"
-                                        onClick={() => handleViewLandingPages(initialSites[0].id)}
-                                    >
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        Ver Landing Pages
-                                    </Button>
                                     <Button
                                         variant="outline"
                                         className="justify-start h-9"

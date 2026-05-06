@@ -102,7 +102,6 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: geminiModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um especialista em email marketing e design de emails HTML responsivos.
 Sua tarefa é gerar o HTML completo de um email de campanha.
 

@@ -3,7 +3,7 @@ import { useCases } from '@/application/services/container'
 import { Campaign } from '@/domain/entities'
 import { CreateCampaignButton } from '@/components/crm/CreateCampaignButton'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Mail, MessageSquare, Phone, Megaphone } from 'lucide-react'
+import { Mail, Megaphone } from 'lucide-react'
 import Link from 'next/link'
 
 const channelLabels: Record<string, string> = { email: 'Email', sms: 'SMS', whatsapp: 'WhatsApp' }

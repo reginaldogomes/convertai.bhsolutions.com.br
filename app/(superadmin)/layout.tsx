@@ -5,7 +5,6 @@ import { logout } from '@/actions/auth'
 import { LayoutDashboard, Building2, Users, Globe, LogOut, ShieldCheck, CreditCard, UserCog, TrendingUp } from 'lucide-react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Toaster } from '@/components/ui/sonner'
-import { BRAND } from '@/lib/brand'
 
 const adminNav = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },

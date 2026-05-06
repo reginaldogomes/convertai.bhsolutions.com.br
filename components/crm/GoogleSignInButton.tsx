@@ -24,6 +24,13 @@ export function GoogleSignInButton({ disabled, onError }: Props) {
     const popupRef = useRef<Window | null>(null)
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+    function clearPoll() {
+        if (pollRef.current) {
+            clearInterval(pollRef.current)
+            pollRef.current = null
+        }
+    }
+
     useEffect(() => {
         function handleMessage(event: MessageEvent) {
             if (event.origin !== window.location.origin) return
@@ -45,13 +52,6 @@ export function GoogleSignInButton({ disabled, onError }: Props) {
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
     }, [router, onError])
-
-    function clearPoll() {
-        if (pollRef.current) {
-            clearInterval(pollRef.current)
-            pollRef.current = null
-        }
-    }
 
     async function handleClick() {
         if (pending) return

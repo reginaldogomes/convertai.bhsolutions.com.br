@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Eye, Edit, Trash2, Plus } from 'lucide-react'
+import { FileText, Eye, Edit, Plus, ExternalLink } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Button } from '@/components/ui/button'
@@ -20,12 +20,11 @@ interface PlainLandingPage {
 }
 
 interface SitePagesClientProps {
-    siteId: string
     initialLandingPages: PlainLandingPage[]
     initialError?: string | null
 }
 
-export function SitePagesClient({ siteId, initialLandingPages, initialError }: SitePagesClientProps) {
+export function SitePagesClient({ initialLandingPages, initialError }: SitePagesClientProps) {
     const router = useRouter()
 
     const handleCreateLandingPage = () => {
@@ -110,7 +109,7 @@ export function SitePagesClient({ siteId, initialLandingPages, initialError }: S
                                 <p className="text-xs text-muted-foreground mb-4">
                                     Atualizado em {new Date(page.updatedAt).toLocaleDateString('pt-BR')}
                                 </p>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col gap-3">
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -128,6 +127,15 @@ export function SitePagesClient({ siteId, initialLandingPages, initialError }: S
                                     >
                                         <Edit className="w-3 h-3 mr-1" />
                                         Editar
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        className="flex-1 h-8"
+                                        onClick={() => window.open(`/p/${page.slug}${page.isPublished ? '' : '?preview=1'}`, '_blank', 'noopener')}
+                                    >
+                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                        {page.isPublished ? 'Abrir público' : 'Prévia pública'}
                                     </Button>
                                 </div>
                             </CardContent>

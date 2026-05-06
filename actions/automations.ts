@@ -8,24 +8,13 @@ import { getErrorMessage } from './utils'
 import { canDo } from '@/lib/permissions'
 import { z } from 'zod'
 
-// Schema for parsing workflow JSON from a string
-const workflowSchema = z.string().transform((str, ctx) => {
-    try {
-        // Use a default for empty strings or parse
-        return JSON.parse(str || '{"steps":[]}') as AutomationWorkflow
-    } catch (e) {
-        ctx.addIssue({ code: 'custom', message: 'Formato de workflow JSON inválido.' })
-        return z.NEVER
-    }
-})
-
 const workflowJsonField = z
     .string()
     .default('{"steps":[]}')
     .transform((str, ctx) => {
         try {
             return JSON.parse(str || '{"steps":[]}') as AutomationWorkflow
-        } catch (e) {
+        } catch {
             ctx.addIssue({ code: 'custom', message: 'Formato de workflow JSON inválido.' })
             return z.NEVER
         }
@@ -82,7 +71,7 @@ const workflowForUpdate = z
         if (!str) return undefined
         try {
             return JSON.parse(str) as AutomationWorkflow
-        } catch (e) {
+        } catch {
             ctx.addIssue({ code: 'custom', message: 'Formato de workflow JSON inválido.' })
             return z.NEVER
         }

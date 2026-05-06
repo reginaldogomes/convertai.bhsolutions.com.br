@@ -87,7 +87,9 @@ export class CheckCustomDomainStatusUseCase {
                 status = 'error'
                 verificationDetails = { reason: 'invalid_cname_target', found: foundCname, expected: cnameTarget }
             }
-        } catch (err: any) {
+        } catch (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            err: any) {
             if (err.code === 'ENODATA' || err.code === 'ENOTFOUND') {
                 try {
                     const aRecords = await resolve(domain.domain, 'A')

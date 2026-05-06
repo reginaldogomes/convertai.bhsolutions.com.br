@@ -23,13 +23,16 @@ const mockDnsResolve = vi.mocked(resolve)
 const mockRevalidatePath = vi.mocked(revalidatePath)
 
 describe('Domain Server Actions', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockSupabaseAdmin: any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockSupabase: any
 
     beforeEach(() => {
         mockGetAuthContext.mockResolvedValue({
             orgId: mockOrgId,
             userId: mockUserId,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             profile: { role: 'owner' } as any,
             isSuperAdmin: false,
         })

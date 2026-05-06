@@ -100,13 +100,16 @@ export async function getAdminStats(): Promise<AdminStats> {
         }
     }
 
+    // Type assertion since Supabase types should match our interface
+    const stats = data as AdminStats
+
     return {
-        total_orgs: (data as any)?.total_orgs ?? 0,
-        total_users: (data as any)?.total_users ?? 0,
-        total_landing_pages: (data as any)?.total_landing_pages ?? 0,
-        mrr_brl: (data as any)?.mrr_brl ?? 0,
-        active_subscriptions: (data as any)?.active_subscriptions ?? 0,
-        total_credits_balance: (data as any)?.total_credits_balance ?? 0,
+        total_orgs: stats.total_orgs ?? 0,
+        total_users: stats.total_users ?? 0,
+        total_landing_pages: stats.total_landing_pages ?? 0,
+        mrr_brl: stats.mrr_brl ?? 0,
+        active_subscriptions: stats.active_subscriptions ?? 0,
+        total_credits_balance: stats.total_credits_balance ?? 0,
     }
 }
 
@@ -369,6 +372,7 @@ export interface PlatformCostAnalysis {
 
 export async function getPlatformCostAnalysis(): Promise<PlatformCostAnalysis> {
     await requireSuperAdmin()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAdminClient() as any
 
     const startOfMonth = new Date()

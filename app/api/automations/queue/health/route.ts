@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
 

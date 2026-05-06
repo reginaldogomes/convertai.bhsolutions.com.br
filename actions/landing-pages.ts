@@ -171,6 +171,7 @@ export async function createLandingPage(prevState: { error: string; success: boo
                     title: `Contexto de Geração para LP: ${linkedProduct.name}`,
                     content: productContext || generationPrompt,
                     metadata: { ...generatedMetadata, entryType: 'product_context_for_lp', productId: linkedProduct.id }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
                 sections = anchorSectionsWithProductData(linkedProduct, sections)
             }
@@ -526,6 +527,7 @@ export async function addKnowledgeBaseEntry(prevState: { error: string; success:
             title: formData.get('title') as string,
             content: formData.get('content') as string,
             metadata, // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
 
         if (!result.ok) return { error: result.error.message, success: false }
@@ -567,13 +569,16 @@ export async function syncProductKnowledgeBase(pageId: string) {
             product.differentials ? `\nDiferenciais: ${product.differentials}` : '',
             product.price !== null ? `\nPreço: ${product.formattedPrice}` : '',
         ].filter(Boolean).join('\n')
-        entries.push({ title: `Sobre: ${product.name}`, content: overview, metadata: { ...baseMetadata, entryType: 'product_overview', updatedAt: new Date().toISOString() } } as any)
+        entries.push({ title: `Sobre: ${product.name}`, content: overview, metadata: { ...baseMetadata, entryType: 'product_overview', updatedAt: new Date().toISOString() } 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
 
         if (product.features.length > 0) {
             entries.push({
                 title: `Funcionalidades: ${product.name}`,
                 content: product.features.map(f => `• ${f.title}: ${f.description}`).join('\n'),
                 metadata: { ...baseMetadata, entryType: 'product_features', updatedAt: new Date().toISOString() }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         }
         if (product.benefits.length > 0) {
@@ -581,6 +586,7 @@ export async function syncProductKnowledgeBase(pageId: string) {
                 title: `Benefícios: ${product.name}`,
                 content: product.benefits.map(b => `• ${b.title}: ${b.description}`).join('\n'),
                 metadata: { ...baseMetadata, entryType: 'product_benefits', updatedAt: new Date().toISOString() }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         }
         if (product.faqs.length > 0) {
@@ -588,6 +594,7 @@ export async function syncProductKnowledgeBase(pageId: string) {
                 title: `Perguntas Frequentes: ${product.name}`,
                 content: product.faqs.map(f => `Pergunta: ${f.question}\nResposta: ${f.answer}`).join('\n\n'),
                 metadata: { ...baseMetadata, entryType: 'product_faqs', updatedAt: new Date().toISOString() }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         }
 

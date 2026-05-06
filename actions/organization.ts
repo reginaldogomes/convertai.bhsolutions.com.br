@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
-import { ragService, useCases } from '@/application/services/container'
+import { useCases } from '@/application/services/container'
 import { getErrorMessage } from './utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -232,6 +232,7 @@ export async function saveKnowledgeBaseProfile(
                 updatedAt: new Date().toISOString(),
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content, metadata } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
             if (!result.ok) {
                 return { error: `Falha ao salvar perfil pessoal: ${result.error.message}`, success: false }
@@ -294,6 +295,7 @@ export async function saveKnowledgeBaseProfile(
             updatedAt: new Date().toISOString(),
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content, metadata } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
         if (!result.ok) {
             return { error: `Falha ao salvar perfil da empresa: ${result.error.message}`, success: false }
@@ -331,6 +333,7 @@ export async function updateKnowledgeBaseEntry(
         // Assumindo que o use case `updateKnowledgeBaseEntry` existe na camada de aplicação.
         // TODO: Mover esta lógica para um use case `updateKnowledgeBaseEntry` que também
         //       se encarregue de re-indexar o conteúdo no serviço de RAG.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const admin = createAdminClient() as any
         const { error } = await admin
             .from('knowledge_base_entries')
@@ -368,6 +371,7 @@ export async function deleteKnowledgeBaseEntry(
         // Assumindo que o use case `deleteKnowledgeBaseEntry` existe.
         // TODO: Mover esta lógica para um use case `deleteKnowledgeBaseEntry` que também
         //       se encarregue de remover a entrada do índice do RAG.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const admin = createAdminClient() as any
         const { error } = await admin
             .from('knowledge_base_entries')
@@ -478,6 +482,7 @@ export async function uploadKnowledgeBaseImage(
             content,
             metadata,
             landingPageId: null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
 
         if (!result.ok) {
@@ -522,6 +527,7 @@ export async function saveKnowledgeBaseEntry(
             content,
             metadata,
             landingPageId: null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
 
         if (!result.ok) {

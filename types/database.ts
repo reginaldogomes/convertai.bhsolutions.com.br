@@ -822,6 +822,31 @@ export interface Database {
                     { foreignKeyName: 'sites_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
                 ]
             }
+            custom_domains: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    domain: string
+                    status: string
+                    target_page_id: string | null
+                    created_at: string
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    domain: string
+                    status?: string
+                    target_page_id?: string | null
+                    created_at?: string
+                    updated_at?: string | null
+                }
+                Update: Partial<Database['public']['Tables']['custom_domains']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'custom_domains_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'custom_domains_target_page_id_fkey'; columns: ['target_page_id']; referencedRelation: 'landing_pages'; referencedColumns: ['id'] }
+                ]
+            }
 
         }
         Views: {

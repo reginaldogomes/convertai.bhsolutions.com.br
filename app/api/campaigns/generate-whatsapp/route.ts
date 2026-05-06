@@ -1,7 +1,6 @@
 import { streamText } from 'ai'
 import { geminiModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
 import { getAuthContext } from '@/infrastructure/auth'
-import { useCases } from '@/application/services/container'
 import { createApiRequestLogger, isAuthError } from '@/lib/api-observability'
 import { enforceAiUsagePolicy, recordAiUsageEvent } from '@/lib/ai-governance'
 import { z } from 'zod'

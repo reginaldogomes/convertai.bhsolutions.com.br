@@ -14,7 +14,24 @@ export async function listSites() {
     try {
         const { orgId } = await getAuthContext()
         const sites = await useCases.listSites().execute(orgId)
-        return { sites, error: null }
+
+        let activeDomain = null
+        try {
+            const domains = await useCases.listCustomDomains().execute(orgId)
+            activeDomain = domains.find((domain) => domain.status === 'active')
+        } catch (error) {
+            console.warn('[sites] Não foi possível carregar domínios personalizados:', getErrorMessage(error))
+        }
+
+        return {
+            sites: sites.map((site) => ({
+                id: site.id,
+                name: site.name,
+                createdAt: site.createdAt.toISOString(),
+                publicUrl: activeDomain ? `https://${activeDomain.domain}` : null,
+            })),
+            error: null,
+        }
     } catch (error) {
         return { sites: [], error: getErrorMessage(error) }
     }

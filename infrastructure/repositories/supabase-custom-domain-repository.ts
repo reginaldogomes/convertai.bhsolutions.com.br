@@ -9,7 +9,7 @@ export class SupabaseCustomDomainRepository implements ICustomDomainRepository {
         const admin = createAdminClient()
         const { data, error } = await admin
             .from('custom_domains')
-            .select('id, organization_id, domain, status, target_page_id, created_at, updated_at')
+            .select('id, organization_id, domain, status, created_at, updated_at')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
 
@@ -28,7 +28,7 @@ export class SupabaseCustomDomainRepository implements ICustomDomainRepository {
         const admin = createAdminClient()
         const { data, error } = await admin
             .from('custom_domains')
-            .select('id, organization_id, domain, status, target_page_id, created_at, updated_at')
+            .select('id, organization_id, domain, status, created_at, updated_at')
             .eq('id', id)
             .eq('organization_id', orgId)
             .single()
@@ -51,7 +51,7 @@ export class SupabaseCustomDomainRepository implements ICustomDomainRepository {
         const admin = createAdminClient()
         const { data, error } = await admin
             .from('custom_domains')
-            .select('id, organization_id, domain, status, target_page_id, created_at, updated_at')
+            .select('id, organization_id, domain, status, created_at, updated_at')
             .eq('domain', domain.toLowerCase())
             .eq('organization_id', orgId)
             .single()

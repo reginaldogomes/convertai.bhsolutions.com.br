@@ -83,7 +83,7 @@ async function runStep(
     context: AutomationDispatchInput['context'],
     contact: Awaited<ReturnType<typeof contactRepo.findById>>,
 ): Promise<Awaited<ReturnType<typeof contactRepo.findById>>> {
-    if (!contact && step.type !== 'wait') return
+    if (!contact && step.type !== 'wait') return contact
 
     const templateData = {
         contact: contact ? {
@@ -100,10 +100,10 @@ async function runStep(
 
     switch (step.type) {
         case 'send_whatsapp': {
-            if (!contact) return
+            if (!contact) return contact
             const messageTemplate = asString(step.config.message, asString(step.config.body, ''))
             const content = fillTemplate(messageTemplate, templateData).trim()
-            if (!content) return
+            if (!content) return contact
             const sent = await useCases.sendMessage().execute(orgId, {
                 contactId: contact.id,
                 content,
@@ -113,10 +113,10 @@ async function runStep(
             return contact
         }
         case 'send_sms': {
-            if (!contact) return
+            if (!contact) return contact
             const messageTemplate = asString(step.config.message, asString(step.config.body, ''))
             const content = fillTemplate(messageTemplate, templateData).trim()
-            if (!content) return
+            if (!content) return contact
             const sent = await useCases.sendMessage().execute(orgId, {
                 contactId: contact.id,
                 content,
@@ -142,17 +142,17 @@ async function runStep(
             return contact
         }
         case 'add_tag': {
-            if (!contact) return
+            if (!contact) return contact
             const tag = asString(step.config.tag).trim()
-            if (!tag) return
+            if (!tag) return contact
             const tags = Array.from(new Set([...(contact.tags ?? []), tag]))
             await contactRepo.update(contact.id, { tags })
             return await contactRepo.findById(contact.id)
         }
         case 'assign_agent': {
-            if (!contact) return
+            if (!contact) return contact
             const agentName = asString(step.config.agentName).trim()
-            if (!agentName) return
+            if (!agentName) return contact
             const noteLine = `[Auto-assign] Agente atribuido: ${agentName}`
             const notes = contact.notes ? `${contact.notes}\n${noteLine}` : noteLine
             await contactRepo.update(contact.id, { notes })
@@ -218,7 +218,7 @@ async function logAutomationExecution(input: {
             step_type: input.stepType,
             status: input.status,
             contact_id: input.contactId ?? null,
-            metadata_json: input.metadata ?? {},
+            metadata_json: (input.metadata ?? {}) as Json,
             error_message: input.errorMessage ?? null,
             executed_at: new Date().toISOString(),
         })
@@ -248,8 +248,8 @@ async function enqueueAutomationJob(input: {
             contact_id: input.context.contactId ?? null,
             source: input.context.source ?? null,
             message: input.context.message ?? null,
-            metadata_json: input.context.metadata ?? {},
-            steps_json: input.steps as unknown as Record<string, unknown>,
+            metadata_json: (input.context.metadata ?? {}) as Json,
+            steps_json: input.steps as unknown as Json,
             execute_after: input.executeAfter.toISOString(),
             status: 'pending',
             attempts: 0,

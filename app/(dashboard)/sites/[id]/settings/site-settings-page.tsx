@@ -46,10 +46,11 @@ export function SiteSettingsPage({ initialSite, defaultTab }: SiteSettingsPagePr
     const [modules, setModules] = useState(defaultModules)
     const [suggestionPrompt, setSuggestionPrompt] = useState('')
     const [suggestion, setSuggestion] = useState<string | null>(null)
-    const [state, action, pending] = useActionState(updateSite, { error: '', success: false })
+    const [state, action] = useActionState(updateSite, { error: '', success: false })
 
     useEffect(() => {
         if (defaultTab && ['general', 'sections', 'modules', 'rag', 'custom-domains'].includes(defaultTab)) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setTab(defaultTab as SiteSettingsTab)
         }
     }, [defaultTab])

@@ -1,6 +1,6 @@
 'use client'
 
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/layout/ThemeProvider'
 import { Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -8,7 +8,10 @@ export function ThemeToggle() {
     const { resolvedTheme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
 
-    useEffect(() => setMounted(true), [])
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMounted(true)
+    }, [])
     if (!mounted) return <div className="w-8 h-8" />
 
     const isDark = resolvedTheme === 'dark'

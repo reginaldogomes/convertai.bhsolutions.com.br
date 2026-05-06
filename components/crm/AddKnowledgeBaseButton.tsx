@@ -22,7 +22,10 @@ export function AddKnowledgeBaseButton({ landingPageId }: { landingPageId?: stri
     const [state, action, isPending] = useActionState(addKnowledgeBaseEntry, { error: '', success: false })
 
     useEffect(() => {
-        if (state.success) setOpen(false)
+        if (state.success) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setOpen(false)
+        }
     }, [state.success])
 
     return (
