@@ -1,6 +1,6 @@
 import type { DatabaseRow } from '@/types/database'
 
-interface SiteProps {
+export interface SiteProps {
     id: string
     organizationId: string
     name: string

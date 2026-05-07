@@ -119,7 +119,7 @@ Detalhes adicionais: ${details || 'nenhum'}`
 
         const result = streamText({
             model: geminiModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
+            maxOutputTokens: DEV_AI_MAX_TOKENS,
             system: systemPrompt,
             prompt: userPrompt,
         })

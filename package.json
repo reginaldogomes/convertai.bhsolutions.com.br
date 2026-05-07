@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "predev": "node scripts/assert-next-config.mjs",
+    "prebuild": "node scripts/assert-next-config.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.43",
