@@ -1,8 +1,13 @@
-import { twilio, TWILIO_SMS_NUMBER } from '@/lib/twilio'
+import { getTwilioClient, TWILIO_SMS_NUMBER } from '@/lib/twilio'
 import type { ISmsService, SendSmsInput, SendSmsResult } from '@/domain/interfaces/sms-service'
 
 export class TwilioSmsService implements ISmsService {
     async send(input: SendSmsInput): Promise<SendSmsResult> {
+        if (!TWILIO_SMS_NUMBER) {
+            throw new Error('TWILIO_SMS_NUMBER is required to send SMS messages')
+        }
+
+        const twilio = getTwilioClient()
         const message = await twilio.messages.create({
             from: TWILIO_SMS_NUMBER,
             to: input.to,

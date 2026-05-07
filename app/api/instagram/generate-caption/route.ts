@@ -135,7 +135,7 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: geminiModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
+            maxOutputTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um especialista em marketing digital e criação de conteúdo para Instagram.
 Sua tarefa é gerar conteúdo otimizado para Instagram que maximiza engajamento e alcance.
 

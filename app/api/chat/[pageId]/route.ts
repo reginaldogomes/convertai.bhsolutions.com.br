@@ -11,8 +11,20 @@ import {
 import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
 import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 import { createApiRequestLogger } from '@/lib/api-observability'
+import { checkRateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit'
+import { z } from 'zod'
 
 const CHAT_DEBUG = process.env.CHAT_DEBUG === 'true'
+const CHAT_RATE_LIMIT_MAX = 30
+const CHAT_RATE_LIMIT_WINDOW_MS = 60_000
+
+const chatRequestSchema = z.object({
+    message: z.string().trim().min(1).max(2000),
+    visitorId: z.string().trim().min(1).max(255),
+    sessionId: z.string().uuid().optional(),
+    attribution: z.record(z.string().max(100), z.unknown()).optional(),
+    eventId: z.string().uuid().optional(),
+})
 
 function logChatServer(event: string, payload: Record<string, unknown>) {
     if (!CHAT_DEBUG) return
@@ -29,25 +41,32 @@ export async function POST(
 
     try {
         const { pageId } = await params
-        const body = await req.json()
-        const { message, visitorId, sessionId: existingSessionId, attribution, eventId } = body as {
-            message: string
-            visitorId: string
-            sessionId?: string
-            attribution?: Record<string, unknown>
-            eventId?: string
+        const parsed = chatRequestSchema.safeParse(await req.json())
+        if (!parsed.success) {
+            return Response.json(
+                {
+                    error: 'Invalid chat payload',
+                    requestId,
+                    details: parsed.error.issues.map((issue) => ({
+                        path: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                },
+                { status: 400 }
+            )
         }
 
-        if (!message || typeof message !== 'string' || !visitorId || typeof visitorId !== 'string') {
-            return Response.json({ error: 'message and visitorId are required', requestId }, { status: 400 })
-        }
-
-        if (message.length > 2000) {
-            return Response.json({ error: 'Mensagem muito longa (máx. 2000 caracteres)', requestId }, { status: 400 })
-        }
-
-        if (visitorId.length > 255) {
-            return Response.json({ error: 'visitorId inválido', requestId }, { status: 400 })
+        const { message, visitorId, sessionId: existingSessionId, attribution, eventId } = parsed.data
+        const clientIp = getClientIp(req.headers)
+        const rateLimit = checkRateLimit(
+            `chat:${pageId}:${clientIp}:${visitorId}`,
+            { intervalMs: CHAT_RATE_LIMIT_WINDOW_MS, maxRequests: CHAT_RATE_LIMIT_MAX }
+        )
+        if (!rateLimit.allowed) {
+            return Response.json(
+                { error: 'Muitas mensagens em pouco tempo. Tente novamente em instantes.', requestId },
+                { status: 429, headers: rateLimitHeaders(rateLimit, CHAT_RATE_LIMIT_MAX) }
+            )
         }
 
         logChatServer('request_received', {
@@ -206,7 +225,7 @@ export async function POST(
         // 8. Stream the response
         const result = await streamText({
             model: agentModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
+            maxOutputTokens: DEV_AI_MAX_TOKENS,
             system: systemPrompt,
             messages: conversationMessages,
             async onFinish({ text }) {
@@ -231,6 +250,7 @@ export async function POST(
             headers: {
                 'x-chat-session-id': session.id,
                 'x-chat-request-id': requestId,
+                ...rateLimitHeaders(rateLimit, CHAT_RATE_LIMIT_MAX),
             },
         })
     } catch (error) {

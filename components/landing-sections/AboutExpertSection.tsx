@@ -79,7 +79,7 @@ export function AboutExpertSection({ content, primaryColor, palette, isDark }: A
                                 src={content.avatarUrl}
                                 alt={content.name}
                                 className="h-36 w-36 rounded-2xl object-cover ring-4"
-                                style={{ ringColor: `${primaryColor}30` }}
+                                style={{ boxShadow: `0 0 0 4px ${primaryColor}30` }}
                             />
                         ) : (
                             <div
