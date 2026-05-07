@@ -1,6 +1,7 @@
-import type { NextConfig } from "next";
+// @ts-check
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactCompiler: true,
   images: {
     remotePatterns: [
@@ -19,6 +20,6 @@ const nextConfig: NextConfig = {
       '@tiptap/pm',
     ],
   },
-};
+}
 
-export default nextConfig;
+module.exports = nextConfig

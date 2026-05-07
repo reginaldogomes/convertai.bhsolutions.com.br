@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getSiteUrl } from '@/lib/site-url'
+import type { UserRole } from '@/types/database'
+
+function normalizeUserRole(value: unknown): UserRole {
+    return value === 'owner' || value === 'admin' || value === 'agent' || value === 'viewer' ? value : 'agent'
+}
 
 export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl
@@ -47,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     // ── Fluxo de convite: usuário foi convidado para uma org existente ──────────
     const invitedOrgId = user.user_metadata?.invited_org_id as string | undefined
-    const invitedRole  = (user.user_metadata?.invited_role as string | undefined) ?? 'agent'
+    const invitedRole = normalizeUserRole(user.user_metadata?.invited_role)
 
     if (invitedOrgId) {
         // Confirmar que a org ainda existe
