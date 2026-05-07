@@ -78,8 +78,13 @@ export function GenerateContentButton() {
             })
 
             if (!response.ok) {
-                const apiError = await parseApiError(response)
+                const apiError = await parseApiError(response, 'Erro ao gerar conteúdo')
                 setGenerationError(formatErrorWithRequestId(apiError.message, apiError.requestId))
+                return
+            }
+
+            if (!response.body) {
+                setGenerationError('Resposta vazia do servidor. Tente novamente.')
                 return
             }
 

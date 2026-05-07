@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: geminiModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
+            maxOutputTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um estrategista de conteúdo para Instagram especializado em ${config.niche}.
 Crie conteúdo que combina estratégia de crescimento com a identidade da marca.
 Idioma: ${config.language}.`,
