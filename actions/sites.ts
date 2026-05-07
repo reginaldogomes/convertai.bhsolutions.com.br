@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { generateObject } from 'ai'
 import { useCases, ragService } from '@/application/services/container'
 import { getAuthContext } from '@/infrastructure/auth'
-import { structuredOutputModel, DEV_AI_MAX_TOKENS } from '@/lib/ai'
+import { structuredOutputModel } from '@/lib/ai'
 import { getErrorMessage } from './utils'
 
 export async function listSites() {
@@ -159,7 +159,6 @@ Retorne apenas JSON válido conforme o schema.`
         const { object } = await generateObject({
             model: structuredOutputModel,
             schema,
-            maxTokens: DEV_AI_MAX_TOKENS,
             system: systemPrompt,
             prompt,
             temperature: 0.35,

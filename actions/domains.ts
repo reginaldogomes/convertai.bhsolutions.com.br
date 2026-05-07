@@ -23,6 +23,7 @@ export async function listCustomDomains() {
                 status: d.status,
                 createdAt: d.createdAt.toISOString(),
                 targetPageId: d.targetPageId,
+                target: null,
             })),
             error: null
         }
