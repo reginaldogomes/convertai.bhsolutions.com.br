@@ -1,4 +1,4 @@
-import { twilio, TWILIO_WHATSAPP_NUMBER } from '@/lib/twilio'
+import { getTwilioClient, TWILIO_WHATSAPP_NUMBER } from '@/lib/twilio'
 import type { IWhatsAppService, SendWhatsAppInput, SendWhatsAppResult } from '@/domain/interfaces/whatsapp-service'
 
 function buildStatusCallbackUrl(): string | undefined {
@@ -18,6 +18,11 @@ const STATUS_CALLBACK_URL = buildStatusCallbackUrl()
 
 export class TwilioWhatsAppService implements IWhatsAppService {
     async send(input: SendWhatsAppInput): Promise<SendWhatsAppResult> {
+        if (!TWILIO_WHATSAPP_NUMBER) {
+            throw new Error('TWILIO_WHATSAPP_NUMBER is required to send WhatsApp messages')
+        }
+
+        const twilio = getTwilioClient()
         const message = await twilio.messages.create({
             from: `whatsapp:${TWILIO_WHATSAPP_NUMBER}`,
             to: `whatsapp:${input.to}`,

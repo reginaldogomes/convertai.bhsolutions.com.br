@@ -22,14 +22,15 @@ function makeRepo(overrides: Partial<IContactRepository> = {}): IContactReposito
     return {
         findByOrgId: vi.fn().mockResolvedValue([]),
         findById: vi.fn(),
+        findByPhone: vi.fn(),
+        findByEmail: vi.fn(),
         findWithEmailByOrgId: vi.fn(),
         findWithPhoneByOrgId: vi.fn(),
+        findIdAndNameByOrgId: vi.fn(),
         create: vi.fn().mockResolvedValue(makeContact()),
         update: vi.fn(),
         delete: vi.fn(),
-        existsByEmail: vi.fn(),
-        countByOrgId: vi.fn(),
-        upsertFromLead: vi.fn(),
+        countRecentByOrgId: vi.fn(),
         ...overrides,
     }
 }

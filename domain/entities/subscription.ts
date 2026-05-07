@@ -76,6 +76,39 @@ export class Subscription {
         const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         return Math.max(0, diff)
     }
+
+
+    static fromRow(row: {
+        id: string
+        organization_id: string
+        plan_id: PlanId
+        plan_name: string
+        status: SubscriptionStatus
+        current_period_start: string
+        current_period_end: string
+        cancel_at_period_end: boolean
+        notes: string | null
+        credits_balance: number
+        monthly_credits: number
+        created_at: string
+        updated_at: string
+    }): Subscription {
+        return new Subscription({
+            id: row.id,
+            organizationId: row.organization_id,
+            planId: row.plan_id,
+            planName: row.plan_name,
+            status: row.status,
+            currentPeriodStart: row.current_period_start,
+            currentPeriodEnd: row.current_period_end,
+            cancelAtPeriodEnd: row.cancel_at_period_end,
+            notes: row.notes,
+            creditsBalance: row.credits_balance,
+            monthlyCredits: row.monthly_credits,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        })
+    }
 }
 
 export class CreditPack {

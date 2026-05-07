@@ -216,9 +216,12 @@ export function CustomDomainsSettings({ domains, pages }: CustomDomainsSettingsP
                         </ul>
                     </div>
                 )}
-                <InlineNotice variant="info" size="sm" className="mt-4">
-                    A verificação de um novo domínio pode levar de alguns minutos a 48 horas, dependendo da propagação do seu DNS.
-                </InlineNotice>
+                <InlineNotice
+                    variant="info"
+                    size="sm"
+                    className="mt-4"
+                    message="A verificação de um novo domínio pode levar de alguns minutos a 48 horas, dependendo da propagação do seu DNS."
+                />
             </div>
         </div>
     )
