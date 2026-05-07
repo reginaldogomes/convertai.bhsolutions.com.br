@@ -230,7 +230,7 @@ export class UpsertPlanUseCase {
         }
 
         const plan = await this.planRepo.upsert({
-            ...(input.id ? { id: input.id } : {}),
+            ...(input.id ? { id: input.id as PlanId } : {}),
             ...parsed.data,
         })
 

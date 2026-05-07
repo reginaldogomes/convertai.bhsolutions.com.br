@@ -1,10 +1,11 @@
-import { sendgrid, FROM_EMAIL, FROM_NAME } from '@/lib/sendgrid'
+import { getSendGridClient, FROM_EMAIL, FROM_NAME } from '@/lib/sendgrid'
 import type { IEmailService, SendEmailInput, SendBatchEmailInput, SendEmailResult } from '@/domain/interfaces'
 
 const BATCH_SIZE = 1000 // SendGrid supports up to 1000 per batch call
 
 export class SendGridEmailService implements IEmailService {
     async send(input: SendEmailInput): Promise<SendEmailResult> {
+        const sendgrid = getSendGridClient()
         const [response] = await sendgrid.send({
             from: { email: FROM_EMAIL, name: FROM_NAME },
             to: input.to,
@@ -31,6 +32,7 @@ export class SendGridEmailService implements IEmailService {
             const chunk = inputs.slice(i, i + BATCH_SIZE)
 
             try {
+                const sendgrid = getSendGridClient()
                 await sendgrid.send(
                     chunk.map(input => ({
                         from: { email: FROM_EMAIL, name: FROM_NAME },

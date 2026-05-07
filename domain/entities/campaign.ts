@@ -83,10 +83,11 @@ export class Campaign {
         channel?: string
         status: string
         sent_at: string | null
-        metrics: unknown
+        metrics?: unknown
+        metrics_json?: unknown
         created_at: string
     }): Campaign {
-        const rawMetrics = row.metrics as Record<string, number> | null
+        const rawMetrics = (row.metrics ?? row.metrics_json ?? DEFAULT_METRICS) as Record<string, number> | null
         return new Campaign({
             id: row.id,
             organizationId: row.organization_id,

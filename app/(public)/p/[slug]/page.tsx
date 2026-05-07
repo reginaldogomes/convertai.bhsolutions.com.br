@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { unstable_cache } from 'next/cache'
 import { landingPageRepo } from '@/application/services/container'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, hasSupabaseAdminEnv } from '@/lib/supabase/admin'
 import type { LandingPageConfig, LandingPageProps } from '@/domain/entities'
 import type { FaqContent, HeroContent, LandingPageSection } from '@/domain/entities'
 import { BRAND } from '@/lib/brand'
@@ -46,6 +46,8 @@ type PageProps = {
 }
 
 export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
+    if (!hasSupabaseAdminEnv()) return []
+
     try {
         const supabase = createAdminClient()
         const { data, error } = await supabase
