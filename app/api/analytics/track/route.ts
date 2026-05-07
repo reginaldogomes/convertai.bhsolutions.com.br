@@ -2,9 +2,12 @@ import { analyticsRepo } from '@/application/services/container'
 import type { AnalyticsEventType } from '@/types/database'
 import { enqueueAdsConversion, flushAdsConversionOutbox } from '@/lib/ads-conversion-outbox'
 import { createApiRequestLogger, jsonWithRequestId } from '@/lib/api-observability'
+import { checkRateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 const ALLOWED_EVENTS: AnalyticsEventType[] = ['view', 'chat_start', 'cta_click']
+const ANALYTICS_RATE_LIMIT_MAX = 120
+const ANALYTICS_RATE_LIMIT_WINDOW_MS = 60_000
 
 const analyticsTrackSchema = z.object({
     landingPageId: z.string().uuid(),
@@ -36,6 +39,18 @@ export async function POST(req: Request) {
         }
 
         const { landingPageId, eventType, visitorId, metadata } = parsed.data
+        const clientIp = getClientIp(req.headers)
+        const rateLimit = checkRateLimit(
+            `analytics:${landingPageId}:${clientIp}:${visitorId}`,
+            { intervalMs: ANALYTICS_RATE_LIMIT_WINDOW_MS, maxRequests: ANALYTICS_RATE_LIMIT_MAX }
+        )
+        if (!rateLimit.allowed) {
+            return jsonWithRequestId(
+                logger.requestId,
+                { error: 'Too many analytics events', requestId: logger.requestId },
+                { status: 429, headers: rateLimitHeaders(rateLimit, ANALYTICS_RATE_LIMIT_MAX) }
+            )
+        }
 
         const enrichedMetadata = {
             ...(metadata ?? {}),
@@ -59,7 +74,11 @@ export async function POST(req: Request) {
         void flushAdsConversionOutbox({ limit: 10, requestHeaders: req.headers })
 
         logger.log('event_tracked', { landingPageId, eventType })
-        return jsonWithRequestId(logger.requestId, { ok: true, requestId: logger.requestId })
+        return jsonWithRequestId(
+            logger.requestId,
+            { ok: true, requestId: logger.requestId },
+            { headers: rateLimitHeaders(rateLimit, ANALYTICS_RATE_LIMIT_MAX) }
+        )
     } catch (error) {
         logger.error('track_failed', error)
         return jsonWithRequestId(
