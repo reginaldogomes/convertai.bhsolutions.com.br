@@ -1,7 +1,7 @@
 import type { Plan, PlanProps } from '@/domain/entities/plan'
 import type { PlanId } from '@/types/database'
 
-export type UpsertPlanInput = Omit<PlanProps, 'id'> & { id?: string }
+export type UpsertPlanInput = Omit<PlanProps, 'id'> & { id?: PlanId }
 
 export interface IPlanRepository {
     findAll(): Promise<Plan[]>

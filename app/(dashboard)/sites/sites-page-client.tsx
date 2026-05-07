@@ -84,18 +84,6 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                 <InlineNotice variant="destructive" message={state.error} className="mb-4" size="sm" />
             )}
 
-            {updateState.error && (
-                <InlineNotice variant="destructive" message={updateState.error} className="mb-4" size="sm" />
-            )}
-
-            {updateState.success && (
-                <InlineNotice variant="success" message="Site atualizado com sucesso!" className="mb-4" size="sm" />
-            )}
-
-            {deleteState.success && (
-                <InlineNotice variant="success" message="Site deletado com sucesso!" className="mb-4" size="sm" />
-            )}
-
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Site Atual */}
                 <Card>

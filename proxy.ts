@@ -2,6 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from './lib/supabase/admin'
 
+type CustomDomainRoutingRecord = {
+    landing_pages?: {
+        sites?: {
+            landing_pages?: Array<{ slug: string; is_homepage?: boolean | null }>
+        } | null
+    } | null
+}
+
+type CustomDomainRoutingQuery = {
+    select(columns: string): CustomDomainRoutingQuery
+    eq(column: string, value: string): CustomDomainRoutingQuery
+    maybeSingle(): Promise<{ data: CustomDomainRoutingRecord | null }>
+}
+
+type CustomDomainRoutingClient = {
+    from(table: 'custom_domains'): CustomDomainRoutingQuery
+}
+
 export async function proxy(request: NextRequest) {
     const url = request.nextUrl
     // Use `nextUrl.hostname` para obter o host sem a porta,
@@ -15,7 +33,7 @@ export async function proxy(request: NextRequest) {
 
     // Se não for o domínio principal, é um potencial domínio customizado
     if (hostname !== appDomain) {
-        const admin = createAdminClient()
+        const admin = createAdminClient() as unknown as CustomDomainRoutingClient
         // Lógica atualizada para buscar o site e suas páginas
         const { data: domainData } = await admin
             .from('custom_domains')
@@ -28,15 +46,15 @@ export async function proxy(request: NextRequest) {
         const site = domainData?.landing_pages?.sites
 
         if (site && Array.isArray(site.landing_pages)) {
-            let pageToRender: { slug: string } | undefined;
+            let pageToRender: { slug: string; is_homepage?: boolean | null } | undefined;
 
             // Se o caminho for a raiz ('/'), procura a página marcada como homepage.
             if (pathname === '/') {
-                pageToRender = site.landing_pages.find(p => p.is_homepage);
+                pageToRender = site.landing_pages.find((p: { slug: string; is_homepage?: boolean | null }) => p.is_homepage);
             } else {
                 // Para outros caminhos (ex: '/sobre'), procura uma página com esse slug.
                 const requestedSlug = pathname.replace(/^\//, '');
-                pageToRender = site.landing_pages.find(p => p.slug === requestedSlug);
+                pageToRender = site.landing_pages.find((p: { slug: string; is_homepage?: boolean | null }) => p.slug === requestedSlug);
             }
 
             if (pageToRender) {

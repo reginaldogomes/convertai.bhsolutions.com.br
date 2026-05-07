@@ -1,14 +1,23 @@
 import { Resend } from 'resend'
 import type { IEmailService, SendEmailInput, SendBatchEmailInput, SendEmailResult } from '@/domain/interfaces'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@bhsolutions.com.br'
 const FROM_NAME = process.env.RESEND_FROM_NAME || 'ConvertAI'
 
 const BATCH_SIZE = 100 // Resend batch limit
 
+function getResendClient() {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+        throw new Error('RESEND_API_KEY is required to send email with Resend')
+    }
+
+    return new Resend(apiKey)
+}
+
 export class ResendEmailService implements IEmailService {
     async send(input: SendEmailInput): Promise<SendEmailResult> {
+        const resend = getResendClient()
         const { data, error } = await resend.emails.send({
             from: `${FROM_NAME} <${FROM_EMAIL}>`,
             to: input.to,
@@ -33,6 +42,7 @@ export class ResendEmailService implements IEmailService {
             const chunk = inputs.slice(i, i + BATCH_SIZE)
 
             try {
+                const resend = getResendClient()
                 const { data, error } = await resend.batch.send(
                     chunk.map(input => ({
                         from: `${FROM_NAME} <${FROM_EMAIL}>`,
