@@ -231,14 +231,15 @@ describe('SendCampaignUseCase', () => {
         contactRepo = {
             findByOrgId: vi.fn().mockResolvedValue([]),
             findById: vi.fn(),
+            findByPhone: vi.fn(),
+            findByEmail: vi.fn(),
             findWithEmailByOrgId: vi.fn().mockResolvedValue(mockContacts),
             findWithPhoneByOrgId: vi.fn().mockResolvedValue(mockContacts),
+            findIdAndNameByOrgId: vi.fn(),
             create: vi.fn(),
             update: vi.fn(),
             delete: vi.fn(),
-            existsByEmail: vi.fn(),
-            countByOrgId: vi.fn(),
-            upsertFromLead: vi.fn(),
+            countRecentByOrgId: vi.fn(),
         }
 
         emailService = {
@@ -257,8 +258,9 @@ describe('SendCampaignUseCase', () => {
 
         recipientRepo = {
             bulkCreate: vi.fn().mockResolvedValue(undefined),
+            updateByTwilioSid: vi.fn(),
             findByCampaignId: vi.fn(),
-            updateStatus: vi.fn(),
+            countByCampaignAndStatus: vi.fn(),
         }
 
         useCase = new SendCampaignUseCase(

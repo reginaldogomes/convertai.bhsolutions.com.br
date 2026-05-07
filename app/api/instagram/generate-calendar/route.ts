@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: powerModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
+            maxOutputTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um estrategista de conteúdo para Instagram especializado em crescimento orgânico.
 Sua tarefa é criar um calendário editorial completo e estratégico.
 
