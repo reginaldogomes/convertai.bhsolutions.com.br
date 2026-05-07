@@ -732,8 +732,22 @@ export interface Database {
                     sort_order: number
                     updated_at: string
                 }
-                Insert: never
-                Update: never
+                Insert: {
+                    id?: PlanId
+                    name: string
+                    description: string
+                    price_brl: number
+                    monthly_credits: number
+                    max_contacts: number
+                    max_landing_pages: number
+                    max_users: number
+                    max_automations: number
+                    features: string[]
+                    is_active?: boolean
+                    sort_order?: number
+                    updated_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['plans']['Insert']>
                 Relationships: []
             }
             organization_subscriptions: {
@@ -761,7 +775,8 @@ export interface Database {
                 }
                 Update: Partial<Database['public']['Tables']['organization_subscriptions']['Insert']>
                 Relationships: [
-                    { foreignKeyName: 'org_subscriptions_org_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                    { foreignKeyName: 'org_subscriptions_org_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'organization_subscriptions_plan_id_fkey'; columns: ['plan_id']; referencedRelation: 'plans'; referencedColumns: ['id'] }
                 ]
             }
             credit_transactions: {
@@ -867,6 +882,28 @@ export interface Database {
                     content: string
                     similarity: number
                 }>
+            }
+            consume_credits: {
+                Args: {
+                    p_org_id: string
+                    p_amount: number
+                    p_type: CreditTransactionType
+                    p_description: string
+                    p_reference_id: string | null
+                    p_created_by: string | null
+                }
+                Returns: boolean
+            }
+            add_credits: {
+                Args: {
+                    p_org_id: string
+                    p_amount: number
+                    p_type: CreditTransactionType
+                    p_description: string
+                    p_reference_id: string | null
+                    p_created_by: string | null
+                }
+                Returns: number
             }
             get_admin_stats: {
                 Args: Record<string, never>

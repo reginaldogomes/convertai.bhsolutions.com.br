@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
         const result = streamText({
             model: powerModel,
-            maxTokens: DEV_AI_MAX_TOKENS,
+            maxOutputTokens: DEV_AI_MAX_TOKENS,
             system: `Você é um especialista em criação de conteúdo visual para Instagram e direção de arte.
 Sua tarefa é gerar prompts detalhados para geração de imagens com IA (como DALL-E, Midjourney ou Gemini).
 
