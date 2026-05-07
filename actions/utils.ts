@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 import { DomainError } from '@/domain/errors'
 
 export type ErrorPayload = { message: string; code: string | null }
@@ -30,6 +31,8 @@ const DOMAIN_ERROR_MESSAGES: Record<string, string | null> = {
  * Nunca expõe detalhes internos, stack traces ou mensagens de banco de dados.
  */
 export function getErrorPayload(error: unknown): ErrorPayload {
+    unstable_rethrow(error)
+
     if (error instanceof DomainError) {
         const mapped = DOMAIN_ERROR_MESSAGES[error.code]
         // null = usar error.message (mensagem específica e segura definida no use case)

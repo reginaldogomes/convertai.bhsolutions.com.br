@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/assert-next-config.mjs && next dev",
+    "build": "node scripts/assert-next-config.mjs && next build",
+    "predev": "node scripts/assert-next-config.mjs",
+    "prebuild": "node scripts/assert-next-config.mjs",
     "start": "next start",
     "lint": "eslint",
     "db:push": "npx supabase db push",

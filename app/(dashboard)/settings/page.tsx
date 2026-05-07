@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Settings as SettingsIcon } from 'lucide-react'
 import { SettingsTabs } from './settings-tabs'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { useCases } from '@/application/services/container'
+import { tryGetAuthContext } from '@/infrastructure/auth'
 import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction, PlainOrgMember } from './settings-tabs'
 
 type AiGovernanceView = {
@@ -185,8 +187,10 @@ export default async function SettingsPage() {
                 useCases.getCreditPacks().execute(),
                 useCases.getCreditTransactions().execute(auth.orgId, 50),
                 useCases.listOrgMembers().execute(auth.orgId),
+                useCases.listCustomDomains().execute(auth.orgId),
+                useCases.listLandingPages().execute(auth.orgId),
             ])
-            if (subResult.ok) {
+            if (subResult.ok && subResult.value) {
                 const s = subResult.value
                 subscription = {
                     planName: s.planName,
@@ -234,41 +238,32 @@ export default async function SettingsPage() {
                     isOwner: m.isOwner(),
                 }))
             }
-            if (landingPagesResult.ok) {
-                landingPagesData = landingPagesResult.value.map(lp => ({
-                    id: lp.id,
-                    name: lp.name,
-                }))
-                const pagesMap = new Map(landingPagesResult.value.map(lp => [
-                    lp.id,
-                    { name: lp.name, slug: lp.slug },
-                ]))
-                if (customDomainsResult.ok) {
-                    customDomainsData = customDomainsResult.value.map(cd => ({
-                        id: cd.id,
-                        domain: cd.domain,
-                        status: cd.status,
-                        createdAt: cd.createdAt.toISOString(),
-                        verifiedAt: null,
-                        target: cd.targetPageId && pagesMap.has(cd.targetPageId)
-                            ? {
-                                id: cd.targetPageId,
-                                name: pagesMap.get(cd.targetPageId)!.name,
-                                slug: pagesMap.get(cd.targetPageId)!.slug,
-                            }
-                            : null,
-                    }))
-                }
-            } else if (customDomainsResult.ok) {
-                customDomainsData = customDomainsResult.value.map(cd => ({
+            landingPagesData = landingPagesResult.map(lp => ({
+                id: lp.id,
+                name: lp.name,
+            }))
+            const pagesMap = new Map(landingPagesResult.map(lp => [
+                lp.id,
+                { name: lp.name, slug: lp.slug },
+            ]))
+            customDomainsData = customDomainsResult.map(cd => {
+                const target = cd.targetPageId ? pagesMap.get(cd.targetPageId) : null
+
+                return {
                     id: cd.id,
                     domain: cd.domain,
                     status: cd.status,
                     createdAt: cd.createdAt.toISOString(),
                     verifiedAt: null,
-                    target: null,
-                }))
-            }
+                    target: cd.targetPageId && target
+                        ? {
+                            id: cd.targetPageId,
+                            name: target.name,
+                            slug: target.slug,
+                        }
+                        : null,
+                }
+            })
         } catch {
             // tabelas podem não existir ainda — ignore
         }

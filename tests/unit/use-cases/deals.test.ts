@@ -22,11 +22,10 @@ function makeDeal(overrides: Partial<ConstructorParameters<typeof Deal>[0]> = {}
 function makeRepo(overrides: Partial<IDealRepository> = {}): IDealRepository {
     return {
         findByOrgId: vi.fn().mockResolvedValue([]),
-        findById: vi.fn(),
+        findByContactId: vi.fn().mockResolvedValue([]),
         create: vi.fn().mockResolvedValue(makeDeal()),
-        update: vi.fn(),
         updateStage: vi.fn().mockResolvedValue(true),
-        delete: vi.fn(),
+        getStatsForOrg: vi.fn().mockResolvedValue({ total: 0, won: 0 }),
         ...overrides,
     }
 }
