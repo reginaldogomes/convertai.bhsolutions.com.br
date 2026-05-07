@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { contactRepo, useCases } from '@/application/services/container'
 import type { AutomationStep } from '@/domain/interfaces'
+import type { Json } from '@/types/database'
 import type { Automation } from '@/domain/entities'
 
 export type AutomationTriggerEvent =
@@ -126,12 +127,12 @@ async function runStep(
             return contact
         }
         case 'send_email': {
-            if (!contact) return
+            if (!contact) return contact
             const subjectTemplate = asString(step.config.subject, 'Mensagem')
             const bodyTemplate = asString(step.config.body, asString(step.config.message, ''))
             const subject = fillTemplate(subjectTemplate, templateData).trim() || 'Mensagem'
             const content = fillTemplate(bodyTemplate, templateData).trim()
-            if (!content) return
+            if (!content) return contact
             const sent = await useCases.sendMessage().execute(orgId, {
                 contactId: contact.id,
                 subject,
