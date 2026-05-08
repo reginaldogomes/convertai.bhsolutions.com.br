@@ -13,6 +13,9 @@ export interface CreateLandingPageInput {
     chatbotWelcomeMessage?: string
     chatbotSystemPrompt?: string
     configJson?: Record<string, unknown>
+    siteId?: string
+    isHomepage?: boolean
+    status?: LandingPageStatus
 }
 
 export interface UpdateLandingPageInput {
@@ -31,6 +34,7 @@ export interface ILandingPageRepository {
     findById(id: string): Promise<LandingPage | null>
     findBySlug(slug: string): Promise<LandingPage | null>
     findByOrgId(orgId: string): Promise<LandingPage[]>
+    countByOrgId(orgId: string): Promise<{ total: number; published: number }>
     create(input: CreateLandingPageInput): Promise<LandingPage | null>
     update(id: string, orgId: string, input: UpdateLandingPageInput): Promise<LandingPage | null>
     updateStatus(id: string, orgId: string, status: LandingPageStatus): Promise<boolean>

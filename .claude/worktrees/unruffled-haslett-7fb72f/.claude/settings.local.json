@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wsl bash *)",
+      "Bash(grep -n \"KB_IMAGE_BUCKET\\\\|knowledge-base-assets\" //wsl.localhost/Ubuntu-24.04/home/reginaldogomes/Projects/2026/convertai.bhsolutions.com.br/.claude/worktrees/unruffled-haslett-7fb72f/actions/organization.ts)",
+      "Bash(ls /home/reginaldogomes/Projects/2026/convertai.bhsolutions.com.br/)",
+      "Read(///wsl.localhost/Ubuntu-24.04/home/reginaldogomes/Projects/**)",
+      "Read(///wsl.localhost/Ubuntu-24.04/home/reginaldogomes/**)",
+      "Read(///wsl.localhost/Ubuntu-24.04/home/**)"
+    ]
+  }
+}

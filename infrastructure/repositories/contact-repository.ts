@@ -139,4 +139,13 @@ export class SupabaseContactRepository implements IContactRepository {
             .gte('created_at', since)
         return count ?? 0
     }
+
+    async countByOrgId(orgId: string): Promise<number> {
+        const supabase = createAdminClient()
+        const { count } = await supabase
+            .from('contacts')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', orgId)
+        return count ?? 0
+    }
 }

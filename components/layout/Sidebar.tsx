@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './ThemeToggle'
+import { OrgSwitcher } from './OrgSwitcher'
 import { BRAND } from '@/lib/brand'
 
 const navItems = [
@@ -53,7 +54,20 @@ const navItems = [
     },
 ] as const
 
-export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
+interface OrgEntry {
+    orgId: string
+    orgName: string
+    role: string
+}
+
+interface SidebarProps {
+    isSuperAdmin?: boolean
+    organizations?: OrgEntry[]
+    activeOrgId?: string
+    activeOrgName?: string
+}
+
+export function Sidebar({ isSuperAdmin = false, organizations = [], activeOrgId = '', activeOrgName = '' }: SidebarProps) {
     const pathname = usePathname()
 
     return (
@@ -67,6 +81,20 @@ export function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
                     <span className="text-white font-bold text-sm tracking-tight">{BRAND.name}</span>
                 </div>
             </div>
+
+            {/* Org Switcher */}
+            {organizations.length > 0 && (
+                <div className="px-3 py-2 border-b border-[hsl(var(--sidebar-border))]">
+                    <p className="px-3 pb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white/20">
+                        Organização
+                    </p>
+                    <OrgSwitcher
+                        organizations={organizations}
+                        activeOrgId={activeOrgId}
+                        activeOrgName={activeOrgName}
+                    />
+                </div>
+            )}
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">

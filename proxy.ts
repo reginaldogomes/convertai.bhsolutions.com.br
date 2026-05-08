@@ -11,7 +11,7 @@ export async function proxy(request: NextRequest) {
     const pathname = url.pathname
 
     // Domínio principal da aplicação (ex: app.convertai.com.br)
-    const appDomain = new URL(process.env.NEXT_PUBLIC_APP_URL!).hostname
+    const appDomain = new URL(process.env.NEXT_PUBLIC_SITE_URL!).hostname
 
     // Se não for o domínio principal, é um potencial domínio customizado
     if (hostname !== appDomain) {
@@ -48,7 +48,7 @@ export async function proxy(request: NextRequest) {
 
         // Por segurança, redirecionamos para o app principal.
         // Futuramente, pode-se exibir uma página 404 customizada do próprio site.
-        return NextResponse.redirect(new URL(process.env.NEXT_PUBLIC_APP_URL!))
+        return NextResponse.redirect(new URL(process.env.NEXT_PUBLIC_SITE_URL!))
     }
 
     // Public landing routes and APIs must never require dashboard auth.

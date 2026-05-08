@@ -1,6 +1,24 @@
 import { DomainError } from '@/domain/errors'
+import { getAuthContext, type AuthenticatedContext } from '@/infrastructure/auth'
+import { canDo, type PermissionKey } from '@/lib/permissions'
 
 export type ErrorPayload = { message: string; code: string | null }
+
+/**
+ * Centralized permission guard for server actions.
+ * Resolves auth context AND enforces role-based permission in one call.
+ *
+ * Usage:
+ *   const ctx = await requirePermission('createCampaign')
+ *   // ctx is guaranteed to have the right permission
+ */
+export async function requirePermission(action: PermissionKey): Promise<AuthenticatedContext> {
+    const ctx = await getAuthContext()
+    if (!canDo(ctx.profile.role, action)) {
+        throw new DomainError('Você não tem permissão para realizar esta ação.', 'NOT_AUTHORIZED')
+    }
+    return ctx
+}
 
 /**
  * Mapeamento centralizado: código de erro de domínio → mensagem pt-BR segura para o cliente.

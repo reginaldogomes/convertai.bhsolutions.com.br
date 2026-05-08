@@ -1,7 +1,7 @@
 const LOCAL_URL = 'http://localhost:3000'
 
 export function getSiteUrl(): string {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || LOCAL_URL
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL)?.trim() || LOCAL_URL
     return baseUrl.replace(/\/+$/, '')
 }
 

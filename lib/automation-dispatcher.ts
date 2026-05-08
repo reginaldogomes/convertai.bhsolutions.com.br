@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { contactRepo, useCases } from '@/application/services/container'
 import type { AutomationStep } from '@/domain/interfaces'
 import type { Automation } from '@/domain/entities'
+import type { Json } from '@/types/database'
 
 export type AutomationTriggerEvent =
     | 'new_contact'

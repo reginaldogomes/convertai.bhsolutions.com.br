@@ -115,6 +115,7 @@ export default async function LandingPageDetailPage({
                             chatbotName: page.chatbotName,
                             chatbotWelcomeMessage: page.chatbotWelcomeMessage,
                             chatbotSystemPrompt: page.chatbotSystemPrompt,
+                            logoUrl: page.configJson.logoUrl ?? null,
                             seoTitle: page.configJson.seo?.title,
                             seoDescription: page.configJson.seo?.description,
                             seoKeywords: page.configJson.seo?.keywords,

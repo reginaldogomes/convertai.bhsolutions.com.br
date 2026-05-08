@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
+import { Providers } from './providers'
 import { BRAND } from '@/lib/brand'
 import { getSiteUrl } from '@/lib/site-url'
 import './globals.css'
@@ -37,7 +38,9 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider>
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

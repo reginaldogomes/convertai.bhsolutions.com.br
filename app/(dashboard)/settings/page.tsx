@@ -2,7 +2,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Settings as SettingsIcon } from 'lucide-react'
 import { SettingsTabs } from './settings-tabs'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction, PlainOrgMember } from './settings-tabs'
+import { tryGetAuthContext } from '@/infrastructure/auth'
+import { useCases } from '@/application/services/container'
+import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction, PlainOrgMember, PlainDepartment } from './settings-tabs'
 
 type AiGovernanceView = {
     available: boolean
@@ -28,8 +30,7 @@ type AiUsageEventView = {
 
 async function loadAiGovernance(orgId: string): Promise<AiGovernanceView> {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
+        const admin = createAdminClient()
 
         const [policyResult, dailyCountResult, monthCostResult] = await Promise.all([
             admin
@@ -96,8 +97,7 @@ async function loadAiGovernance(orgId: string): Promise<AiGovernanceView> {
 
 async function loadAiUsageEvents(orgId: string): Promise<AiUsageEventView[]> {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
+        const admin = createAdminClient()
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
         const { data, error } = await admin
@@ -161,6 +161,7 @@ export default async function SettingsPage() {
     let creditPacks: PlainCreditPack[] = []
     let creditTransactions: PlainCreditTransaction[] = []
     let members: PlainOrgMember[] = []
+    let departments: PlainDepartment[] = []
     let customDomainsData: Array<{
         id: string
         domain: string
@@ -180,11 +181,18 @@ export default async function SettingsPage() {
 
     if (auth) {
         try {
-            const [subResult, packsResult, txResult, membersResult, customDomainsResult, landingPagesResult] = await Promise.all([
+            const [subResult, packsResult, txResult, membersResult, customDomainsResult, landingPagesResult, deptsResult] = await Promise.all([
                 useCases.getSubscription().execute(auth.orgId),
                 useCases.getCreditPacks().execute(),
                 useCases.getCreditTransactions().execute(auth.orgId, 50),
                 useCases.listOrgMembers().execute(auth.orgId),
+                useCases.listCustomDomains().execute(auth.orgId).then(v => ({ ok: true as const, value: v })).catch(() => ({ ok: false as const })),
+                useCases.listLandingPages().execute(auth.orgId).then(v => ({ ok: true as const, value: v })).catch(() => ({ ok: false as const })),
+                createAdminClient()
+                    .from('departments')
+                    .select('id, name, color')
+                    .eq('organization_id', auth.orgId)
+                    .order('name', { ascending: true }),
             ])
             if (subResult.ok) {
                 const s = subResult.value
@@ -232,8 +240,10 @@ export default async function SettingsPage() {
                     initials: m.initials(),
                     roleLabel: m.roleLabel(),
                     isOwner: m.isOwner(),
+                    departments: m.departments.map(d => ({ id: d.id, name: d.name, color: d.color })),
                 }))
             }
+            departments = (deptsResult.data ?? []).map(d => ({ id: d.id, name: d.name, color: d.color }))
             if (landingPagesResult.ok) {
                 landingPagesData = landingPagesResult.value.map(lp => ({
                     id: lp.id,
@@ -294,6 +304,7 @@ export default async function SettingsPage() {
                 creditPacks={creditPacks}
                 creditTransactions={creditTransactions}
                 members={members}
+                departments={departments}
                 currentUserId={auth?.userId ?? ''}
                 customDomains={customDomainsData}
                 landingPages={landingPagesData}

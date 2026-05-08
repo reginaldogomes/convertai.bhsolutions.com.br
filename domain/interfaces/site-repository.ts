@@ -2,10 +2,22 @@ import type { Site } from '@/domain/entities/site'
 
 export interface CreateSiteInput {
     name: string
+    configJson?: Record<string, any>
+    primaryColor?: string | null
+    logoUrl?: string | null
+    description?: string | null
+    theme?: string | null
+    status?: string | null
 }
 
 export interface UpdateSiteInput {
     name?: string
+    configJson?: Record<string, any>
+    primaryColor?: string | null
+    logoUrl?: string | null
+    description?: string | null
+    theme?: string | null
+    status?: string | null
 }
 
 export interface ISiteRepository {

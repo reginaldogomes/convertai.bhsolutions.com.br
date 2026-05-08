@@ -16,6 +16,8 @@ const createLandingPageSchema = z.object({
     chatbotName: z.string().max(100).optional(),
     chatbotWelcomeMessage: z.string().max(500).optional(),
     chatbotSystemPrompt: z.string().max(15000).optional(),
+    siteId: z.string().uuid().optional(),
+    isHomepage: z.boolean().optional().default(false),
 })
 
 const updateLandingPageSchema = z.object({
@@ -52,8 +54,11 @@ export class CreateLandingPageUseCase {
         chatbotWelcomeMessage?: string
         chatbotSystemPrompt?: string
         configJson?: Record<string, unknown>
+        siteId?: string
+        isHomepage?: boolean
+        status?: 'published' | 'draft'
     }): Promise<Result<LandingPage>> {
-        const { configJson, ...rest } = input
+        const { configJson, siteId, isHomepage, status, ...rest } = input
         const parsed = createLandingPageSchema.safeParse(rest)
         if (!parsed.success) {
             return failure(new ValidationError(parsed.error.issues[0]?.message ?? 'Dados inválidos'))
@@ -69,6 +74,9 @@ export class CreateLandingPageUseCase {
             organizationId: orgId,
             ...parsed.data,
             configJson,
+            siteId,
+            isHomepage,
+            status: input.status,
         })
 
         if (!page) return failure(new ValidationError('Erro ao criar landing page'))
@@ -270,5 +278,96 @@ export class GetLandingPageAnalyticsUseCase {
 
     async execute(pageId: string): Promise<PageAnalyticsSummary> {
         return this.analyticsRepo.getSummary(pageId)
+    }
+}
+
+// --- Update Knowledge Base Entry ---
+
+export class UpdateKnowledgeBaseEntryUseCase {
+    constructor(
+        private readonly knowledgeBaseRepo: IKnowledgeBaseRepository,
+        private readonly ragService: IRagService,
+    ) {}
+
+    async execute(orgId: string, entryId: string, input: {
+        title: string
+        content: string
+        tags?: string[]
+    }): Promise<Result<KnowledgeBase>> {
+        if (!input.title || !input.content) {
+            return failure(new ValidationError('Título e conteúdo são obrigatórios'))
+        }
+
+        const entry = await this.knowledgeBaseRepo.update(entryId, orgId, {
+            title: input.title,
+            content: input.content,
+            metadata: { tags: input.tags, updatedAt: new Date().toISOString() }
+        })
+
+        if (!entry) return failure(new EntityNotFoundError('Knowledge Base Entry'))
+
+        this.ragService.indexContent(entry.id, `${input.title}\n\n${input.content}`).catch(() => {})
+        return success(entry)
+    }
+}
+
+// --- Delete Knowledge Base Entry ---
+
+export class DeleteKnowledgeBaseEntryUseCase {
+    constructor(private readonly knowledgeBaseRepo: IKnowledgeBaseRepository) {}
+
+    async execute(orgId: string, entryId: string): Promise<Result<boolean>> {
+        const ok = await this.knowledgeBaseRepo.delete(entryId, orgId)
+        if (!ok) return failure(new EntityNotFoundError('Knowledge Base Entry'))
+        return success(true)
+    }
+}
+
+// --- Purge Knowledge Base History ---
+
+export class PurgeKnowledgeBaseHistoryUseCase {
+    constructor(private readonly knowledgeBaseRepo: IKnowledgeBaseRepository) {}
+
+    async execute(orgId: string, retentionDays: number): Promise<number> {
+        return this.knowledgeBaseRepo.purgeHistory(orgId, retentionDays)
+    }
+}
+
+// --- Upload Knowledge Base Image ---
+
+export class UploadKnowledgeBaseImageUseCase {
+    constructor(
+        private readonly knowledgeBaseRepo: IKnowledgeBaseRepository,
+        private readonly ragService: IRagService,
+    ) {}
+
+    async execute(orgId: string, input: {
+        title: string
+        description: string
+        extractedText: string
+        tags: string[]
+        file: File
+    }): Promise<Result<KnowledgeBase>> {
+        if (!input.title || !input.file) {
+            return failure(new ValidationError('Título e imagem são obrigatórios'))
+        }
+
+        const fullContent = `[IMAGEM: ${input.title}]\nDescrição: ${input.description}\n\nTexto Extraído/OCR:\n${input.extractedText}`
+
+        const entry = await this.knowledgeBaseRepo.create({
+            organizationId: orgId,
+            title: `Imagem: ${input.title}`,
+            content: fullContent,
+            metadata: {
+                source: 'image_upload',
+                tags: input.tags,
+                updatedAt: new Date().toISOString()
+            }
+        })
+
+        if (!entry) return failure(new ValidationError('Erro ao salvar metadados da imagem'))
+
+        this.ragService.indexContent(entry.id, `${input.title}\n\n${fullContent}`).catch(() => {})
+        return success(entry)
     }
 }

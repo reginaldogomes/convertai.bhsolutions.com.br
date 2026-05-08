@@ -23,8 +23,7 @@ export class CustomDomain {
             targetPageId: row.target_page_id,
             createdAt: new Date(row.created_at),
             updatedAt: row.updated_at ? new Date(row.updated_at) : null,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            verificationDetails: (row as any).verification_details || null,
+            verificationDetails: row.verification_details as Record<string, unknown> | null,
         })
     }
 

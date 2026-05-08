@@ -1,6 +1,12 @@
 import type { UserRole } from '@/types/database'
 import { roleLabel } from '@/lib/permissions'
 
+export interface DepartmentRef {
+    id: string
+    name: string
+    color: string
+}
+
 interface OrgMemberProps {
     id: string
     organizationId: string
@@ -9,6 +15,7 @@ interface OrgMemberProps {
     role: UserRole
     avatarUrl: string | null
     createdAt: string
+    departments: DepartmentRef[]
 }
 
 export class OrgMember {
@@ -22,6 +29,7 @@ export class OrgMember {
         role: string
         avatar_url?: string | null
         created_at: string
+        departments?: DepartmentRef[]
     }): OrgMember {
         return new OrgMember({
             id: row.id,
@@ -31,6 +39,7 @@ export class OrgMember {
             role: row.role as UserRole,
             avatarUrl: row.avatar_url ?? null,
             createdAt: row.created_at,
+            departments: row.departments ?? [],
         })
     }
 
@@ -41,6 +50,7 @@ export class OrgMember {
     get role()           { return this.props.role }
     get avatarUrl()      { return this.props.avatarUrl }
     get createdAt()      { return this.props.createdAt }
+    get departments()    { return this.props.departments }
 
     isOwner():  boolean { return this.props.role === 'owner' }
     isAdmin():  boolean { return this.props.role === 'admin' }
@@ -51,7 +61,6 @@ export class OrgMember {
         return roleLabel(this.props.role)
     }
 
-    /** Iniciais para exibição de avatar */
     initials(): string {
         return this.props.name
             .split(' ')
@@ -61,16 +70,14 @@ export class OrgMember {
             .join('')
     }
 
-    /** Verifica se este membro pode atualizar o role de outro membro */
     canUpdateRole(target: OrgMember): boolean {
-        if (this.isOwner()) return !target.isOwner() // owner pode tudo exceto mover outro owner
-        if (this.isAdmin()) return !target.isOwner() && !target.isAdmin() // admin pode mudar apenas agent/viewer
+        if (this.isOwner()) return !target.isOwner()
+        if (this.isAdmin()) return !target.isOwner() && !target.isAdmin()
         return false
     }
 
-    /** Verifica se este membro pode remover outro membro */
     canRemove(target: OrgMember): boolean {
-        if (this.props.id === target.props.id) return false // não pode se auto-remover
+        if (this.props.id === target.props.id) return false
         if (this.isOwner()) return !target.isOwner()
         if (this.isAdmin()) return !target.isOwner() && !target.isAdmin()
         return false

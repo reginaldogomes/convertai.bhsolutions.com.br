@@ -104,6 +104,37 @@ export class SupabaseKnowledgeBaseRepository implements IKnowledgeBaseRepository
         return !error
     }
 
+    async update(id: string, orgId: string, updates: Partial<CreateKnowledgeBaseInput>): Promise<KnowledgeBase | null> {
+        const supabase = createAdminClient()
+        const { data, error } = await supabase
+            .from('knowledge_base')
+            .update({
+                title: updates.title,
+                content: updates.content,
+                metadata_json: updates.metadata as unknown as string,
+            })
+            .eq('id', id)
+            .eq('organization_id', orgId)
+            .select('id, organization_id, landing_page_id, title, content, metadata_json, created_at')
+            .single()
+        
+        return data ? KnowledgeBase.fromRow(data) : null
+    }
+
+    async purgeHistory(orgId: string, retentionDays: number): Promise<number> {
+        const supabase = createAdminClient()
+        const thresholdDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString()
+        
+        const { data, error } = await supabase
+            .from('knowledge_base')
+            .delete()
+            .eq('organization_id', orgId)
+            .lt('created_at', thresholdDate)
+            .select('id')
+            
+        return data ? data.length : 0
+    }
+
     async searchSimilar(
         embedding: number[],
         orgId: string,

@@ -1,6 +1,10 @@
 import { embed } from 'ai'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import type { IKnowledgeBaseRepository, KnowledgeBaseMatch, IRagService, RagSearchFilters } from '@/domain/interfaces'
+
+const google = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY,
+})
 
 export class RagService implements IRagService {
     constructor(private knowledgeBaseRepo: IKnowledgeBaseRepository) {}

@@ -30,15 +30,24 @@ export class CreateSiteUseCase {
             throw new DomainError('VALIDATION_ERROR', 'O nome do site é obrigatório.')
         }
 
+        // All plans allow exactly 1 site per organization (max_sites = 1).
         const existingSites = await this.siteRepo.listByOrg(orgId)
         if (existingSites.length > 0) {
             throw new DomainError(
                 'SITE_LIMIT_EXCEEDED',
-                'Sua organização já possui um site ativo. Cada organização pode ter apenas um site. Para criar um novo site, primeiro exclua o site atual.'
+                'Cada organização pode ter apenas 1 site ativo (limite do plano). Para criar um novo site, exclua o atual ou crie uma nova organização.'
             )
         }
 
-        return this.siteRepo.create(orgId, { name: input.name.trim() })
+        return this.siteRepo.create(orgId, { 
+            name: input.name.trim(),
+            configJson: input.configJson,
+            primaryColor: input.primaryColor,
+            logoUrl: input.logoUrl,
+            description: input.description,
+            theme: input.theme,
+            status: input.status,
+        })
     }
 }
 
@@ -65,6 +74,12 @@ export class UpdateSiteUseCase {
 
         return this.siteRepo.update(siteId, orgId, {
             name: input.name?.trim(),
+            configJson: input.configJson,
+            primaryColor: input.primaryColor,
+            logoUrl: input.logoUrl,
+            description: input.description,
+            theme: input.theme,
+            status: input.status,
         })
     }
 }

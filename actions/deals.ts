@@ -1,12 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import type { PipelineStage } from '@/types/database'
 import { dispatchAutomationEvent } from '@/lib/automation-dispatcher'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getErrorMessage } from './utils'
+import { getErrorMessage, requirePermission } from './utils'
 import { z } from 'zod'
 
 const createDealSchema = z.object({
@@ -18,7 +17,7 @@ const createDealSchema = z.object({
 
 export async function createDeal(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createDeal')
 
         const parsed = createDealSchema.safeParse({
             contactId: formData.get('contact_id'),
@@ -61,8 +60,9 @@ export async function createDeal(prevState: { error: string; success: boolean },
 }
 
 export async function moveDeal(dealId: string, stage: PipelineStage) {
+    if (!z.string().uuid().safeParse(dealId).success) return { error: 'ID inválido.' }
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createDeal')
         const supabase = createAdminClient()
         const { data: existingDeal } = await supabase
             .from('deals')

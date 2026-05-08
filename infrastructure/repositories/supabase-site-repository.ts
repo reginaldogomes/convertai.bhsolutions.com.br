@@ -9,7 +9,7 @@ export class SupabaseSiteRepository implements ISiteRepository {
         const admin = createAdminClient()
         const { data, error } = await admin
             .from('sites')
-            .select('id, organization_id, name, created_at, updated_at')
+            .select('id, organization_id, name, config_json, primary_color, logo_url, description, theme, status, created_at, updated_at')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
 
@@ -32,7 +32,7 @@ export class SupabaseSiteRepository implements ISiteRepository {
         const admin = createAdminClient()
         const { data, error } = await admin
             .from('sites')
-            .select('id, organization_id, name, created_at, updated_at')
+            .select('id, organization_id, name, config_json, primary_color, logo_url, description, theme, status, created_at, updated_at')
             .eq('id', id)
             .eq('organization_id', orgId)
             .single()
@@ -58,6 +58,12 @@ export class SupabaseSiteRepository implements ISiteRepository {
             .insert({
                 organization_id: orgId,
                 name: input.name,
+                config_json: input.configJson ?? {},
+                primary_color: input.primaryColor,
+                logo_url: input.logoUrl,
+                description: input.description,
+                theme: input.theme ?? 'light',
+                status: input.status ?? 'draft',
             })
             .select()
             .single()
@@ -82,9 +88,13 @@ export class SupabaseSiteRepository implements ISiteRepository {
         const admin = createAdminClient()
         
         const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
-        if (input.name !== undefined) {
-            updateData.name = input.name
-        }
+        if (input.name !== undefined) updateData.name = input.name
+        if (input.configJson !== undefined) updateData.config_json = input.configJson
+        if (input.primaryColor !== undefined) updateData.primary_color = input.primaryColor
+        if (input.logoUrl !== undefined) updateData.logo_url = input.logoUrl
+        if (input.description !== undefined) updateData.description = input.description
+        if (input.theme !== undefined) updateData.theme = input.theme
+        if (input.status !== undefined) updateData.status = input.status
 
         const { data, error } = await admin
             .from('sites')

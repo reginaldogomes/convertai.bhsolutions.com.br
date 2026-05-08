@@ -75,6 +75,12 @@ export async function GET(req: NextRequest) {
             return errorRedirect('provisioning_failed')
         }
 
+        // Track membership in the junction table
+        await admin.from('org_memberships').upsert(
+            { user_id: user.id, organization_id: invitedOrgId, role: invitedRole },
+            { onConflict: 'user_id,organization_id' }
+        )
+
         return successRedirect()
     }
 
@@ -105,6 +111,12 @@ export async function GET(req: NextRequest) {
         await admin.from('organizations').delete().eq('id', org.id)
         return errorRedirect('provisioning_failed')
     }
+
+    // Track membership in the junction table
+    await admin.from('org_memberships').upsert(
+        { user_id: user.id, organization_id: org.id, role: 'owner' },
+        { onConflict: 'user_id,organization_id' }
+    )
 
     return successRedirect()
 }

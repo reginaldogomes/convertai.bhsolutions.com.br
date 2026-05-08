@@ -14,6 +14,7 @@ export const revalidate = 1800
 export const dynamicParams = true
 
 const STATIC_PRE_RENDER_LIMIT = 200
+const MAX_DATA_URL_CACHE_LIMIT = 1_500_000
 const DEFAULT_CONFIG: LandingPageConfig = {
     theme: 'dark',
     primaryColor: '#6366f1',
@@ -24,10 +25,29 @@ const DEFAULT_CONFIG: LandingPageConfig = {
 const getLandingPageBySlugCached = unstable_cache(
     async (slug: string) => {
         const page = await landingPageRepo.findBySlug(slug)
-        return page?.props ?? null
+        if (!page?.props) return null
+        const { configJson, ...rest } = page.props
+        if (!configJson) return page.props
+        // Strip large data URLs before caching — Next.js rejects payloads over 2MB
+        const safeLogoUrl = (typeof configJson.logoUrl === 'string' &&
+            configJson.logoUrl.startsWith('data:') &&
+            configJson.logoUrl.length > MAX_DATA_URL_CACHE_LIMIT)
+            ? null
+            : configJson.logoUrl
+        return {
+            ...rest,
+            configJson: {
+                ...configJson,
+                logoUrl: safeLogoUrl,
+                sections: sanitizeSections(configJson.sections),
+            },
+        }
     },
     ['landing-page-public-by-slug'],
-    { revalidate }
+    {
+        revalidate,
+        tags: ['landing-pages']
+    }
 )
 
 const getLandingPageBySlug = cache(async (slug: string, bypassCache = false) => {
@@ -376,8 +396,6 @@ function sanitizeSections(value: unknown): LandingPageSection[] {
     return safeSections
 }
 
-const MAX_DATA_URL_LENGTH = 1_500_000
-
 function sanitizeLargeDataUrls(value: unknown): Record<string, unknown> {
     if (!value || typeof value !== 'object') return {}
 
@@ -400,7 +418,7 @@ function sanitizeLargeDataUrls(value: unknown): Record<string, unknown> {
 
 function sanitizeUnknown(value: unknown): unknown {
     if (typeof value === 'string') {
-        if (value.startsWith('data:image/') && value.length > MAX_DATA_URL_LENGTH) {
+        if (value.startsWith('data:image/') && value.length > MAX_DATA_URL_CACHE_LIMIT) {
             return null
         }
         return value

@@ -1,13 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
-import { getErrorMessage } from './utils'
+import { getErrorMessage, requirePermission } from './utils'
 
 export async function createCampaign(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         const result = await useCases.createCampaign().execute(orgId, {
             name: formData.get('name') as string,
@@ -27,7 +26,7 @@ export async function createCampaign(prevState: { error: string; success: boolea
 
 export async function updateCampaign(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
         const campaignId = formData.get('campaign_id') as string
 
         const result = await useCases.updateCampaign().execute(orgId, campaignId, {
@@ -49,7 +48,7 @@ export async function updateCampaign(prevState: { error: string; success: boolea
 
 export async function sendCampaign(campaignId: string, tags?: string[]) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         const result = await useCases.sendCampaign().execute(orgId, campaignId, { tags })
 
@@ -65,7 +64,7 @@ export async function sendCampaign(campaignId: string, tags?: string[]) {
 
 export async function resendCampaign(campaignId: string, tags?: string[]) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         const result = await useCases.sendCampaign().execute(orgId, campaignId, { resend: true, tags })
 
@@ -81,7 +80,7 @@ export async function resendCampaign(campaignId: string, tags?: string[]) {
 
 export async function getCampaignRecipients(campaignId: string) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('viewAll')
         const recipients = await useCases.getCampaignRecipients().execute(orgId, campaignId)
         return { error: '', recipients: recipients.map(r => ({
             id: r.id,
