@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { useCases, landingPageRepo } from '@/application/services/container'
 import { BRAND } from '@/lib/brand'
 import { toAbsoluteUrl } from '@/lib/site-url'
 import { SiteView } from './site-view'
@@ -11,8 +10,25 @@ import type { LandingPageSection } from '@/domain/entities'
 export const revalidate = 1800
 export const dynamicParams = true
 
+const MAX_DATA_URL_BYTES = 1_500_000
+
 type PageProps = {
     params: Promise<{ slug: string }>
+}
+
+// ─── Data URL stripping ───────────────────────────────────────────────────────
+
+function stripLargeDataUrls(obj: unknown): unknown {
+    if (typeof obj === 'string') {
+        return obj.startsWith('data:') && obj.length > MAX_DATA_URL_BYTES ? null : obj
+    }
+    if (Array.isArray(obj)) return obj.map(stripLargeDataUrls)
+    if (obj && typeof obj === 'object') {
+        return Object.fromEntries(
+            Object.entries(obj as Record<string, unknown>).map(([k, v]) => [k, stripLargeDataUrls(v)])
+        )
+    }
+    return obj
 }
 
 // ─── Cache helpers ────────────────────────────────────────────────────────────
@@ -26,7 +42,11 @@ const getSiteCached = unstable_cache(
             .eq('slug', slug)
             .eq('status', 'published')
             .single()
-        return data ?? null
+        if (!data) return null
+        return {
+            ...data,
+            config_json: stripLargeDataUrls(data.config_json),
+        }
     },
     ['site-public-by-slug'],
     { revalidate, tags: ['sites'] }
@@ -41,7 +61,10 @@ const getSitePagesCached = unstable_cache(
             .eq('site_id', siteId)
             .eq('status', 'published')
             .order('is_homepage', { ascending: false })
-        return data ?? []
+        return (data ?? []).map(row => ({
+            ...row,
+            config_json: stripLargeDataUrls(row.config_json),
+        }))
     },
     ['site-pages-by-site-id'],
     { revalidate, tags: ['landing-pages', 'sites'] }

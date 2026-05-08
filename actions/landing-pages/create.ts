@@ -166,9 +166,9 @@ export async function createLandingPage(prevState: { error: string; success: boo
 
             if (linkedProduct) {
                 await useCases.addKnowledgeBase().execute(orgId, {
+                    landingPageId: null,
                     title: `Contexto de Geração para LP: ${linkedProduct.name}`,
                     content: productContext || generationPrompt,
-                    metadata: { ...generatedMetadata, entryType: 'product_context_for_lp', productId: linkedProduct.id }
                 })
                 sections = anchorSectionsWithProductData(linkedProduct, sections)
             }
