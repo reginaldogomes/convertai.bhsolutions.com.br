@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getAuthContext, requirePermission } from '@/infrastructure/auth'
+import { getAuthContext } from '@/infrastructure/auth'
 import { getErrorMessage } from './utils'
 import { z } from 'zod'
 
@@ -42,8 +42,8 @@ export async function createDepartment(
     formData: FormData,
 ) {
     try {
-        await requirePermission('updateOrgSettings')
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (profile.role !== 'owner' && profile.role !== 'admin') return { error: 'Sem permissão.', success: false }
         const name = (formData.get('name') as string | null)?.trim()
         const color = (formData.get('color') as string | null)?.trim() || '#6366f1'
 
@@ -74,8 +74,8 @@ export async function updateDepartment(
     formData: FormData,
 ) {
     try {
-        await requirePermission('updateOrgSettings')
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (profile.role !== 'owner' && profile.role !== 'admin') return { error: 'Sem permissão.', success: false }
         const id = (formData.get('id') as string | null) ?? ''
         const name = (formData.get('name') as string | null)?.trim()
         const color = (formData.get('color') as string | null)?.trim()
@@ -111,8 +111,8 @@ export async function updateDepartment(
 export async function deleteDepartment(departmentId: string) {
     if (!isUuid(departmentId)) return { error: 'ID inválido.', success: false }
     try {
-        await requirePermission('updateOrgSettings')
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (profile.role !== 'owner' && profile.role !== 'admin') return { error: 'Sem permissão.', success: false }
         const supabase = createAdminClient()
         const { error } = await supabase
             .from('departments')
@@ -133,8 +133,8 @@ export async function setUserDepartments(userId: string, departmentIds: string[]
     if (!isUuid(userId)) return { error: 'ID de usuário inválido.', success: false }
     if (departmentIds.some(id => !isUuid(id))) return { error: 'Um ou mais IDs de departamento são inválidos.', success: false }
     try {
-        await requirePermission('updateOrgSettings')
-        const { orgId } = await getAuthContext()
+        const { orgId, profile } = await getAuthContext()
+        if (profile.role !== 'owner' && profile.role !== 'admin') return { error: 'Sem permissão.', success: false }
         const supabase = createAdminClient()
 
         // Confirm target user belongs to this org

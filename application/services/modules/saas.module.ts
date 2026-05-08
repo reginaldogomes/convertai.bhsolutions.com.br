@@ -34,7 +34,7 @@ import {
     GetPlanByIdUseCase,
     UpsertPlanUseCase,
 } from '@/application/use-cases/saas'
-import { CreateSiteUseCase, ListSitesUseCase, GetSiteDetailUseCase, UpdateSiteUseCase, DeleteSiteUseCase } from '@/application/use-cases/sites'
+import { CreateSiteUseCase, ListSitesUseCase, GetSiteDetailUseCase, GetSiteBySlugUseCase, UpdateSiteUseCase, DeleteSiteUseCase } from '@/application/use-cases/sites'
 import { ListCustomDomainsUseCase, GetCustomDomainUseCase, AddCustomDomainUseCase, UpdateCustomDomainUseCase, CheckCustomDomainStatusUseCase, DeleteCustomDomainUseCase } from '@/application/use-cases/custom-domains'
 
 // Repository singletons
@@ -72,6 +72,7 @@ export const saasUseCases = {
     // Sites
     listSites: () => new ListSitesUseCase(siteRepo),
     getSiteDetail: () => new GetSiteDetailUseCase(siteRepo),
+    getSiteBySlug: () => new GetSiteBySlugUseCase(siteRepo),
     createSite: () => new CreateSiteUseCase(siteRepo),
     updateSite: () => new UpdateSiteUseCase(siteRepo),
     deleteSite: () => new DeleteSiteUseCase(siteRepo),

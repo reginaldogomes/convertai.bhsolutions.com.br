@@ -870,6 +870,7 @@ export interface Database {
                     id: string
                     organization_id: string
                     name: string
+                    slug: string
                     config_json: Json
                     primary_color: string | null
                     logo_url: string | null
@@ -883,6 +884,7 @@ export interface Database {
                     id?: string
                     organization_id: string
                     name: string
+                    slug: string
                     config_json?: Json
                     primary_color?: string | null
                     logo_url?: string | null

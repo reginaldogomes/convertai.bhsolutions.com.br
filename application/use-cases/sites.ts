@@ -2,6 +2,18 @@ import type { ISiteRepository, CreateSiteInput, UpdateSiteInput } from '@/domain
 import { DomainError } from '@/domain/errors'
 import type { Site } from '@/domain/entities/site'
 
+function toSlug(name: string): string {
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 60)
+}
+
 export class ListSitesUseCase {
     constructor(private readonly siteRepo: ISiteRepository) {}
 
@@ -22,6 +34,14 @@ export class GetSiteDetailUseCase {
     }
 }
 
+export class GetSiteBySlugUseCase {
+    constructor(private readonly siteRepo: ISiteRepository) {}
+
+    async execute(slug: string): Promise<Site | null> {
+        return this.siteRepo.findBySlug(slug)
+    }
+}
+
 export class CreateSiteUseCase {
     constructor(private readonly siteRepo: ISiteRepository) {}
 
@@ -39,14 +59,13 @@ export class CreateSiteUseCase {
             )
         }
 
-        return this.siteRepo.create(orgId, { 
+        // Generate slug if not provided
+        const slug = input.slug || toSlug(input.name.trim())
+
+        return this.siteRepo.create(orgId, {
+            ...input,
             name: input.name.trim(),
-            configJson: input.configJson,
-            primaryColor: input.primaryColor,
-            logoUrl: input.logoUrl,
-            description: input.description,
-            theme: input.theme,
-            status: input.status,
+            slug,
         })
     }
 }
@@ -73,13 +92,8 @@ export class UpdateSiteUseCase {
         }
 
         return this.siteRepo.update(siteId, orgId, {
+            ...input,
             name: input.name?.trim(),
-            configJson: input.configJson,
-            primaryColor: input.primaryColor,
-            logoUrl: input.logoUrl,
-            description: input.description,
-            theme: input.theme,
-            status: input.status,
         })
     }
 }

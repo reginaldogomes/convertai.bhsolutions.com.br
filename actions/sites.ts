@@ -30,9 +30,10 @@ export async function listSites() {
             sites: sites.map((site) => ({
                 id: site.id,
                 name: site.name,
+                slug: site.slug,
                 createdAt: site.createdAt.toISOString(),
                 publicUrl: activeDomain ? `https://${activeDomain.domain}` : null,
-                defaultUrl: `/p/${site.id}`,
+                defaultUrl: `/s/${site.slug}`,
                 status: site.status || 'draft',
             })),
             error: null,
@@ -312,8 +313,19 @@ export async function createSite(prevState: ActionState, formData: FormData): Pr
             content: s.content,
         }))
 
-        const site = await useCases.createSite().execute(orgId, { 
+        const siteSlug = validatedFields.data.name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 60)
+
+        const site = await useCases.createSite().execute(orgId, {
             name: validatedFields.data.name,
+            slug: siteSlug,
             configJson,
             status: 'published',
         })
@@ -336,10 +348,12 @@ export async function createSite(prevState: ActionState, formData: FormData): Pr
             }
         })
 
-        // Revalidate dashboard, public route and cache tags
+        // Revalidate dashboard, public routes and cache tags
         revalidatePath('/sites')
+        revalidatePath(`/s/${siteSlug}`)
         revalidatePath(`/p/${site.id}`)
         revalidateTag('landing-pages')
+        revalidateTag('sites')
     } catch (error) {
         return { error: getErrorMessage(error) }
     }
@@ -397,6 +411,7 @@ export async function publishSite(prevState: ActionState, formData: FormData): P
         }
 
         // 1. Mark Site as published
+        const site = await useCases.getSiteDetail().execute(orgId, siteId)
         await useCases.updateSite().execute(orgId, siteId, { status: 'published' })
 
         // 2. Also mark the generated homepage as published
@@ -411,6 +426,8 @@ export async function publishSite(prevState: ActionState, formData: FormData): P
         }
 
         revalidatePath('/sites')
+        revalidatePath(`/s/${site.slug}`)
+        revalidateTag('sites')
         return { success: true, error: '' }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
