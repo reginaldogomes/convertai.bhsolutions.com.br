@@ -76,7 +76,7 @@ export async function removeBrandLogo(
         if (!pageResult.ok) return { error: 'Página não encontrada.', success: false }
 
         const page = pageResult.value
-        const updatedConfig = { ...(page.configJson as Record<string, unknown>), logoUrl: null }
+        const updatedConfig = { ...(page.configJson as unknown as Record<string, unknown>), logoUrl: null }
         const result = await useCases.updateLandingPage().execute(orgId, pageId, { configJson: updatedConfig })
 
         if (!result.ok) return { error: result.error.message, success: false }
