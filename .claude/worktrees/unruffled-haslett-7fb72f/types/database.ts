@@ -56,6 +56,7 @@ export interface Database {
                     country: string | null
                     logo_url: string | null
                     description: string | null
+                    brand_json: Json
                     credits_balance: number
                     created_at: string
                 }
@@ -72,6 +73,7 @@ export interface Database {
                     country?: string | null
                     logo_url?: string | null
                     description?: string | null
+                    brand_json?: Json
                     credits_balance?: number
                     created_at?: string
                 }

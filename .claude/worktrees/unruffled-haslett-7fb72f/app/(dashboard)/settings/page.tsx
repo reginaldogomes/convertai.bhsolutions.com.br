@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Settings as SettingsIcon } from 'lucide-react'
 import { SettingsTabs } from './settings-tabs'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { tryGetAuthContext } from '@/infrastructure/auth'
+import { useCases } from '@/application/services/container'
 import type { PlainSubscription, PlainCreditPack, PlainCreditTransaction, PlainOrgMember } from './settings-tabs'
 
 type AiGovernanceView = {
@@ -286,6 +288,7 @@ export default async function SettingsPage() {
 
             <SettingsTabs
                 profileWithOrg={profileWithOrg}
+                orgBrandJson={profileWithOrg?.orgBrandJson ?? {}}
                 integrations={integrations}
                 aiGovernance={aiGovernance}
                 aiUsageEvents={aiUsageEvents}

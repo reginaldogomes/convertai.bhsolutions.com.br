@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { useActionState } from 'react'
-import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp, Users, UserPlus, UserMinus, Shield, Crown, Eye, User as UserIcon, Loader2 } from 'lucide-react'
+import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp, Users, UserPlus, UserMinus, Shield, Crown, Eye, User as UserIcon, Loader2, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization } from '@/actions/organization'
+import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization, updateOrgBrand } from '@/actions/organization'
+import { DESIGN_PRESETS, DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { inviteMember, updateMemberRole, removeMember } from '@/actions/members'
 import { roleBadgeClass, roleLabel, ASSIGNABLE_ROLES } from '@/lib/permissions'
 import { BuyCreditsButton } from '@/components/crm/BuyCreditsButton'
@@ -110,6 +112,7 @@ interface Props {
         id: string
         name: string
     }>
+    orgBrandJson: Record<string, unknown>
 }
 
 export interface PlainOrgMember {
@@ -143,9 +146,15 @@ function formatCurrencyFromCents(value: number): string {
     })
 }
 
-export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, currentUserId, currentRole, customDomains, landingPages }: Props) {
-    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team' | 'custom-domains'>('org')
+export function SettingsTabs({ profileWithOrg, orgBrandJson, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, currentUserId, currentRole, customDomains, landingPages }: Props) {
+    const [tab, setTab] = useState<'org' | 'brand' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team' | 'custom-domains'>('org')
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
+    const [brandState, brandAction, brandPending] = useActionState(updateOrgBrand, { error: '', success: false })
+    const [selectedDesignSystem, setSelectedDesignSystem] = useState<DesignSystem>(() => {
+        const ds = orgBrandJson as Partial<DesignSystem>
+        if (ds?.palette && ds?.fontFamily) return ds as DesignSystem
+        return DEFAULT_DESIGN_SYSTEM
+    })
     const [aiState, aiAction, aiPending] = useActionState(updateAiGovernancePolicy, { error: '', success: false })
     const [purgeState, purgeAction, purgePending] = useActionState(purgeAiUsageHistory, {
         error: '',
@@ -239,6 +248,15 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                     className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
                 >
                     <Building className={`w-4 h-4 ${tab === 'org' ? 'text-primary' : ''}`} /> Organização
+                </Button>
+                <Button
+                    type="button"
+                    variant={tab === 'brand' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTab('brand')}
+                    className="w-full justify-start gap-3 px-4 py-2.5 text-left text-sm font-bold"
+                >
+                    <Palette className={`w-4 h-4 ${tab === 'brand' ? 'text-primary' : ''}`} /> Identidade Visual
                 </Button>
                 <Button
                     type="button"
@@ -397,6 +415,93 @@ export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsa
                             </form>
                         </div>
                     </>
+                )}
+
+                {tab === 'brand' && (
+                    <div className="bg-card border border-border p-6 rounded-(--radius) space-y-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                    <Palette className="w-4 h-4 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-foreground font-bold tracking-tight">Identidade Visual</h2>
+                                    <p className="text-muted-foreground text-xs mt-0.5">
+                                        Design system padrão da organização — aplicado automaticamente em landing pages, sites, campanhas e conteúdo gerado por IA.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {brandState.success && (
+                            <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-(--radius)">
+                                <p className="text-green-700 dark:text-green-300 text-sm font-medium">Identidade visual salva e indexada na base de conhecimento.</p>
+                            </div>
+                        )}
+                        {brandState.error && (
+                            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-(--radius)">
+                                <p className="text-destructive text-sm">{brandState.error}</p>
+                            </div>
+                        )}
+
+                        {/* Preset picker */}
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Presets de Design</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {DESIGN_PRESETS.map(preset => {
+                                    const isActive = selectedDesignSystem.presetId === preset.id
+                                    return (
+                                        <button
+                                            key={preset.id}
+                                            type="button"
+                                            onClick={() => setSelectedDesignSystem(preset.designSystem)}
+                                            className={`text-left p-3 rounded-(--radius) border transition-all ${isActive ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:border-primary/50'}`}
+                                        >
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <div
+                                                    className="w-5 h-5 rounded-full border border-white/20 shrink-0"
+                                                    style={{ background: preset.designSystem.palette.primary }}
+                                                />
+                                                <div
+                                                    className="w-5 h-5 rounded-full border border-white/20 shrink-0"
+                                                    style={{ background: preset.designSystem.palette.background }}
+                                                />
+                                                <div
+                                                    className="w-5 h-5 rounded-full border border-white/20 shrink-0"
+                                                    style={{ background: preset.designSystem.palette.accent }}
+                                                />
+                                            </div>
+                                            <p className="text-xs font-bold text-foreground truncate">{preset.name}</p>
+                                            <p className="text-[10px] text-muted-foreground truncate">{preset.description}</p>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Current selection summary */}
+                        <div className="p-4 border border-border rounded-(--radius) bg-[hsl(var(--background-tertiary))] flex flex-wrap gap-3 items-center text-xs text-muted-foreground">
+                            <span className="font-bold text-foreground uppercase tracking-wider text-[10px]">Selecionado:</span>
+                            <span className="flex items-center gap-1.5">
+                                <span className="w-3 h-3 rounded-full border border-white/20 inline-block" style={{ background: selectedDesignSystem.palette.primary }} />
+                                {selectedDesignSystem.presetId ?? 'Personalizado'}
+                            </span>
+                            <span>Fonte: <strong>{selectedDesignSystem.fontFamily}</strong></span>
+                            <span>Estilo: <strong>{selectedDesignSystem.style}</strong></span>
+                            <span>Raio: <strong>{selectedDesignSystem.borderRadius}</strong></span>
+                        </div>
+
+                        <form action={brandAction}>
+                            <input type="hidden" name="designSystem" value={JSON.stringify(selectedDesignSystem)} />
+                            <Button
+                                type="submit"
+                                disabled={brandPending}
+                                className="h-9 px-6 text-xs font-bold uppercase tracking-wider"
+                            >
+                                {brandPending ? 'Salvando...' : 'Salvar Identidade Visual'}
+                            </Button>
+                        </form>
+                    </div>
                 )}
 
                 {tab === 'integrations' && (

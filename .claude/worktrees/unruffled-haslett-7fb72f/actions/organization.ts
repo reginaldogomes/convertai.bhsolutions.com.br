@@ -1,10 +1,13 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
+import { SupabaseUserRepository } from '@/infrastructure/repositories'
 import { getErrorMessage } from './utils'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+const userRepo = new SupabaseUserRepository()
 
 export async function updateOrganization(
     _prevState: { error: string; success: boolean },
@@ -490,6 +493,63 @@ export async function uploadKnowledgeBaseImage(
         }
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
+        return { error: '', success: true }
+    } catch (err) {
+        return { error: getErrorMessage(err), success: false }
+    }
+}
+
+// ─── Org brand (design system + visual identity) ─────────────────────────────
+
+export async function updateOrgBrand(
+    _prevState: { error: string; success: boolean },
+    formData: FormData,
+): Promise<{ error: string; success: boolean }> {
+    try {
+        const { orgId } = await getAuthContext()
+        const designSystemRaw = formData.get('designSystem') as string | null
+        if (!designSystemRaw) return { error: 'Design system não informado.', success: false }
+
+        let brandJson: Record<string, unknown>
+        try {
+            brandJson = JSON.parse(designSystemRaw)
+        } catch {
+            return { error: 'Dados de design system inválidos.', success: false }
+        }
+
+        await userRepo.updateOrgBrand(orgId, brandJson)
+
+        // Index brand in knowledge base so AI generation is brand-aware across all features
+        const palette = brandJson.palette as Record<string, string> | undefined
+        const dsText = [
+            brandJson.fontFamily ? `Fonte: ${brandJson.fontFamily}` : '',
+            brandJson.style ? `Estilo visual: ${brandJson.style}` : '',
+            brandJson.borderRadius ? `Border radius: ${brandJson.borderRadius}` : '',
+            brandJson.presetId ? `Preset: ${brandJson.presetId}` : '',
+            palette ? `Paleta — primária: ${palette.primary}, fundo: ${palette.background}, destaque: ${palette.accent}` : '',
+        ].filter(Boolean).join('; ')
+
+        if (dsText) {
+            const result = await useCases.addKnowledgeBase().execute(orgId, {
+                landingPageId: null,
+                title: 'Identidade Visual da Organização',
+                content: [
+                    'IDENTIDADE VISUAL — DESIGN SYSTEM PADRÃO DA ORGANIZAÇÃO',
+                    `Atualizado em: ${new Date().toISOString()}`,
+                    '',
+                    dsText,
+                ].join('\n'),
+                metadata: {
+                    source: 'org_brand',
+                    updatedAt: new Date().toISOString(),
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any)
+            if (!result.ok) return { error: result.error.message, success: false }
+        }
+
+        revalidatePath('/settings')
+        revalidateTag('org-brand')
         return { error: '', success: true }
     } catch (err) {
         return { error: getErrorMessage(err), success: false }

@@ -9,11 +9,34 @@ import type { FaqContent, HeroContent, LandingPageSection } from '@/domain/entit
 import { BRAND } from '@/lib/brand'
 import { toAbsoluteUrl } from '@/lib/site-url'
 import { LandingPageView } from './landing-page-view'
+import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
+import type { DesignSystem } from '@/domain/value-objects/design-system'
 
 export const revalidate = 1800
 export const dynamicParams = true
 
 const STATIC_PRE_RENDER_LIMIT = 200
+
+const getOrgBrandCached = unstable_cache(
+    async (orgId: string): Promise<DesignSystem | null> => {
+        if (!orgId) return null
+        try {
+            const admin = createAdminClient()
+            const { data } = await admin
+                .from('organizations')
+                .select('brand_json')
+                .eq('id', orgId)
+                .single()
+            const brand = data?.brand_json as Record<string, unknown> | null
+            if (!brand?.palette || !brand?.fontFamily) return null
+            return brand as unknown as DesignSystem
+        } catch {
+            return null
+        }
+    },
+    ['org-brand-by-id'],
+    { revalidate, tags: ['org-brand'] }
+)
 const MAX_DATA_URL_LENGTH = 1_500_000
 const DEFAULT_CONFIG: LandingPageConfig = {
     theme: 'dark',
@@ -206,9 +229,16 @@ export default async function PublicLandingPage({
     }
 
     const safeSections = sanitizeSections(page.configJson.sections)
+
+    // Cascade: LP design system → org brand → default
+    const resolvedDesignSystem = page.configJson.designSystem
+        ?? (page.organizationId ? await getOrgBrandCached(page.organizationId) : null)
+        ?? DEFAULT_DESIGN_SYSTEM
+
     const safeConfig = {
         ...page.configJson,
         sections: safeSections,
+        designSystem: resolvedDesignSystem,
     }
 
     const shouldExposeSeoSignals = isPagePublished(page) && !isPreview

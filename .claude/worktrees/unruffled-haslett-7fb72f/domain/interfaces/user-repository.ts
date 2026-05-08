@@ -22,12 +22,14 @@ export interface OrganizationDetails {
     orgCountry: string | null
     orgLogoUrl: string | null
     orgDescription: string | null
+    orgBrandJson: Record<string, unknown>
 }
 
 export interface IUserRepository {
     findProfileByUserId(userId: string): Promise<UserProfile | null>
     findProfileWithOrgByUserId(userId: string): Promise<(UserProfile & OrganizationDetails) | null>
     updateOrganization(orgId: string, data: Partial<Omit<OrganizationDetails, 'orgId'>>): Promise<void>
+    updateOrgBrand(orgId: string, brandJson: Record<string, unknown>): Promise<void>
 
     // Gestão de membros da organização
     findMembersByOrgId(orgId: string): Promise<OrgMember[]>

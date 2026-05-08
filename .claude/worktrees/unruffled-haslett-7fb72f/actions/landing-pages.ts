@@ -11,6 +11,7 @@ import { DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 import { generateLandingPageSections } from '@/lib/landing-page-generation'
 import type { Product } from '@/domain/entities/product'
 import type { RagSearchFilters } from '@/domain/interfaces'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 function extractIntentKeywords(input: string): string[] {
     const stopwords = new Set([
@@ -31,15 +32,32 @@ export async function createLandingPage(prevState: { error: string; success: boo
     try {
         const { orgId } = await getAuthContext()
 
-        // Parse design system from form if provided, otherwise use default
-        let designSystem = DEFAULT_DESIGN_SYSTEM
+        // Parse design system from form if provided, then cascade: form → org brand → default
         const designSystemRaw = formData.get('designSystem') as string | null
+        let designSystem: DesignSystem = DEFAULT_DESIGN_SYSTEM
+
         if (designSystemRaw) {
             try {
                 designSystem = JSON.parse(designSystemRaw)
             } catch {
-                // Invalid JSON — use default
+                // Invalid JSON — fall through to org brand
             }
+        }
+
+        if (!designSystemRaw) {
+            // No explicit DS from form — use org brand as initial baseline
+            try {
+                const admin = createAdminClient()
+                const { data: orgRow } = await admin
+                    .from('organizations')
+                    .select('brand_json')
+                    .eq('id', orgId)
+                    .single()
+                const brand = orgRow?.brand_json as Record<string, unknown> | null
+                if (brand?.palette && brand?.fontFamily) {
+                    designSystem = brand as unknown as DesignSystem
+                }
+            } catch { /* org brand not critical — fall through to default */ }
         }
 
         const bg = designSystem.palette?.background ?? ''

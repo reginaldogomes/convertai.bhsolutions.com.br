@@ -25,7 +25,7 @@ export class SupabaseUserRepository implements IUserRepository {
         const supabase = createAdminClient()
         const { data } = await supabase
             .from('users')
-            .select('id, organization_id, name, email, role, organizations(id, name, email, phone, website, address, city, state, zip_code, country, logo_url, description)')
+            .select('id, organization_id, name, email, role, organizations(id, name, email, phone, website, address, city, state, zip_code, country, logo_url, description, brand_json)')
             .eq('id', userId)
             .single()
         if (!data) return null
@@ -34,6 +34,7 @@ export class SupabaseUserRepository implements IUserRepository {
             website: string | null; address: string | null; city: string | null
             state: string | null; zip_code: string | null; country: string | null
             logo_url: string | null; description: string | null
+            brand_json: Record<string, unknown> | null
         }
         return {
             id: data.id,
@@ -53,7 +54,13 @@ export class SupabaseUserRepository implements IUserRepository {
             orgCountry: org?.country ?? null,
             orgLogoUrl: org?.logo_url ?? null,
             orgDescription: org?.description ?? null,
+            orgBrandJson: (org?.brand_json as Record<string, unknown>) ?? {},
         }
+    }
+
+    async updateOrgBrand(orgId: string, brandJson: Record<string, unknown>): Promise<void> {
+        const supabase = createAdminClient()
+        await supabase.from('organizations').update({ brand_json: brandJson }).eq('id', orgId)
     }
 
     async updateOrganization(orgId: string, data: Partial<Omit<OrganizationDetails, 'orgId'>>): Promise<void> {
