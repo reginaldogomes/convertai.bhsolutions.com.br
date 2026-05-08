@@ -53,7 +53,7 @@ export async function uploadBrandLogo(
         const { data: { publicUrl } } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(storagePath)
 
         const page = pageResult.value
-        const updatedConfig = { ...(page.configJson as Record<string, unknown>), logoUrl: publicUrl }
+        const updatedConfig = { ...(page.configJson as unknown as Record<string, unknown>), logoUrl: publicUrl }
         const result = await useCases.updateLandingPage().execute(orgId, pageId, { configJson: updatedConfig })
 
         if (!result.ok) return { error: result.error.message, success: false }
