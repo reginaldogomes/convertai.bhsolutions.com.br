@@ -35,6 +35,7 @@ export interface UpdateAutomationInput {
 
 export interface IAutomationRepository {
     findByOrgId(orgId: string): Promise<Automation[]>
+    countByOrgId(orgId: string): Promise<{ total: number; active: number }>
     findById(id: string, orgId: string): Promise<Automation | null>
     create(input: CreateAutomationInput): Promise<Automation | null>
     update(id: string, orgId: string, input: UpdateAutomationInput): Promise<Automation | null>

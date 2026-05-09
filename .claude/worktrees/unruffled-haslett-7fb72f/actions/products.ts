@@ -1,14 +1,16 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
-import { getErrorMessage } from './utils'
-import { canDo } from '@/lib/permissions'
+import { getErrorMessage, requirePermission } from './utils'
+import { z } from 'zod'
+
+const uuidSchema = z.string().uuid()
+function isValidUuid(id: string) { return uuidSchema.safeParse(id).success }
 
 export async function createProduct(prevState: { error: string; success: boolean }, formData: FormData) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         let featuresJson: unknown[] = []
         let benefitsJson: unknown[] = []
@@ -62,8 +64,9 @@ export async function createProduct(prevState: { error: string; success: boolean
 }
 
 export async function updateProduct(productId: string, prevState: { error: string; success: boolean }, formData: FormData) {
+    if (!isValidUuid(productId)) return { error: 'ID inválido.', success: false }
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         const input: Record<string, unknown> = {}
 
@@ -130,8 +133,9 @@ export async function updateProduct(productId: string, prevState: { error: strin
 }
 
 export async function toggleProductStatus(productId: string, activate: boolean) {
+    if (!isValidUuid(productId)) return { error: 'ID inválido.', success: false }
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
         const result = await useCases.toggleProductStatus().execute(orgId, productId, activate)
         if (!result.ok) return { error: result.error.message, success: false }
 
@@ -144,9 +148,9 @@ export async function toggleProductStatus(productId: string, activate: boolean) 
 }
 
 export async function deleteProduct(productId: string) {
+    if (!isValidUuid(productId)) return { error: 'ID inválido.', success: false }
     try {
-        const { orgId, profile } = await getAuthContext()
-        if (!canDo(profile.role, 'deleteProduct')) return { error: 'Sem permissão para excluir produtos.', success: false }
+        const { orgId } = await requirePermission('deleteProduct')
         const result = await useCases.deleteProduct().execute(orgId, productId)
         if (!result.ok) return { error: result.error.message, success: false }
 

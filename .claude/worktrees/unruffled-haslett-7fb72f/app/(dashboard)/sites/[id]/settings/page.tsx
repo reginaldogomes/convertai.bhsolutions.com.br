@@ -22,14 +22,29 @@ export default async function SiteSettingsRoute({ params, searchParams }: SiteSe
 
     try {
         const site = await useCases.getSiteDetail().execute(auth.orgId, id)
+        const allPages = await useCases.listLandingPages().execute(auth.orgId)
+        const sitePages = allPages.filter(p => p.props.siteId === id)
 
         return (
             <SiteSettingsPage
                 initialSite={{
                     id: site.id,
                     name: site.name,
+                    configJson: site.configJson,
+                    primaryColor: site.primaryColor,
+                    logoUrl: site.logoUrl,
+                    description: site.description,
+                    theme: site.theme,
+                    status: site.status,
                     createdAt: site.createdAt.toISOString(),
                 }}
+                initialPages={sitePages.map(p => ({
+                    id: p.props.id,
+                    name: p.props.name,
+                    slug: p.props.slug,
+                    status: p.props.status,
+                    isHomepage: p.props.isHomepage,
+                }))}
                 defaultTab={tab ?? 'general'}
             />
         )

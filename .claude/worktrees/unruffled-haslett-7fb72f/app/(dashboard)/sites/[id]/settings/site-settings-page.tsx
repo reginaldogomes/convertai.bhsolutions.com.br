@@ -4,24 +4,42 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { Globe, Settings, Layers, Puzzle, Sparkles, ShieldCheck, ArrowLeft } from 'lucide-react'
-import { updateSite } from '@/actions/sites'
+import { updateSite, deleteSite } from '@/actions/sites'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { InlineNotice } from '@/components/ui/inline-notice'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
+import { DangerConfirmationHeader } from '@/components/ui/danger-confirmation-header'
+
 
 type SiteSettingsTab = 'general' | 'sections' | 'modules' | 'rag' | 'custom-domains'
 
 interface PlainSite {
     id: string
     name: string
+    configJson?: Record<string, any>
+    primaryColor?: string | null
+    logoUrl?: string | null
+    description?: string | null
+    theme?: string | null
+    status?: string | null
     createdAt: string
+}
+
+interface PlainPage {
+    id: string
+    name: string
+    slug: string
+    status: string
+    isHomepage: boolean
 }
 
 interface SiteSettingsPageProps {
     initialSite: PlainSite
+    initialPages: PlainPage[]
     defaultTab?: string
 }
 
@@ -40,13 +58,21 @@ const defaultModules = {
     integrations: false,
 }
 
-export function SiteSettingsPage({ initialSite, defaultTab }: SiteSettingsPageProps) {
+export function SiteSettingsPage({ initialSite, initialPages, defaultTab }: SiteSettingsPageProps) {
     const [tab, setTab] = useState<SiteSettingsTab>('general')
     const [siteName, setSiteName] = useState(initialSite.name)
-    const [modules, setModules] = useState(defaultModules)
+    const [modules, setModules] = useState(() => {
+        return {
+            ...defaultModules,
+            ...(initialSite.configJson?.modules || {})
+        }
+    })
     const [suggestionPrompt, setSuggestionPrompt] = useState('')
     const [suggestion, setSuggestion] = useState<string | null>(null)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [state, action] = useActionState(updateSite, { error: '', success: false })
+    const [moduleState, moduleAction] = useActionState(updateSite, { error: '', success: false })
+    const [deleteState, deleteAction, isDeleting] = useActionState(deleteSite, { error: '', success: false })
 
     useEffect(() => {
         if (defaultTab && ['general', 'sections', 'modules', 'rag', 'custom-domains'].includes(defaultTab)) {
@@ -138,15 +164,48 @@ export function SiteSettingsPage({ initialSite, defaultTab }: SiteSettingsPagePr
                                         </div>
                                         <div>
                                             <Label className="text-foreground-secondary text-xs uppercase tracking-wider">
-                                                Criado em
+                                                Tema Base
                                             </Label>
                                             <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] px-3 py-2 text-sm text-foreground-secondary">
-                                                {new Date(initialSite.createdAt).toLocaleDateString('pt-BR')}
+                                                {initialSite.theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <Label className="text-foreground-secondary text-xs uppercase tracking-wider">
+                                                Status
+                                            </Label>
+                                            <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] px-3 py-2 text-sm text-foreground-secondary">
+                                                {initialSite.status === 'published' ? 'Publicado' : 'Rascunho'}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <Button type="submit" className="h-9 px-5 text-xs font-bold uppercase tracking-wider">
+                                    {initialSite.configJson && Object.keys(initialSite.configJson).length > 0 && (
+                                        <div className="mt-6 space-y-4 pt-6 border-t border-border">
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Configurações Base geradas por IA</p>
+                                            
+                                            {initialSite.configJson.seo && (
+                                                <div className="rounded-(--radius) border border-border p-4 bg-card">
+                                                    <p className="font-semibold text-foreground text-sm">SEO Principal</p>
+                                                    <p className="text-sm mt-1">{initialSite.configJson.seo.title}</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">{initialSite.configJson.seo.description}</p>
+                                                </div>
+                                            )}
+
+                                            {initialSite.configJson.pages && Array.isArray(initialSite.configJson.pages) && (
+                                                <div className="rounded-(--radius) border border-border p-4 bg-card">
+                                                    <p className="font-semibold text-foreground text-sm">Páginas Sugeridas</p>
+                                                    <ul className="list-disc list-inside text-xs text-muted-foreground mt-2">
+                                                        {initialSite.configJson.pages.map((p: string, i: number) => (
+                                                            <li key={i}>{p}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <Button type="submit" className="h-9 px-5 text-xs font-bold uppercase tracking-wider mt-6">
                                         Salvar Alterações
                                     </Button>
                                 </form>
@@ -154,28 +213,106 @@ export function SiteSettingsPage({ initialSite, defaultTab }: SiteSettingsPagePr
                         </Card>
                     )}
 
+                    {tab === 'general' && (
+                        <Card className="border-destructive/20 mt-6">
+                            <CardHeader>
+                                <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
+                                <CardDescription>Ações destrutivas para este site.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {deleteState.error && <InlineNotice variant="destructive" message={deleteState.error} size="sm" className="mb-4" />}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-border p-4 bg-background">
+                                    <div>
+                                        <p className="font-semibold text-foreground text-sm">Excluir Site</p>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            A exclusão do site removerá permanentemente as configurações, páginas e a base de conhecimento (RAG) associada a ele.
+                                        </p>
+                                    </div>
+                                    <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="destructive" size="sm">
+                                                Excluir Site
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader className="mb-4">
+                                                <DialogTitle className="hidden">Excluir Site</DialogTitle>
+                                                <DangerConfirmationHeader 
+                                                    title="Excluir Site Definitivamente?" 
+                                                    subtitle="Esta ação não pode ser desfeita e removerá todo o conteúdo deste site."
+                                                />
+                                            </DialogHeader>
+                                            <div className="text-sm text-muted-foreground mb-4">
+                                                <p>Ao confirmar, o site <strong>{initialSite.name}</strong> será apagado do banco de dados.</p>
+                                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                                    <li>A base de conhecimento vetorial (RAG) do site será destruída.</li>
+                                                    <li>Todas as configurações de módulos serão perdidas.</li>
+                                                    <li>As landing pages vinculadas deixarão de funcionar se não forem reatribuídas.</li>
+                                                </ul>
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline" type="button" disabled={isDeleting}>
+                                                        Cancelar
+                                                    </Button>
+                                                </DialogClose>
+                                                <form action={deleteAction} onSubmit={() => setIsDeleteDialogOpen(false)}>
+                                                    <input type="hidden" name="siteId" value={initialSite.id} />
+                                                    <Button type="submit" variant="destructive" disabled={isDeleting}>
+                                                        {isDeleting ? 'Excluindo...' : 'Sim, excluir site'}
+                                                    </Button>
+                                                </form>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {tab === 'sections' && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Seções do Site</CardTitle>
+                                <CardTitle>Páginas e Seções</CardTitle>
+                                <CardDescription>Gerencie as páginas que compõem este site.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    Estruture seções como hero, features, depoimentos e formulário de contato. Em breve será possível gerar cada seção usando IA contextualizada.
-                                </p>
-
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {['Hero', 'Features', 'Depoimentos', 'FAQ', 'Contato'].map((item) => (
-                                        <div key={item} className="rounded-(--radius) border border-border p-4 bg-[hsl(var(--background-tertiary))]">
-                                            <p className="font-semibold text-foreground">{item}</p>
-                                            <p className="text-sm text-muted-foreground mt-1">Conteúdo dinâmico gerenciado por seção.</p>
+                                <div className="space-y-4">
+                                    {initialPages.map((page) => (
+                                        <div key={page.id} className="flex items-center justify-between rounded-(--radius) border border-border p-4 bg-card">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-foreground">{page.name}</p>
+                                                    {page.isHomepage && (
+                                                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase">Home</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-0.5">/p/{page.slug}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                                                    page.status === 'published' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
+                                                }`}>
+                                                    {page.status === 'published' ? 'Publicado' : 'Rascunho'}
+                                                </span>
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <Link href={`/editor/${page.id}`}>Editar</Link>
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
+
+                                    <Button variant="outline" className="w-full border-dashed" asChild>
+                                        <Link href={`/sites/${initialSite.id}/pages/new`}>+ Adicionar Nova Página</Link>
+                                    </Button>
                                 </div>
 
-                                <div className="mt-4 rounded-(--radius) border border-dashed border-border-subtle bg-secondary/50 p-4 text-sm text-foreground-secondary">
-                                    <p className="font-medium">Modo dinâmico RAG</p>
-                                    <p className="mt-2">Quando ativado, o sistema sugerirá novas seções e textos com base no conhecimento do seu site e da sua organização.</p>
+                                <div className="mt-6 rounded-(--radius) border border-dashed border-border-subtle bg-secondary/50 p-4 text-sm text-foreground-secondary">
+                                    <p className="font-medium flex items-center gap-2">
+                                        <Sparkles className="size-4 text-primary" />
+                                        Modo dinâmico RAG
+                                    </p>
+                                    <p className="mt-2 text-xs">O sistema utiliza sua base de conhecimento para sugerir melhorias no conteúdo destas páginas automaticamente.</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -191,36 +328,51 @@ export function SiteSettingsPage({ initialSite, defaultTab }: SiteSettingsPagePr
                                     Ative ou desative recursos como chatbot, analytics, SEO e integrações externas.
                                 </p>
 
-                                <div className="grid gap-3">
-                                    {(
-                                        [
-                                            { key: 'chatbot', label: 'Chatbot', description: 'Assistente conversacional para visitantes.' },
-                                            { key: 'analytics', label: 'Analytics', description: 'Coleta eventos de visita e desempenho.' },
-                                            { key: 'seo', label: 'SEO', description: 'Configurações de meta tags e conteúdo otimizável.' },
-                                            { key: 'integrations', label: 'Integrações', description: 'Conectar WhatsApp, email ou outros sistemas.' },
-                                        ] as const
-                                    ).map((module) => (
-                                        <div key={module.key} className="flex items-center justify-between rounded-(--radius) border border-border p-4">
-                                            <div>
-                                                <p className="font-medium text-foreground">{module.label}</p>
-                                                <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant={modules[module.key] ? 'secondary' : 'outline'}
-                                                size="sm"
-                                                onClick={() => toggleModule(module.key)}
-                                            >
-                                                {modules[module.key] ? 'Ativado' : 'Desativar'}
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
+                                {moduleState.error && <InlineNotice variant="destructive" message={moduleState.error} size="sm" className="mb-4" />}
+                                {moduleState.success && <InlineNotice variant="success" message="Módulos atualizados com sucesso." size="sm" className="mb-4" />}
 
-                                <div className="mt-4 rounded-(--radius) border border-dashed border-border-subtle bg-secondary/50 p-4 text-sm text-foreground-secondary">
-                                    <p className="font-medium">Observação</p>
-                                    <p className="mt-2">As configurações de módulos serão persistidas na próxima etapa de integração do backend.</p>
-                                </div>
+                                <form action={moduleAction} className="space-y-4">
+                                    <input type="hidden" name="siteId" value={initialSite.id} />
+                                    <input type="hidden" name="name" value={siteName} />
+                                    <input 
+                                        type="hidden" 
+                                        name="configJson" 
+                                        value={JSON.stringify({
+                                            ...initialSite.configJson,
+                                            modules
+                                        })} 
+                                    />
+
+                                    <div className="grid gap-3">
+                                        {(
+                                            [
+                                                { key: 'chatbot', label: 'Chatbot', description: 'Assistente conversacional para visitantes.' },
+                                                { key: 'analytics', label: 'Analytics', description: 'Coleta eventos de visita e desempenho.' },
+                                                { key: 'seo', label: 'SEO', description: 'Configurações de meta tags e conteúdo otimizável.' },
+                                                { key: 'integrations', label: 'Integrações', description: 'Conectar WhatsApp, email ou outros sistemas.' },
+                                            ] as const
+                                        ).map((module) => (
+                                            <div key={module.key} className="flex items-center justify-between rounded-(--radius) border border-border p-4">
+                                                <div>
+                                                    <p className="font-medium text-foreground">{module.label}</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant={modules[module.key] ? 'secondary' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => toggleModule(module.key)}
+                                                >
+                                                    {modules[module.key] ? 'Ativado' : 'Ativar'}
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <Button type="submit" className="h-9 px-5 text-xs font-bold uppercase tracking-wider mt-6">
+                                        Salvar Módulos
+                                    </Button>
+                                </form>
                             </CardContent>
                         </Card>
                     )}

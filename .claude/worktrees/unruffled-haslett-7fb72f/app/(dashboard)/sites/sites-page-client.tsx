@@ -1,8 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { Globe, Settings, Link, ExternalLink } from 'lucide-react'
-import { createSite, generateSitePlan } from '@/actions/sites'
+import { Globe, Settings, Link, ExternalLink, CheckCircle, Clock } from 'lucide-react'
+import { createSite, generateSitePlan, publishSite } from '@/actions/sites'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ interface PlainSite {
     createdAt: string // ISO string
     publicUrl?: string | null
     defaultUrl?: string // URL padrão gerada pelo sistema
+    status?: string
 }
 
 interface SitePlan {
@@ -31,6 +32,7 @@ interface SitePlan {
     performanceTips: string
     premiumDesign: string
     testUrlHint: string
+    sections?: Record<string, unknown>
 }
 
 interface SitesPageClientProps {
@@ -40,16 +42,53 @@ interface SitesPageClientProps {
 
 export function SitesPageClient({ initialSites, initialError }: SitesPageClientProps) {
     const [state, action, pending] = useActionState(createSite, { error: '' })
-    const [planState, planAction, planPending] = useActionState(generateSitePlan, { error: '', plan: null as SitePlan | null })
+    
+    // UI States para Geração em Streaming
+    const [streamingPlan, setStreamingPlan] = useState<Partial<SitePlan> | null>(null)
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [planError, setPlanError] = useState('')
+
     const [siteName, setSiteName] = useState('')
+    const [seoTitle, setSeoTitle] = useState('')
+    const [seoDescription, setSeoDescription] = useState('')
+    const [selectedPages, setSelectedPages] = useState<string[]>([])
+    const [selectedModules, setSelectedModules] = useState({
+        chatbot: true,
+        analytics: true,
+        seo: true,
+        integrations: false
+    })
     const router = useRouter()
 
     useEffect(() => {
-        if (planState.plan?.suggestedName && !siteName) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSiteName(planState.plan.suggestedName)
+        if (streamingPlan?.suggestedName && !siteName) {
+            setSiteName(streamingPlan.suggestedName)
         }
-    }, [planState.plan, siteName])
+    }, [streamingPlan, siteName])
+
+    async function handleGeneratePlan(formData: FormData) {
+        setIsGenerating(true)
+        setPlanError('')
+        setStreamingPlan(null)
+
+        try {
+            const { error, plan } = await generateSitePlan(formData)
+            
+            if (error) {
+                setPlanError(error)
+            } else if (plan) {
+                setStreamingPlan(plan)
+                setSiteName(plan.suggestedName || '')
+                setSeoTitle(plan.seoTitle || '')
+                setSeoDescription(plan.seoDescription || '')
+                setSelectedPages(plan.pages || [])
+            }
+        } catch (error: any) {
+            setPlanError(error.message || 'Falha ao gerar plano.')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
 
     const handleViewCustomDomains = (siteId: string | undefined) => {
         if (!siteId || siteId === 'undefined') {
@@ -84,17 +123,6 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                 <InlineNotice variant="destructive" message={state.error} className="mb-4" size="sm" />
             )}
 
-            {updateState.error && (
-                <InlineNotice variant="destructive" message={updateState.error} className="mb-4" size="sm" />
-            )}
-
-            {updateState.success && (
-                <InlineNotice variant="success" message="Site atualizado com sucesso!" className="mb-4" size="sm" />
-            )}
-
-            {deleteState.success && (
-                <InlineNotice variant="success" message="Site deletado com sucesso!" className="mb-4" size="sm" />
-            )}
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Site Atual */}
@@ -123,8 +151,21 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                                                 <Globe className="w-5 h-5 text-primary-foreground" />
                                             </div>
                                             <div>
-                                                <p className="font-medium text-foreground">{site.name}</p>
-                                                <p className="text-sm text-muted-foreground">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium text-foreground">{site.name}</p>
+                                                    {site.status === 'published' ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-500">
+                                                            <CheckCircle className="w-3 h-3" />
+                                                            Publicado
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-2 py-0.5 text-[10px] font-medium text-yellow-500">
+                                                            <Clock className="w-3 h-3" />
+                                                            Rascunho
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-1">
                                                     Criado em {new Date(site.createdAt).toLocaleDateString('pt-BR')}
                                                 </p>
                                                 {site.publicUrl ? (
@@ -139,6 +180,20 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
+                                            {site.status === 'draft' && (
+                                                <form action={publishSite}>
+                                                    <input type="hidden" name="siteId" value={site.id} />
+                                                    <Button
+                                                        type="submit"
+                                                        variant="default"
+                                                        size="sm"
+                                                        className="h-8 bg-green-600 hover:bg-green-700 text-white"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                                        Publicar
+                                                    </Button>
+                                                </form>
+                                            )}
                                             <Button
                                                 variant="secondary"
                                                 size="sm"
@@ -189,11 +244,11 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                                         </p>
                                     </CardHeader>
                                     <CardContent>
-                                        {planState.error && (
-                                            <InlineNotice variant="destructive" message={planState.error} className="mb-4" size="sm" />
+                                        {planError && (
+                                            <InlineNotice variant="destructive" message={planError} className="mb-4" size="sm" />
                                         )}
 
-                                        <form action={planAction} className="space-y-4">
+                                        <form action={handleGeneratePlan} className="space-y-4">
                                             <div>
                                                 <Label htmlFor="brandName" className="text-foreground-secondary text-xs uppercase tracking-wider">
                                                     Nome da Marca (opcional)
@@ -258,104 +313,130 @@ export function SitesPageClient({ initialSites, initialError }: SitesPageClientP
                                             </div>
                                             <Button
                                                 type="submit"
-                                                disabled={planPending}
+                                                disabled={isGenerating}
                                                 className="h-9 px-5 text-xs font-bold uppercase tracking-wider gap-2 w-full"
                                             >
-                                                {planPending ? 'Gerando plano...' : 'Gerar plano de site'}
+                                                {isGenerating ? 'Analisando e Gerando...' : 'Gerar Estrutura com IA'}
                                             </Button>
                                         </form>
 
-                                        {planState.plan && (
-                                            <div className="mt-6 space-y-4">
-                                                <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                    <p className="text-sm text-muted-foreground mb-3">Plano gerado por IA</p>
-                                                    <p className="font-semibold text-foreground">Nome recomendado</p>
-                                                    <p className="text-sm text-foreground mb-3">{planState.plan.suggestedName}</p>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-9"
-                                                        onClick={() => setSiteName(planState.plan?.suggestedName ?? '')}
-                                                    >
-                                                        Usar nome sugerido
-                                                    </Button>
+                                        {streamingPlan && (
+                                            <div className="mt-8 pt-6 border-t border-border">
+                                                <div className="flex items-center gap-2 mb-4 text-primary">
+                                                    <Globe className="size-4 animate-pulse" />
+                                                    <h3 className="font-bold text-sm uppercase tracking-widest">Plano Sugerido pela IA</h3>
                                                 </div>
 
-                                                <div className="grid gap-4 md:grid-cols-2">
-                                                    <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                        <p className="text-sm text-muted-foreground mb-2">SEO</p>
-                                                        <p className="font-semibold text-foreground">{planState.plan.seoTitle}</p>
-                                                        <p className="text-sm text-muted-foreground mt-2">{planState.plan.seoDescription}</p>
+                                                 <div className="space-y-4">
+                                                    <div className="grid gap-4 md:grid-cols-2">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-[10px] text-muted-foreground uppercase font-bold">SEO Title</Label>
+                                                            <Input 
+                                                                value={seoTitle} 
+                                                                onChange={(e) => setSeoTitle(e.target.value)}
+                                                                className="h-9 bg-background/50 text-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-[10px] text-muted-foreground uppercase font-bold">SEO Description</Label>
+                                                            <Input 
+                                                                value={seoDescription} 
+                                                                onChange={(e) => setSeoDescription(e.target.value)}
+                                                                className="h-9 bg-background/50 text-sm"
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                        <p className="text-sm text-muted-foreground mb-2">URL de Teste</p>
-                                                        <p className="text-sm text-foreground">{planState.plan.previewPath}</p>
-                                                        <p className="text-xs text-muted-foreground mt-2">{planState.plan.testUrlHint}</p>
-                                                    </div>
-                                                </div>
 
-                                                <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                    <p className="text-sm text-muted-foreground mb-2">Páginas sugeridas</p>
-                                                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                                                        {planState.plan.pages.map((page, index) => (
-                                                            <li key={index}>{page}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-
-                                                <div className="grid gap-4 md:grid-cols-2">
-                                                    <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                        <p className="text-sm text-muted-foreground mb-2">Módulos recomendados</p>
-                                                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                                                            {planState.plan.modules.map((module, index) => (
-                                                                <li key={index}>{module}</li>
+                                                    <div className="p-3 rounded-lg border border-border bg-background/50">
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Estrutura de Páginas</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {selectedPages.map((page, i) => (
+                                                                <div key={i} className="flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold group">
+                                                                    {page}
+                                                                    <button 
+                                                                        type="button" 
+                                                                        onClick={() => setSelectedPages(prev => prev.filter((_, idx) => idx !== i))}
+                                                                        className="hover:text-destructive transition-colors"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                </div>
                                                             ))}
-                                                        </ul>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const p = prompt('Nome da nova página:')
+                                                                    if (p) setSelectedPages(prev => [...prev, p])
+                                                                }}
+                                                                className="px-2 py-1 rounded border border-dashed border-border hover:border-primary text-[10px] font-bold transition-colors"
+                                                            >
+                                                                + Adicionar
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                        <p className="text-sm text-muted-foreground mb-2">Design premium</p>
-                                                        <p className="text-sm text-foreground">{planState.plan.premiumDesign}</p>
+
+                                                    <div className="p-3 rounded-lg border border-border bg-background/50">
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-3">Módulos Ativos</p>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                            {(Object.keys(selectedModules) as Array<keyof typeof selectedModules>).map((mod) => (
+                                                                <button
+                                                                    key={mod}
+                                                                    type="button"
+                                                                    onClick={() => setSelectedModules(prev => ({ ...prev, [mod]: !prev[mod] }))}
+                                                                    className={`flex items-center justify-center px-3 py-2 rounded-md text-[10px] font-bold uppercase transition-all border ${
+                                                                        selectedModules[mod] 
+                                                                            ? 'bg-primary text-primary-foreground border-primary' 
+                                                                            : 'bg-background text-muted-foreground border-border hover:border-primary/50'
+                                                                    }`}
+                                                                >
+                                                                    {mod}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="p-3 rounded-lg border border-border bg-background/50">
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Diretriz Criativa (IA)</p>
+                                                        <p className="italic text-muted-foreground text-xs">{streamingPlan.premiumDesign || '...'}</p>
                                                     </div>
                                                 </div>
 
-                                                <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                    <p className="text-sm text-muted-foreground mb-2">Performance</p>
-                                                    <p className="text-sm text-foreground">{planState.plan.performanceTips}</p>
-                                                </div>
-
-                                                <div className="rounded-(--radius) border border-border bg-[hsl(var(--background-tertiary))] p-4">
-                                                    <p className="text-sm text-muted-foreground mb-2">Keywords recomendadas</p>
-                                                    <p className="text-sm text-foreground">{planState.plan.keywords.join(', ')}</p>
-                                                </div>
+                                                <form action={action} className="mt-6 p-4 rounded-xl border-2 border-primary/20 bg-primary/5">
+                                                    <input 
+                                                        type="hidden" 
+                                                        name="planJson" 
+                                                        value={JSON.stringify({
+                                                            ...streamingPlan,
+                                                            suggestedName: siteName,
+                                                            seoTitle,
+                                                            seoDescription,
+                                                            pages: selectedPages,
+                                                            modules: selectedModules
+                                                        })} 
+                                                    />
+                                                    <Label htmlFor="finalName" className="text-xs font-bold uppercase mb-2 block">
+                                                        Confirmar Nome do Site
+                                                    </Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            id="finalName"
+                                                            name="name"
+                                                            value={siteName}
+                                                            onChange={(e) => setSiteName(e.target.value)}
+                                                            placeholder="Nome final do site"
+                                                            className="bg-background border-border h-10"
+                                                            required
+                                                        />
+                                                        <Button type="submit" disabled={pending || isGenerating} className="h-10 px-6 font-bold uppercase tracking-wider">
+                                                            {pending ? 'Criando...' : 'Finalizar e Criar'}
+                                                        </Button>
+                                                    </div>
+                                                    {state.error && <InlineNotice variant="destructive" message={state.error} className="mt-2" size="sm" />}
+                                                </form>
                                             </div>
                                         )}
                                     </CardContent>
                                 </Card>
-
-                                <form action={action} className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="name" className="text-foreground-secondary text-xs uppercase tracking-wider">
-                                            Nome do Site
-                                        </Label>
-                                        <Input
-                                            id="name"
-                                            name="name"
-                                            type="text"
-                                            required
-                                            value={siteName}
-                                            onChange={(event) => setSiteName(event.target.value)}
-                                            className="bg-[hsl(var(--background-tertiary))] border-border text-foreground h-9 mt-1"
-                                            placeholder="Ex: Minha Empresa"
-                                        />
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={pending}
-                                        className="h-9 px-5 text-xs font-bold uppercase tracking-wider gap-2 w-full"
-                                    >
-                                        {pending ? 'Criando...' : 'Criar Site'}
-                                    </Button>
-                                </form>
                             </div>
                         </CardContent>
                     ) : (

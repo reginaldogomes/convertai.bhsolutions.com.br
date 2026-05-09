@@ -2,6 +2,18 @@ import type { ISiteRepository, CreateSiteInput, UpdateSiteInput } from '@/domain
 import { DomainError } from '@/domain/errors'
 import type { Site } from '@/domain/entities/site'
 
+function toSlug(name: string): string {
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 60)
+}
+
 export class ListSitesUseCase {
     constructor(private readonly siteRepo: ISiteRepository) {}
 
@@ -22,6 +34,14 @@ export class GetSiteDetailUseCase {
     }
 }
 
+export class GetSiteBySlugUseCase {
+    constructor(private readonly siteRepo: ISiteRepository) {}
+
+    async execute(slug: string): Promise<Site | null> {
+        return this.siteRepo.findBySlug(slug)
+    }
+}
+
 export class CreateSiteUseCase {
     constructor(private readonly siteRepo: ISiteRepository) {}
 
@@ -30,15 +50,23 @@ export class CreateSiteUseCase {
             throw new DomainError('VALIDATION_ERROR', 'O nome do site é obrigatório.')
         }
 
+        // All plans allow exactly 1 site per organization (max_sites = 1).
         const existingSites = await this.siteRepo.listByOrg(orgId)
         if (existingSites.length > 0) {
             throw new DomainError(
                 'SITE_LIMIT_EXCEEDED',
-                'Sua organização já possui um site ativo. Cada organização pode ter apenas um site. Para criar um novo site, primeiro exclua o site atual.'
+                'Cada organização pode ter apenas 1 site ativo (limite do plano). Para criar um novo site, exclua o atual ou crie uma nova organização.'
             )
         }
 
-        return this.siteRepo.create(orgId, { name: input.name.trim() })
+        // Generate slug if not provided
+        const slug = input.slug || toSlug(input.name.trim())
+
+        return this.siteRepo.create(orgId, {
+            ...input,
+            name: input.name.trim(),
+            slug,
+        })
     }
 }
 
@@ -64,6 +92,7 @@ export class UpdateSiteUseCase {
         }
 
         return this.siteRepo.update(siteId, orgId, {
+            ...input,
             name: input.name?.trim(),
         })
     }

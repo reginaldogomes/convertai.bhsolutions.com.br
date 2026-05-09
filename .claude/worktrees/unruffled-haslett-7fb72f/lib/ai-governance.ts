@@ -89,8 +89,7 @@ export function estimateCostCents(model: string, inputChars: number, outputChars
 }
 
 async function getPolicy(organizationId: string): Promise<QuotaPolicy> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createAdminClient() as any
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase
         .from('ai_quota_policies')
@@ -108,9 +107,26 @@ async function getPolicy(organizationId: string): Promise<QuotaPolicy> {
     return normalizePolicy(data ?? null)
 }
 
+export async function updatePolicy(organizationId: string, updates: Partial<QuotaPolicy>): Promise<boolean> {
+    const supabase = createAdminClient()
+    const { error } = await supabase
+        .from('ai_quota_policies')
+        .upsert({
+            organization_id: organizationId,
+            daily_requests_limit: updates.dailyRequestsLimit,
+            monthly_budget_cents: updates.monthlyBudgetCents,
+            hard_block_enabled: updates.hardBlockEnabled,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'organization_id' })
+
+    if (error && !isMissingTableError(error)) {
+        throw error
+    }
+    return !error
+}
+
 async function getTodaySuccessCount(organizationId: string): Promise<number> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createAdminClient() as any
+    const supabase = createAdminClient()
 
     const { count, error } = await supabase
         .from('ai_usage_events')
@@ -130,8 +146,7 @@ async function getTodaySuccessCount(organizationId: string): Promise<number> {
 }
 
 async function getMonthCostCents(organizationId: string): Promise<number> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createAdminClient() as any
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase
         .from('ai_usage_events')
@@ -199,8 +214,7 @@ export async function enforceAiUsagePolicy(ctx: AiGovernanceContext): Promise<Ai
 
 export async function recordAiUsageEvent(ctx: AiGovernanceContext, input: AiUsageRecordInput): Promise<void> {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const supabase = createAdminClient() as any
+        const supabase = createAdminClient()
 
         const inputChars = Math.max(0, input.inputChars ?? 0)
         const outputChars = Math.max(0, input.outputChars ?? 0)

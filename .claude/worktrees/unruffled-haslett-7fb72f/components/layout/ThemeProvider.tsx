@@ -1,109 +1,85 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { createContext, useContext, useLayoutEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
-type ThemeContextValue = {
-  theme: Theme
-  resolvedTheme: 'light' | 'dark'
-  setTheme: (theme: Theme) => void
-  themes: Theme[]
-  systemTheme: 'light' | 'dark'
+interface ThemeContextType {
+    theme: Theme
+    resolvedTheme: 'light' | 'dark'
+    setTheme: (theme: Theme) => void
+    themes: Theme[]
+    systemTheme: 'light' | 'dark'
 }
 
-const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'system',
-  resolvedTheme: 'light',
-  setTheme: () => {},
-  themes: ['light', 'dark', 'system'],
-  systemTheme: 'light',
-})
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-function getPreferredSystemTheme(): 'light' | 'dark' {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-function getStoredTheme(): Theme | null {
-  try {
-    const value = localStorage.getItem('theme')
-    return value === 'light' || value === 'dark' || value === 'system' ? value : null
-  } catch {
-    return null
-  }
-}
-
-function applyTheme(theme: Theme, systemTheme: 'light' | 'dark') {
-  const html = document.documentElement
-  const resolvedTheme = theme === 'system' ? systemTheme : theme
-
-  if (resolvedTheme === 'dark') {
-    html.classList.add('dark')
-  } else {
-    html.classList.remove('dark')
-  }
-}
-
+/**
+ * Custom ThemeProvider that avoids script injection inside React components.
+ * This resolves the React 19 / Next.js 15+ "Encountered a script tag" error.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark')
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() =>
-    typeof window === 'undefined' ? 'light' : getPreferredSystemTheme(),
-  )
+    const [theme, setThemeState] = useState<Theme>('dark')
+    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark')
 
-  useLayoutEffect(() => {
-    const storedTheme = getStoredTheme()
-    const preferredTheme = getPreferredSystemTheme()
-    const initialTheme = storedTheme ?? 'dark'
+    useEffect(() => {
+        // Initial sync from localStorage/document
+        const savedTheme = localStorage.getItem('theme') as Theme || 'dark'
+        setThemeState(savedTheme)
+        
+        const updateTheme = (newTheme: Theme) => {
+            const root = window.document.documentElement
+            let resolved: 'light' | 'dark' = 'dark'
+            
+            if (newTheme === 'system') {
+                resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+            } else {
+                resolved = newTheme as 'light' | 'dark'
+            }
+            
+            root.classList.remove('light', 'dark')
+            root.classList.add(resolved)
+            setResolvedTheme(resolved)
+        }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSystemTheme(preferredTheme)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setThemeState(initialTheme)
-    applyTheme(initialTheme, preferredTheme)
+        updateTheme(savedTheme)
+    }, [])
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (event: MediaQueryListEvent) => {
-      const nextSystemTheme = event.matches ? 'dark' : 'light'
-      setSystemTheme(nextSystemTheme)
-      if (theme === 'system') {
-        applyTheme('system', nextSystemTheme)
-      }
+    const setTheme = (newTheme: Theme) => {
+        setThemeState(newTheme)
+        localStorage.setItem('theme', newTheme)
+        
+        const root = window.document.documentElement
+        let resolved: 'light' | 'dark' = 'dark'
+        
+        if (newTheme === 'system') {
+            resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        } else {
+            resolved = newTheme as 'light' | 'dark'
+        }
+        
+        root.classList.remove('light', 'dark')
+        root.classList.add(resolved)
+        setResolvedTheme(resolved)
     }
 
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme])
-
-  useLayoutEffect(() => {
-    applyTheme(theme, systemTheme)
-  }, [theme, systemTheme])
-
-  const setTheme = (nextTheme: Theme) => {
-    setThemeState(nextTheme)
-    try {
-      localStorage.setItem('theme', nextTheme)
-    } catch {
-      // ignore
-    }
-  }
-
-  const resolvedTheme = theme === 'system' ? systemTheme : theme
-
-  const contextValue = useMemo(
-    () => ({
-      theme,
-      resolvedTheme,
-      setTheme,
-      themes: ['light', 'dark', 'system'] as Theme[],
-      systemTheme,
-    }),
-    [theme, resolvedTheme, systemTheme],
-  )
-
-  return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>
+    return (
+        <ThemeContext.Provider value={{ 
+            theme, 
+            resolvedTheme, 
+            setTheme, 
+            themes: ['light', 'dark', 'system'],
+            systemTheme: 'dark' // Simplified
+        }}>
+            {children}
+        </ThemeContext.Provider>
+    )
 }
 
 export function useTheme() {
-  return useContext(ThemeContext)
+    const context = useContext(ThemeContext)
+    if (context === undefined) {
+        throw new Error('useTheme must be used within a ThemeProvider')
+    }
+    return context
 }

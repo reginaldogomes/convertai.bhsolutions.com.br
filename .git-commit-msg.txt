@@ -1,0 +1,17 @@
+fix: resolve 404 from cron JSDoc comment syntax + design system tokens
+
+Cron route files contained cron schedule patterns with asterisk-slash
+inside JSDoc block comments, which closed the block comment early and
+caused TypeScript parse errors (TS1109, TS1160) that broke the build.
+
+- Fix 3 cron route files: replaced JSDoc with line comments
+- Fix tsconfig.json: ignoreDeprecations changed from 6.0 to 5.0
+- globals.css: add warning-subtle, info-subtle tokens (light + dark mode),
+  shadow scale, z-index scale, typography utilities, section utilities,
+  shimmer keyframe and .skeleton class
+- badge.tsx + inline-notice.tsx: replace hardcoded Tailwind amber/blue
+  classes with hsl(var(--warning-subtle)) and hsl(var(--info-subtle))
+- skeleton.tsx: upgraded to use new shimmer animation
+- New components: empty-state.tsx, stat-card.tsx, section-title.tsx
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>

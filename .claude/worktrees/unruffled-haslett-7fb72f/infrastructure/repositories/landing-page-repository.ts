@@ -35,6 +35,22 @@ export class SupabaseLandingPageRepository implements ILandingPageRepository {
         return (data ?? []).map(LandingPage.fromRow)
     }
 
+    async countByOrgId(orgId: string): Promise<{ total: number; published: number }> {
+        const supabase = createAdminClient()
+        const [totalRes, publishedRes] = await Promise.all([
+            supabase
+                .from('landing_pages')
+                .select('id', { count: 'exact', head: true })
+                .eq('organization_id', orgId),
+            supabase
+                .from('landing_pages')
+                .select('id', { count: 'exact', head: true })
+                .eq('organization_id', orgId)
+                .eq('status', 'published'),
+        ])
+        return { total: totalRes.count ?? 0, published: publishedRes.count ?? 0 }
+    }
+
     async create(input: CreateLandingPageInput): Promise<LandingPage | null> {
         const supabase = createAdminClient()
         const { data } = await supabase
@@ -56,6 +72,9 @@ export class SupabaseLandingPageRepository implements ILandingPageRepository {
                     designSystem: DEFAULT_DESIGN_SYSTEM,
                     logoUrl: null,
                 }) as Record<string, string>,
+                site_id: input.siteId,
+                is_homepage: input.isHomepage ?? false,
+                status: input.status ?? 'draft',
             })
             .select()
             .single()

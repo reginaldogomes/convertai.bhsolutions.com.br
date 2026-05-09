@@ -26,7 +26,7 @@ export type ChatSessionStatus = 'active' | 'lead_captured' | 'closed'
 export type ChatMessageRole = 'user' | 'assistant' | 'system'
 export type AnalyticsEventType = 'view' | 'chat_start' | 'lead_captured' | 'cta_click'
 export type UserRole = 'owner' | 'admin' | 'agent' | 'viewer'
-export type PlanId = 'starter' | 'pro' | 'enterprise'
+export type PlanId = 'starter' | 'pro' | 'business' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing'
 export type CreditTransactionType =
     | 'plan_renewal'
@@ -378,6 +378,8 @@ export interface Database {
                     chatbot_welcome_message: string
                     chatbot_system_prompt: string
                     product_id: string | null
+                    site_id: string | null
+                    is_homepage: boolean
                     status: LandingPageStatus
                     created_at: string
                     updated_at: string
@@ -395,6 +397,8 @@ export interface Database {
                     chatbot_welcome_message?: string
                     chatbot_system_prompt?: string
                     product_id?: string | null
+                    site_id?: string | null
+                    is_homepage?: boolean
                     status?: LandingPageStatus
                     created_at?: string
                     updated_at?: string
@@ -729,6 +733,7 @@ export interface Database {
                     max_landing_pages: number
                     max_users: number
                     max_automations: number
+                    max_sites: number
                     features: string[]
                     is_active: boolean
                     sort_order: number
@@ -737,6 +742,27 @@ export interface Database {
                 Insert: never
                 Update: never
                 Relationships: []
+            }
+            org_memberships: {
+                Row: {
+                    id: string
+                    user_id: string
+                    organization_id: string
+                    role: UserRole
+                    joined_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    organization_id: string
+                    role?: UserRole
+                    joined_at?: string
+                }
+                Update: Partial<Pick<Database['public']['Tables']['org_memberships']['Insert'], 'role'>>
+                Relationships: [
+                    { foreignKeyName: 'org_memberships_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'org_memberships_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
             }
             organization_subscriptions: {
                 Row: {
@@ -804,11 +830,55 @@ export interface Database {
                 Update: never
                 Relationships: []
             }
+            departments: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    name: string
+                    color: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    name: string
+                    color?: string
+                    created_at?: string
+                }
+                Update: Partial<Pick<Database['public']['Tables']['departments']['Insert'], 'name' | 'color'>>
+                Relationships: [
+                    { foreignKeyName: 'departments_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+            user_departments: {
+                Row: {
+                    user_id: string
+                    department_id: string
+                    assigned_at: string
+                }
+                Insert: {
+                    user_id: string
+                    department_id: string
+                    assigned_at?: string
+                }
+                Update: never
+                Relationships: [
+                    { foreignKeyName: 'user_departments_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+                    { foreignKeyName: 'user_departments_department_id_fkey'; columns: ['department_id']; referencedRelation: 'departments'; referencedColumns: ['id'] }
+                ]
+            }
             sites: {
                 Row: {
                     id: string
                     organization_id: string
                     name: string
+                    slug: string
+                    config_json: Json
+                    primary_color: string | null
+                    logo_url: string | null
+                    description: string | null
+                    theme: string | null
+                    status: string | null
                     created_at: string
                     updated_at: string | null
                 }
@@ -816,6 +886,13 @@ export interface Database {
                     id?: string
                     organization_id: string
                     name: string
+                    slug: string
+                    config_json?: Json
+                    primary_color?: string | null
+                    logo_url?: string | null
+                    description?: string | null
+                    theme?: string | null
+                    status?: string | null
                     created_at?: string
                     updated_at?: string | null
                 }
@@ -831,6 +908,7 @@ export interface Database {
                     domain: string
                     status: string
                     target_page_id: string | null
+                    verification_details: Json | null
                     created_at: string
                     updated_at: string | null
                 }
@@ -840,6 +918,7 @@ export interface Database {
                     domain: string
                     status?: string
                     target_page_id?: string | null
+                    verification_details?: Json | null
                     created_at?: string
                     updated_at?: string | null
                 }
@@ -847,6 +926,73 @@ export interface Database {
                 Relationships: [
                     { foreignKeyName: 'custom_domains_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] },
                     { foreignKeyName: 'custom_domains_target_page_id_fkey'; columns: ['target_page_id']; referencedRelation: 'landing_pages'; referencedColumns: ['id'] }
+                ]
+            }
+
+            ai_quota_policies: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    daily_requests_limit: number
+                    monthly_budget_cents: number
+                    hard_block_enabled: boolean
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    daily_requests_limit?: number
+                    monthly_budget_cents?: number
+                    hard_block_enabled?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['ai_quota_policies']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'ai_quota_policies_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
+                ]
+            }
+            ai_usage_events: {
+                Row: {
+                    id: string
+                    organization_id: string
+                    user_id: string | null
+                    request_id: string
+                    route_scope: string
+                    feature_key: string
+                    provider: string
+                    model: string
+                    status: string
+                    input_chars: number
+                    output_chars: number
+                    estimated_cost_cents: number
+                    duration_ms: number | null
+                    error_code: string | null
+                    metadata_json: Json
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    organization_id: string
+                    user_id?: string | null
+                    request_id: string
+                    route_scope: string
+                    feature_key: string
+                    provider?: string
+                    model: string
+                    status: string
+                    input_chars?: number
+                    output_chars?: number
+                    estimated_cost_cents?: number
+                    duration_ms?: number | null
+                    error_code?: string | null
+                    metadata_json?: Json
+                    created_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['ai_usage_events']['Insert']>
+                Relationships: [
+                    { foreignKeyName: 'ai_usage_events_organization_id_fkey'; columns: ['organization_id']; referencedRelation: 'organizations'; referencedColumns: ['id'] }
                 ]
             }
 

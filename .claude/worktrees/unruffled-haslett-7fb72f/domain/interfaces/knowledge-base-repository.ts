@@ -2,9 +2,11 @@ import type { KnowledgeBase } from '@/domain/entities'
 
 export interface CreateKnowledgeBaseInput {
     organizationId: string
-    landingPageId: string | null
+    landingPageId?: string | null
+    productId?: string | null
     title: string
     content: string
+    metadata?: Record<string, unknown>
 }
 
 export interface RagSearchFilters {
@@ -28,7 +30,9 @@ export interface IKnowledgeBaseRepository {
     findByPageId(pageId: string): Promise<KnowledgeBase[]>
     create(input: CreateKnowledgeBaseInput): Promise<KnowledgeBase | null>
     updateEmbedding(id: string, embedding: number[]): Promise<boolean>
+    update(id: string, orgId: string, updates: Partial<CreateKnowledgeBaseInput>): Promise<KnowledgeBase | null>
     delete(id: string, orgId: string): Promise<boolean>
+    purgeHistory(orgId: string, retentionDays: number): Promise<number>
     searchSimilar(
         embedding: number[],
         orgId: string,

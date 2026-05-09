@@ -45,23 +45,22 @@ export class GetDashboardStatsUseCase {
 
             const [
                 newLeads, openConversations, campaignsSent, dealStats,
-                contacts, landingPages, automations, instagramCount, lpAnalytics,
+                totalContacts, lpCounts, autoCounts, instagramCount, lpAnalytics,
             ] = await Promise.allSettled([
                 this.contactRepo.countRecentByOrgId(orgId, sevenDaysAgo),
                 this.messageRepo.countInboundByOrgId(orgId),
                 this.campaignRepo.countSentByOrgId(orgId),
                 this.dealRepo.getStatsForOrg(orgId),
-                this.contactRepo.findByOrgId(orgId),
-                this.landingPageRepo.findByOrgId(orgId),
-                this.automationRepo.findByOrgId(orgId),
+                this.contactRepo.countByOrgId(orgId),
+                this.landingPageRepo.countByOrgId(orgId),
+                this.automationRepo.countByOrgId(orgId),
                 this.instagramContentRepo.countByOrgId(orgId),
                 this.analyticsRepo.getSummaryByOrg(orgId),
             ])
 
             const deals = dealStats.status === 'fulfilled' ? dealStats.value : { total: 0, won: 0 }
-            const contactList = contacts.status === 'fulfilled' ? contacts.value : []
-            const pages = landingPages.status === 'fulfilled' ? landingPages.value : []
-            const autos = automations.status === 'fulfilled' ? automations.value : []
+            const pages = lpCounts.status === 'fulfilled' ? lpCounts.value : { total: 0, published: 0 }
+            const autos = autoCounts.status === 'fulfilled' ? autoCounts.value : { total: 0, active: 0 }
             const analytics = lpAnalytics.status === 'fulfilled' ? lpAnalytics.value : { totalViews: 0, totalLeads: 0 }
 
             return {
@@ -69,15 +68,15 @@ export class GetDashboardStatsUseCase {
                 openConversations: openConversations.status === 'fulfilled' ? openConversations.value : 0,
                 campaignsSent: campaignsSent.status === 'fulfilled' ? campaignsSent.value : 0,
                 conversionRate: deals.total > 0 ? Math.round((deals.won / deals.total) * 100) : 0,
-                totalContacts: contactList.length,
+                totalContacts: totalContacts.status === 'fulfilled' ? totalContacts.value : 0,
                 totalDeals: deals.total,
                 dealsWon: deals.won,
-                landingPages: pages.length,
-                landingPagesPublished: pages.filter(p => p.isPublished()).length,
+                landingPages: pages.total,
+                landingPagesPublished: pages.published,
                 landingPageViews: analytics.totalViews,
                 landingPageLeads: analytics.totalLeads,
-                automationsTotal: autos.length,
-                automationsActive: autos.filter(a => a.isActive()).length,
+                automationsTotal: autos.total,
+                automationsActive: autos.active,
                 instagramContents: instagramCount.status === 'fulfilled' ? instagramCount.value : 0,
             }
         } catch {

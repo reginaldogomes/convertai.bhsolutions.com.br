@@ -1,11 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import type { AutomationWorkflow } from '@/domain/interfaces'
-import { getErrorMessage } from './utils'
-import { canDo } from '@/lib/permissions'
+import { getErrorMessage, requirePermission } from './utils'
 import { z } from 'zod'
 
 const workflowJsonField = z
@@ -34,7 +32,7 @@ export async function createAutomation(
     formData: FormData,
 ) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         const parsed = createAutomationSchema.safeParse({
             name: formData.get('name'),
@@ -89,7 +87,7 @@ export async function updateAutomation(
     formData: FormData,
 ) {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
 
         const parsed = updateAutomationSchema.safeParse({
             name: formData.get('name'),
@@ -117,7 +115,7 @@ export async function updateAutomation(
 
 export async function toggleAutomation(id: string, active: boolean): Promise<{ success: boolean; error?: string }> {
     try {
-        const { orgId } = await getAuthContext()
+        const { orgId } = await requirePermission('createCampaign')
         await useCases.toggleAutomation().execute(id, orgId, active)
         revalidatePath('/automations')
         return { success: true }
@@ -128,8 +126,7 @@ export async function toggleAutomation(id: string, active: boolean): Promise<{ s
 
 export async function deleteAutomation(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-        const { orgId, profile } = await getAuthContext()
-        if (!canDo(profile.role, 'deleteAutomation')) return { success: false, error: 'Sem permissão para excluir automações.' }
+        const { orgId } = await requirePermission('deleteAutomation')
         await useCases.deleteAutomation().execute(id, orgId)
         revalidatePath('/automations')
         return { success: true }

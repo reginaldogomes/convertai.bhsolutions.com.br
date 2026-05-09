@@ -14,6 +14,22 @@ export class SupabaseAutomationRepository implements IAutomationRepository {
         return (data ?? []).map(row => Automation.fromRow(row))
     }
 
+    async countByOrgId(orgId: string): Promise<{ total: number; active: number }> {
+        const supabase = createAdminClient()
+        const [totalRes, activeRes] = await Promise.all([
+            supabase
+                .from('automations')
+                .select('id', { count: 'exact', head: true })
+                .eq('organization_id', orgId),
+            supabase
+                .from('automations')
+                .select('id', { count: 'exact', head: true })
+                .eq('organization_id', orgId)
+                .eq('active', true),
+        ])
+        return { total: totalRes.count ?? 0, active: activeRes.count ?? 0 }
+    }
+
     async findById(id: string, orgId: string): Promise<Automation | null> {
         const supabase = createAdminClient()
         const { data } = await supabase

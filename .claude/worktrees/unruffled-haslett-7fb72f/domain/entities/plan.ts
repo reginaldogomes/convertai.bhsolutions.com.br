@@ -7,9 +7,10 @@ export interface PlanProps {
     priceBrl: number
     monthlyCredits: number
     maxContacts: number        // -1 = unlimited
-    maxLandingPages: number
+    maxLandingPages: number    // -1 = unlimited (credits are the real gate)
     maxUsers: number
     maxAutomations: number
+    maxSites: number           // always 1 per org
     features: string[]
     isActive: boolean
     sortOrder: number
@@ -27,6 +28,7 @@ export class Plan {
     get maxLandingPages() { return this.props.maxLandingPages }
     get maxUsers() { return this.props.maxUsers }
     get maxAutomations() { return this.props.maxAutomations }
+    get maxSites() { return this.props.maxSites }
     get features() { return this.props.features }
     get isActive() { return this.props.isActive }
 
@@ -54,6 +56,7 @@ export class Plan {
         max_landing_pages: number
         max_users: number
         max_automations: number
+        max_sites?: number
         features: string[]
         is_active: boolean
         sort_order: number
@@ -68,6 +71,7 @@ export class Plan {
             maxLandingPages: row.max_landing_pages,
             maxUsers: row.max_users,
             maxAutomations: row.max_automations,
+            maxSites: row.max_sites ?? 1,
             features: row.features ?? [],
             isActive: row.is_active,
             sortOrder: row.sort_order,

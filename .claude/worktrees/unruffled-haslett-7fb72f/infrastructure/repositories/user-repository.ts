@@ -86,11 +86,21 @@ export class SupabaseUserRepository implements IUserRepository {
         const supabase = createAdminClient()
         const { data, error } = await supabase
             .from('users')
-            .select('id, organization_id, name, email, role, avatar_url, created_at')
+            .select('id, organization_id, name, email, role, avatar_url, created_at, user_departments(department_id, departments(id, name, color))')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: true })
         if (error) throw error
-        return (data ?? []).map(OrgMember.fromRow)
+        return (data ?? []).map(row => {
+            const depts = (row.user_departments ?? []).map((ud: {
+                department_id: string
+                departments: { id: string; name: string; color: string } | null
+            }) => ({
+                id: ud.departments?.id ?? ud.department_id,
+                name: ud.departments?.name ?? '',
+                color: ud.departments?.color ?? '#6366f1',
+            }))
+            return OrgMember.fromRow({ ...row, departments: depts })
+        })
     }
 
     async countMembersByOrgId(orgId: string): Promise<number> {
@@ -138,5 +148,58 @@ export class SupabaseUserRepository implements IUserRepository {
             },
         })
         if (error) throw error
+    }
+
+    // ─── Multi-org membership ─────────────────────────────────────────────────
+
+    async listUserMemberships(userId: string): Promise<{ orgId: string; orgName: string; role: UserRole }[]> {
+        const supabase = createAdminClient()
+        const { data } = await supabase
+            .from('org_memberships')
+            .select('organization_id, role, organizations(id, name)')
+            .eq('user_id', userId)
+            .order('joined_at', { ascending: true })
+        return (data ?? []).map((row) => {
+            const org = row.organizations as unknown as { id: string; name: string } | null
+            return {
+                orgId: row.organization_id,
+                orgName: org?.name ?? '',
+                role: row.role as UserRole,
+            }
+        })
+    }
+
+    async addMembership(userId: string, orgId: string, role: UserRole): Promise<void> {
+        const supabase = createAdminClient()
+        await supabase
+            .from('org_memberships')
+            .upsert({ user_id: userId, organization_id: orgId, role }, { onConflict: 'user_id,organization_id' })
+    }
+
+    async switchActiveOrg(userId: string, orgId: string): Promise<void> {
+        const supabase = createAdminClient()
+        // Verify the user is actually a member of the target org before switching
+        const { data: membership } = await supabase
+            .from('org_memberships')
+            .select('role')
+            .eq('user_id', userId)
+            .eq('organization_id', orgId)
+            .single()
+        if (!membership) throw new Error('Usuário não é membro desta organização.')
+        await supabase
+            .from('users')
+            .update({ organization_id: orgId, role: membership.role as UserRole })
+            .eq('id', userId)
+    }
+
+    async createOrganization(name: string): Promise<{ id: string; name: string }> {
+        const supabase = createAdminClient()
+        const { data, error } = await supabase
+            .from('organizations')
+            .insert({ name })
+            .select('id, name')
+            .single()
+        if (error || !data) throw new Error(error?.message ?? 'Falha ao criar organização.')
+        return data
     }
 }

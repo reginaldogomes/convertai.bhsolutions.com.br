@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useActionState } from 'react'
-import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp, Users, UserPlus, UserMinus, Shield, Crown, Eye, User as UserIcon, Loader2, Palette } from 'lucide-react'
+import { Building, Puzzle, Mail, MessageSquare, MessageCircle, CheckCircle2, XCircle, Globe, Phone, MapPin, Sparkles, GaugeCircle, BookOpen, ArrowRight, CreditCard, Zap, TrendingUp, Users, UserPlus, UserMinus, Shield, Crown, Eye, User as UserIcon, Loader2, Pencil, Trash2, Tags, Check, X, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,7 @@ import { purgeAiUsageHistory, updateAiGovernancePolicy, updateOrganization, upda
 import { DESIGN_PRESETS, DEFAULT_DESIGN_SYSTEM } from '@/domain/value-objects/design-system'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { inviteMember, updateMemberRole, removeMember } from '@/actions/members'
+import { createDepartment, updateDepartment, deleteDepartment, setUserDepartments } from '@/actions/departments'
 import { roleBadgeClass, roleLabel, ASSIGNABLE_ROLES } from '@/lib/permissions'
 import { BuyCreditsButton } from '@/components/crm/BuyCreditsButton'
 import { InlineNotice } from '@/components/ui/inline-notice'
@@ -94,6 +95,7 @@ interface Props {
     creditPacks: PlainCreditPack[]
     creditTransactions: PlainCreditTransaction[]
     members: PlainOrgMember[]
+    departments: PlainDepartment[]
     currentUserId: string
     currentRole: string
     customDomains: Array<{
@@ -115,6 +117,12 @@ interface Props {
     orgBrandJson: Record<string, unknown>
 }
 
+export interface PlainDepartment {
+    id: string
+    name: string
+    color: string
+}
+
 export interface PlainOrgMember {
     id: string
     name: string
@@ -125,6 +133,7 @@ export interface PlainOrgMember {
     initials: string
     roleLabel: string
     isOwner: boolean
+    departments: PlainDepartment[]
 }
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -146,8 +155,13 @@ function formatCurrencyFromCents(value: number): string {
     })
 }
 
+<<<<<<< HEAD
+export function SettingsTabs({ profileWithOrg, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, departments, currentUserId, currentRole, customDomains, landingPages }: Props) {
+    const [tab, setTab] = useState<'org' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team' | 'custom-domains'>('org')
+=======
 export function SettingsTabs({ profileWithOrg, orgBrandJson, integrations, aiGovernance, aiUsageEvents, knowledgeEntryCount, subscription, creditPacks, creditTransactions, members, currentUserId, currentRole, customDomains, landingPages }: Props) {
     const [tab, setTab] = useState<'org' | 'brand' | 'integrations' | 'knowledge' | 'ai' | 'plan' | 'team' | 'custom-domains'>('org')
+>>>>>>> 9109ceb (feat: org-level design system (brand_json) with cascade to LPs and RAG indexing)
     const [orgState, orgAction, orgPending] = useActionState(updateOrganization, { error: '', success: false })
     const [brandState, brandAction, brandPending] = useActionState(updateOrgBrand, { error: '', success: false })
     const [selectedDesignSystem, setSelectedDesignSystem] = useState<DesignSystem>(() => {
@@ -1059,6 +1073,7 @@ export function SettingsTabs({ profileWithOrg, orgBrandJson, integrations, aiGov
                 {tab === 'team' && (
                     <TeamTab
                         members={members}
+                        departments={departments}
                         currentUserId={currentUserId}
                         currentRole={currentRole}
                     />
@@ -1084,13 +1099,247 @@ const ROLE_ICON: Record<string, React.ReactNode> = {
     viewer: <Eye className="w-3 h-3" />,
 }
 
+// ─── Department color palette ─────────────────────────────────────────────────
+
+const DEPT_COLORS = [
+    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
+    '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#64748b',
+]
+
+// ─── DepartmentsPanel ─────────────────────────────────────────────────────────
+
+interface DepartmentsPanelProps {
+    departments: PlainDepartment[]
+    canManage: boolean
+}
+
+function DepartmentsPanel({ departments, canManage }: DepartmentsPanelProps) {
+    const [createState, createAction, creating] = useActionState(createDepartment, { error: '', success: false })
+    const [editState, editAction, editing] = useActionState(updateDepartment, { error: '', success: false })
+    const [showCreate, setShowCreate] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [selectedColor, setSelectedColor] = useState(DEPT_COLORS[0])
+    const [editColor, setEditColor] = useState(DEPT_COLORS[0])
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+    const [deleteError, setDeleteError] = useState('')
+
+    async function handleDelete(id: string) {
+        const result = await deleteDepartment(id)
+        if (result.error) setDeleteError(result.error)
+        else setConfirmDelete(null)
+    }
+
+    return (
+        <div className="bg-card border border-border p-6 rounded-(--radius) space-y-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Tags className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground">Departamentos</h3>
+                        <p className="text-xs text-muted-foreground">{departments.length} departamento{departments.length !== 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+                {canManage && (
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setShowCreate(v => !v); setSelectedColor(DEPT_COLORS[0]) }}
+                        className="h-8 px-3 text-xs gap-1.5">
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Novo
+                    </Button>
+                )}
+            </div>
+
+            {/* Create form */}
+            {showCreate && canManage && (
+                <form action={createAction} className="p-4 border border-border rounded-(--radius) bg-[hsl(var(--background-tertiary))] space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Novo departamento</p>
+                    {createState.error && <InlineNotice variant="destructive" message={createState.error} size="sm" />}
+                    {createState.success && <InlineNotice variant="success" message="Departamento criado." size="sm" />}
+                    <div className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nome</Label>
+                            <Input name="name" placeholder="Ex: Comercial, Suporte, Marketing" className="h-9 text-sm" required />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cor</Label>
+                            <div className="flex gap-1 flex-wrap w-32">
+                                {DEPT_COLORS.map(c => (
+                                    <button key={c} type="button" onClick={() => setSelectedColor(c)}
+                                        className="w-5 h-5 rounded-full border-2 transition-all"
+                                        style={{ backgroundColor: c, borderColor: selectedColor === c ? '#fff' : 'transparent' }} />
+                                ))}
+                            </div>
+                        </div>
+                        <input type="hidden" name="color" value={selectedColor} />
+                        <Button type="submit" disabled={creating} size="sm" className="h-9 px-4 text-xs font-bold uppercase">
+                            {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Criar'}
+                        </Button>
+                    </div>
+                </form>
+            )}
+
+            {deleteError && <InlineNotice variant="destructive" message={deleteError} size="sm" />}
+
+            {/* Department list */}
+            {departments.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                    Nenhum departamento criado ainda.
+                </p>
+            ) : (
+                <div className="space-y-2">
+                    {departments.map(dept => (
+                        <div key={dept.id} className="flex items-center gap-3 p-3 border border-border rounded-(--radius) bg-[hsl(var(--background-tertiary))]">
+                            {editingId === dept.id ? (
+                                <form action={editAction} className="flex-1 flex items-center gap-2">
+                                    <input type="hidden" name="id" value={dept.id} />
+                                    <input type="hidden" name="color" value={editColor} />
+                                    <div className="flex gap-1 flex-wrap">
+                                        {DEPT_COLORS.map(c => (
+                                            <button key={c} type="button" onClick={() => setEditColor(c)}
+                                                className="w-4 h-4 rounded-full border-2 transition-all"
+                                                style={{ backgroundColor: c, borderColor: editColor === c ? '#fff' : 'transparent' }} />
+                                        ))}
+                                    </div>
+                                    <Input name="name" defaultValue={dept.name} className="h-7 text-xs flex-1" required />
+                                    {editState.error && <span className="text-xs text-destructive">{editState.error}</span>}
+                                    <Button type="submit" disabled={editing} size="sm" variant="default" className="h-7 px-2 text-xs">
+                                        {editing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                    </Button>
+                                    <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingId(null)}>
+                                        <X className="w-3 h-3" />
+                                    </Button>
+                                </form>
+                            ) : (
+                                <>
+                                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: dept.color }} />
+                                    <span className="flex-1 text-sm font-medium text-foreground">{dept.name}</span>
+                                    {canManage && (
+                                        <div className="flex gap-1">
+                                            <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0"
+                                                onClick={() => { setEditingId(dept.id); setEditColor(dept.color) }}>
+                                                <Pencil className="w-3 h-3" />
+                                            </Button>
+                                            {confirmDelete === dept.id ? (
+                                                <>
+                                                    <Button type="button" size="sm" variant="destructive" className="h-7 px-2 text-xs"
+                                                        onClick={() => handleDelete(dept.id)}>
+                                                        Confirmar
+                                                    </Button>
+                                                    <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                                                        onClick={() => setConfirmDelete(null)}>
+                                                        Cancelar
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                                    onClick={() => setConfirmDelete(dept.id)}>
+                                                    <Trash2 className="w-3 h-3" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── DepartmentSelector ───────────────────────────────────────────────────────
+
+interface DepartmentSelectorProps {
+    memberId: string
+    memberDepts: PlainDepartment[]
+    allDepts: PlainDepartment[]
+}
+
+function DepartmentSelector({ memberId, memberDepts, allDepts }: DepartmentSelectorProps) {
+    const [open, setOpen] = useState(false)
+    const [selected, setSelected] = useState<Set<string>>(new Set(memberDepts.map(d => d.id)))
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState('')
+
+    async function save() {
+        setSaving(true)
+        setError('')
+        const result = await setUserDepartments(memberId, Array.from(selected))
+        setSaving(false)
+        if (result.error) setError(result.error)
+        else setOpen(false)
+    }
+
+    function toggle(id: string) {
+        setSelected(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    if (allDepts.length === 0) return null
+
+    return (
+        <div className="relative">
+            {/* Existing dept badges + edit trigger */}
+            <div className="flex flex-wrap gap-1 items-center">
+                {memberDepts.map(d => (
+                    <span key={d.id} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: `${d.color}20`, color: d.color, border: `1px solid ${d.color}40` }}>
+                        {d.name}
+                    </span>
+                ))}
+                <button type="button" onClick={() => { setOpen(v => !v); setSelected(new Set(memberDepts.map(d => d.id))) }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded border border-dashed border-border hover:border-primary">
+                    <Pencil className="w-2.5 h-2.5 inline mr-0.5" />
+                    Editar
+                </button>
+            </div>
+
+            {/* Dropdown multi-select */}
+            {open && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-popover border border-border rounded-(--radius) shadow-xl">
+                    <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
+                        {allDepts.map(d => (
+                            <label key={d.id} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted/50 transition-colors">
+                                <input type="checkbox" checked={selected.has(d.id)} onChange={() => toggle(d.id)}
+                                    className="accent-primary w-3.5 h-3.5" />
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                                <span className="text-xs text-foreground flex-1">{d.name}</span>
+                            </label>
+                        ))}
+                    </div>
+                    {error && <p className="px-2 pb-1 text-[10px] text-destructive">{error}</p>}
+                    <div className="flex gap-1 p-2 border-t border-border">
+                        <Button type="button" size="sm" disabled={saving} onClick={save}
+                            className="flex-1 h-7 text-xs font-bold">
+                            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Salvar'}
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}
+                            className="h-7 px-2 text-xs">
+                            Cancelar
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── TeamTab ──────────────────────────────────────────────────────────────────
+
 interface TeamTabProps {
     members: PlainOrgMember[]
+    departments: PlainDepartment[]
     currentUserId: string
     currentRole: string
 }
 
-function TeamTab({ members, currentUserId, currentRole }: TeamTabProps) {
+function TeamTab({ members, departments, currentUserId, currentRole }: TeamTabProps) {
     const [inviteState, inviteAction, invitePending] = useActionState(inviteMember, { error: '', success: false })
     const [removeState, removeAction, removePending] = useActionState(removeMember, { error: '', success: false })
     const [roleState, roleAction, rolePending] = useActionState(updateMemberRole, { error: '', success: false })
@@ -1198,6 +1447,9 @@ function TeamTab({ members, currentUserId, currentRole }: TeamTabProps) {
                                 <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Membro</th>
                                 <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">E-mail</th>
                                 <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Papel</th>
+                                {departments.length > 0 && (
+                                    <th className="text-left px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Departamentos</th>
+                                )}
                                 {canManage && (
                                     <th className="text-right px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">Ações</th>
                                 )}
@@ -1254,6 +1506,29 @@ function TeamTab({ members, currentUserId, currentRole }: TeamTabProps) {
                                             </span>
                                         )}
                                     </td>
+                                    {departments.length > 0 && (
+                                        <td className="px-4 py-3">
+                                            {canManage ? (
+                                                <DepartmentSelector
+                                                    memberId={member.id}
+                                                    memberDepts={member.departments}
+                                                    allDepts={departments}
+                                                />
+                                            ) : (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {member.departments.map(d => (
+                                                        <span key={d.id} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                            style={{ backgroundColor: `${d.color}20`, color: d.color, border: `1px solid ${d.color}40` }}>
+                                                            {d.name}
+                                                        </span>
+                                                    ))}
+                                                    {member.departments.length === 0 && (
+                                                        <span className="text-xs text-muted-foreground">—</span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+                                    )}
                                     {canManage && (
                                         <td className="px-4 py-3 text-right">
                                             {!member.isOwner && member.id !== currentUserId && (
@@ -1302,6 +1577,8 @@ function TeamTab({ members, currentUserId, currentRole }: TeamTabProps) {
                     </table>
                 </div>
             </div>
+
+            <DepartmentsPanel departments={departments} canManage={canManage} />
 
             {/* Role legend */}
             <div className="bg-card border border-border p-6 rounded-(--radius)">

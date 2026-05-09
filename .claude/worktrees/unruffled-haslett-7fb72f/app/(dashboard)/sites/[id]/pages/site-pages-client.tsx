@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Eye, Edit, Plus, ExternalLink } from 'lucide-react'
+import { FileText, Edit, Plus, ExternalLink } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Button } from '@/components/ui/button'
@@ -21,29 +21,26 @@ interface PlainLandingPage {
 
 interface SitePagesClientProps {
     initialLandingPages: PlainLandingPage[]
+    siteId: string
     initialError?: string | null
 }
 
-export function SitePagesClient({ initialLandingPages, initialError }: SitePagesClientProps) {
+export function SitePagesClient({ initialLandingPages, siteId, initialError }: SitePagesClientProps) {
     const router = useRouter()
 
     const handleCreateLandingPage = () => {
-        router.push('/landing-pages/new')
-    }
-
-    const handleViewLandingPage = (landingPageId: string) => {
-        router.push(`/landing-pages/${landingPageId}`)
+        router.push(`/landing-pages/new?siteId=${siteId}`)
     }
 
     const handleEditLandingPage = (landingPageId: string) => {
-        router.push(`/landing-pages/${landingPageId}/edit`)
+        router.push(`/landing-pages/${landingPageId}`)
     }
 
     return (
         <div className="space-y-6">
             <PageHeader
-                category="Landing Pages"
-                title="Landing Pages da Organização"
+                category="Site"
+                title="Páginas do Site"
                 icon={FileText}
             />
 
@@ -53,7 +50,7 @@ export function SitePagesClient({ initialLandingPages, initialError }: SitePages
 
             <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">
-                    Gerencie todas as landing pages da sua organização
+                    Gerencie as páginas deste site
                 </p>
                 <Button onClick={handleCreateLandingPage} className="h-9 px-5 text-xs font-bold uppercase tracking-wider gap-2">
                     <Plus className="w-4 h-4" />
@@ -69,8 +66,8 @@ export function SitePagesClient({ initialLandingPages, initialError }: SitePages
                             Nenhuma landing page criada
                         </h3>
                         <p className="text-muted-foreground text-center mb-6 max-w-md">
-                            Comece criando sua primeira landing page para este site.
-                            Use templates pré-definidos ou crie do zero.
+                            Nenhuma página associada a este site ainda.
+                            Crie uma nova página ou associe uma existente.
                         </p>
                         <Button onClick={handleCreateLandingPage} className="h-9 px-5 text-xs font-bold uppercase tracking-wider gap-2">
                             <Plus className="w-4 h-4" />
@@ -114,15 +111,6 @@ export function SitePagesClient({ initialLandingPages, initialError }: SitePages
                                         variant="outline"
                                         size="sm"
                                         className="flex-1 h-8"
-                                        onClick={() => handleViewLandingPage(page.id)}
-                                    >
-                                        <Eye className="w-3 h-3 mr-1" />
-                                        Ver
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 h-8"
                                         onClick={() => handleEditLandingPage(page.id)}
                                     >
                                         <Edit className="w-3 h-3 mr-1" />
@@ -132,10 +120,10 @@ export function SitePagesClient({ initialLandingPages, initialError }: SitePages
                                         variant="secondary"
                                         size="sm"
                                         className="flex-1 h-8"
-                                        onClick={() => window.open(`/p/${page.slug}${page.isPublished ? '' : '?preview=1'}`, '_blank', 'noopener')}
+                                        onClick={() => window.open(`/p/${page.slug}`, '_blank', 'noopener')}
                                     >
                                         <ExternalLink className="w-3 h-3 mr-1" />
-                                        {page.isPublished ? 'Abrir público' : 'Prévia pública'}
+                                        {page.isPublished ? 'Abrir público' : 'Prévia'}
                                     </Button>
                                 </div>
                             </CardContent>

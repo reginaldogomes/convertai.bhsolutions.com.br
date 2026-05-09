@@ -2,15 +2,17 @@
 
 import { useActionState } from 'react'
 import { updateLandingPage } from '@/actions/landing-pages'
+import { uploadBrandLogo, removeBrandLogo } from '@/actions/brand/upload-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DesignSystemPicker } from '@/components/crm/DesignSystemPicker'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import type { DesignSystem } from '@/domain/value-objects/design-system'
 import { designSystemFromPrimaryColor } from '@/domain/value-objects/design-system'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Upload, X } from 'lucide-react'
+import Image from 'next/image'
 
 interface LandingPageEditorProps {
     page: {
@@ -23,6 +25,7 @@ interface LandingPageEditorProps {
         chatbotName: string
         chatbotWelcomeMessage: string
         chatbotSystemPrompt: string
+        logoUrl: string | null
         seoTitle?: string
         seoDescription?: string
         seoKeywords?: string[]
@@ -46,6 +49,40 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
     const [isGeneratingSeo, setIsGeneratingSeo] = useState(false)
     const [seoGenerationWarning, setSeoGenerationWarning] = useState('')
     const [seoGenerationRequestId, setSeoGenerationRequestId] = useState('')
+
+    // Logo state
+    const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(page.logoUrl)
+    const [logoError, setLogoError] = useState('')
+    const [isRemovingLogo, startRemovingLogo] = useTransition()
+    const logoFileRef = useRef<HTMLInputElement>(null)
+
+    const boundLogoUpload = useCallback(
+        (state: { error: string; success: boolean; logoUrl?: string }, formData: FormData) =>
+            uploadBrandLogo(page.id, state, formData),
+        [page.id],
+    )
+    const [logoState, logoAction, isUploadingLogo] = useActionState(boundLogoUpload, { error: '', success: false })
+
+    useEffect(() => {
+        if (logoState.success && logoState.logoUrl) {
+            setCurrentLogoUrl(logoState.logoUrl)
+            setLogoError('')
+            if (logoFileRef.current) logoFileRef.current.value = ''
+        }
+        if (logoState.error) setLogoError(logoState.error)
+    }, [logoState])
+
+    const handleRemoveLogo = useCallback(() => {
+        startRemovingLogo(async () => {
+            const result = await removeBrandLogo(page.id)
+            if (result.success) {
+                setCurrentLogoUrl(null)
+                setLogoError('')
+            } else {
+                setLogoError(result.error)
+            }
+        })
+    }, [page.id])
 
     const [seoTitle, setSeoTitle] = useState(page.seoTitle || '')
     const [seoDescription, setSeoDescription] = useState(page.seoDescription || '')
@@ -176,6 +213,65 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
             <div className="space-y-2">
                 <Label htmlFor="chatbotSystemPrompt">Instruções do Bot</Label>
                 <Textarea id="chatbotSystemPrompt" name="chatbotSystemPrompt" defaultValue={page.chatbotSystemPrompt} rows={4} />
+            </div>
+
+            {/* Logo */}
+            <div className="space-y-3 pt-2 border-t border-border">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Logomarca</h3>
+
+                {currentLogoUrl && (
+                    <div className="relative inline-flex items-center gap-3 p-3 bg-[hsl(var(--background-secondary))] rounded-(--radius) border border-border">
+                        <Image
+                            src={currentLogoUrl}
+                            alt="Logo atual"
+                            width={120}
+                            height={36}
+                            className="h-9 w-auto object-contain"
+                            unoptimized={currentLogoUrl.startsWith('data:')}
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveLogo}
+                            disabled={isRemovingLogo}
+                            className="text-destructive hover:text-destructive gap-1"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                            {isRemovingLogo ? 'Removendo...' : 'Remover'}
+                        </Button>
+                    </div>
+                )}
+
+                <form action={logoAction} className="flex items-center gap-3">
+                    <Input
+                        ref={logoFileRef}
+                        id="logoFile"
+                        name="logoFile"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                        className="flex-1 text-sm"
+                    />
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploadingLogo}
+                        className="gap-2 shrink-0"
+                    >
+                        <Upload className="w-4 h-4" />
+                        {isUploadingLogo ? 'Enviando...' : 'Enviar'}
+                    </Button>
+                </form>
+
+                <p className="text-xs text-muted-foreground">JPG, PNG, WEBP ou SVG. Máximo 2MB.</p>
+
+                {logoError && (
+                    <p className="text-xs text-destructive">{logoError}</p>
+                )}
+                {logoState.success && !logoError && (
+                    <p className="text-xs text-[hsl(var(--success))]">Logo atualizado com sucesso.</p>
+                )}
             </div>
 
             {/* SEO */}

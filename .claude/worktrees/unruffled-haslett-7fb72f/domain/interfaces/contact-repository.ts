@@ -22,4 +22,5 @@ export interface IContactRepository {
     update(id: string, input: Partial<Omit<CreateContactInput, 'organizationId'>>): Promise<void>
     delete(id: string, orgId: string): Promise<void>
     countRecentByOrgId(orgId: string, since: string): Promise<number>
+    countByOrgId(orgId: string): Promise<number>
 }

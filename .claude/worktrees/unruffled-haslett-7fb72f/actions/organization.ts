@@ -1,13 +1,62 @@
 'use server'
 
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/infrastructure/auth'
 import { useCases } from '@/application/services/container'
 import { SupabaseUserRepository } from '@/infrastructure/repositories'
 import { getErrorMessage } from './utils'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { z } from 'zod'
 
 const userRepo = new SupabaseUserRepository()
+
+// ─── Multi-org actions ────────────────────────────────────────────────────────
+
+export async function listUserOrganizations() {
+    try {
+        const { userId, orgId } = await getAuthContext()
+        const memberships = await userRepo.listUserMemberships(userId)
+        return { memberships, activeOrgId: orgId, error: null }
+    } catch (err) {
+        return { memberships: [], activeOrgId: null, error: getErrorMessage(err) }
+    }
+}
+
+export async function createOrganization(
+    _prevState: { error: string; success: boolean },
+    formData: FormData,
+) {
+    try {
+        const { userId } = await getAuthContext()
+        const name = (formData.get('name') as string | null)?.trim()
+        if (!name || name.length < 2) return { error: 'Nome da organização deve ter pelo menos 2 caracteres.', success: false }
+        if (name.length > 100) return { error: 'Nome não pode ter mais de 100 caracteres.', success: false }
+
+        const org = await userRepo.createOrganization(name)
+        await userRepo.addMembership(userId, org.id, 'owner')
+        await userRepo.switchActiveOrg(userId, org.id)
+
+        revalidateTag('auth-context', 'default')
+        revalidatePath('/', 'layout')
+    } catch (err) {
+        return { error: getErrorMessage(err), success: false }
+    }
+    redirect('/')
+}
+
+export async function switchOrganization(orgId: string) {
+    const uuidSchema = z.string().uuid()
+    if (!uuidSchema.safeParse(orgId).success) return { error: 'ID inválido.' }
+    try {
+        const { userId } = await getAuthContext()
+        await userRepo.switchActiveOrg(userId, orgId)
+        revalidateTag('auth-context', 'default')
+        revalidatePath('/', 'layout')
+        return { error: '' }
+    } catch (err) {
+        return { error: getErrorMessage(err) }
+    }
+}
 
 export async function updateOrganization(
     _prevState: { error: string; success: boolean },
@@ -49,50 +98,19 @@ export async function updateAiGovernancePolicy(
     formData: FormData,
 ) {
     try {
-        const { orgId } = await getAuthContext()
-
-        const dailyRequestsLimit = toPositiveInt(formData.get('dailyRequestsLimit'), 120)
-        const monthlyBudgetCents = toPositiveInt(formData.get('monthlyBudgetCents'), 3000)
-        const hardBlockEnabled = formData.get('hardBlockEnabled') === 'on'
-
-        if (dailyRequestsLimit < 1) {
-            return { error: 'Limite diário deve ser maior que zero.', success: false }
-        }
-
-        if (monthlyBudgetCents < 100) {
-            return { error: 'Orçamento mensal mínimo é de 100 centavos.', success: false }
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-
-        const { error } = await admin
-            .from('ai_quota_policies')
-            .upsert(
-                {
-                    organization_id: orgId,
-                    daily_requests_limit: dailyRequestsLimit,
-                    monthly_budget_cents: monthlyBudgetCents,
-                    hard_block_enabled: hardBlockEnabled,
-                },
-                { onConflict: 'organization_id' },
-            )
-
-        if (error) {
-            if (error.code === 'PGRST205' || error.code === '42P01') {
-                return {
-                    error: 'Tabela de governança de IA não encontrada. Execute a migration 015_ai_governance.sql.',
-                    success: false,
-                }
-            }
-
-            return { error: error.message, success: false }
-        }
+        const { orgId } = await getAuthContext();
+        
+        // A lógica foi movida para o use case `updateAiGovernance`
+        await useCases.updateAiGovernance().execute(orgId, {
+            dailyRequestsLimit: toPositiveInt(formData.get('dailyRequestsLimit'), 120),
+            monthlyBudgetCents: toPositiveInt(formData.get('monthlyBudgetCents'), 3000),
+            hardBlockEnabled: formData.get('hardBlockEnabled') === 'on',
+        });
 
         revalidatePath('/settings')
         return { error: '', success: true }
     } catch (err) {
-        return { error: getErrorMessage(err), success: false }
+        return { error: getErrorMessage(err), success: false };
     }
 }
 
@@ -102,49 +120,12 @@ export async function purgeAiUsageHistory(
 ) {
     try {
         const { orgId } = await getAuthContext()
-        const retentionDays = toPositiveInt(formData.get('retentionDays'), 90)
-        const boundedRetentionDays = Math.min(3650, Math.max(1, retentionDays))
+        const retentionDays = toPositiveInt(formData.get('retentionDays'), 90);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-
-        const { data, error } = await admin.rpc('purge_old_ai_usage_events', {
-            target_organization_id: orgId,
-            retention_days: boundedRetentionDays,
-        })
-
-        let deletedCount = 0
-
-        if (error) {
-            const isMissingRpc = error.code === 'PGRST202' || error.code === '42883'
-            if (!isMissingRpc) {
-                if (error.code === 'PGRST205' || error.code === '42P01') {
-                    return {
-                        error: 'Função de purge de IA não encontrada. Execute a migration 015_ai_governance.sql.',
-                        success: false,
-                        deletedCount: 0,
-                    }
-                }
-
-                return { error: error.message, success: false, deletedCount: 0 }
-            }
-
-            const thresholdDate = new Date(Date.now() - boundedRetentionDays * 24 * 60 * 60 * 1000).toISOString()
-            const { data: fallbackData, error: fallbackError } = await admin
-                .from('ai_usage_events')
-                .delete()
-                .eq('organization_id', orgId)
-                .lt('created_at', thresholdDate)
-                .select('id')
-
-            if (fallbackError) {
-                return { error: fallbackError.message, success: false, deletedCount: 0 }
-            }
-
-            deletedCount = Array.isArray(fallbackData) ? fallbackData.length : 0
-        } else {
-            deletedCount = typeof data === 'number' ? data : 0
-        }
+        // A lógica foi movida para o use case `purgeKnowledgeBaseHistory`
+        const deletedCount = await useCases
+            .purgeKnowledgeBaseHistory()
+            .execute(orgId, retentionDays);
 
         revalidatePath('/settings')
         return { error: '', success: true, deletedCount }
@@ -172,136 +153,84 @@ function parseTagList(value: FormDataEntryValue | null): string[] {
     )
 }
 
+const profileConfig = {
+    pessoal: {
+        title: 'Perfil Pessoal',
+        metadataType: 'personal',
+        errorMessage: 'Preencha ao menos um campo para salvar o perfil pessoal.',
+        fields: [
+            { key: 'bio', label: 'Apresentação pessoal (bio)', len: 5000, tag: false },
+            { key: 'expertise', label: 'Área de especialização', len: 800, tag: true },
+            { key: 'audience', label: 'Público / audiência', len: 1200, tag: true },
+            { key: 'personalValues', label: 'Valores e missão pessoal', len: 2000, tag: false },
+            { key: 'communicationStyle', label: 'Estilo de comunicação e tom de voz', len: 1200, tag: false },
+            { key: 'servicesOffered', label: 'Serviços, produtos ou conteúdos que ofereço', len: 4000, tag: false },
+            { key: 'achievements', label: 'Conquistas, cases e resultados', len: 2500, tag: false },
+            { key: 'personalFaq', label: 'Perguntas frequentes sobre mim', len: 4000, tag: false },
+        ],
+        header: 'PERFIL PESSOAL — PROFISSIONAL / CRIADOR',
+    },
+    empresa: {
+        title: 'Perfil Estratégico da Empresa',
+        metadataType: 'organization_strategy',
+        errorMessage: 'Preencha ao menos um campo para salvar na base de conhecimento.',
+        fields: [
+            { key: 'companySummary', label: 'Resumo da empresa', len: 5000, tag: false },
+            { key: 'niche', label: 'Nicho de atuação', len: 800, tag: true },
+            { key: 'targetAudience', label: 'Público-alvo', len: 1200, tag: true },
+            { key: 'culture', label: 'Cultura e valores', len: 2000, tag: false },
+            { key: 'brandVoice', label: 'Tom de voz e posicionamento', len: 1200, tag: false },
+            { key: 'productsAndServices', label: 'Produtos e serviços', len: 4000, tag: false },
+            { key: 'differentiators', label: 'Diferenciais competitivos', len: 2500, tag: false },
+            { key: 'objectionsAndFaq', label: 'Objeções comuns e respostas', len: 4000, tag: false },
+        ],
+        header: 'PERFIL ESTRATEGICO DA EMPRESA',
+    },
+}
+
 export async function saveKnowledgeBaseProfile(
     _prevState: { error: string; success: boolean },
     formData: FormData,
 ) {
     try {
         const { orgId } = await getAuthContext()
-
         const profileType = (safeText(formData.get('profileType'), 10) || 'empresa') as 'empresa' | 'pessoal'
+        const config = profileConfig[profileType]
 
-        if (profileType === 'pessoal') {
-            // ── Perfil Pessoal ─────────────────────────────────────────────
-            const bio              = safeText(formData.get('bio'), 5000)
-            const expertise        = safeText(formData.get('expertise'), 800)
-            const audience         = safeText(formData.get('audience'), 1200)
-            const personalValues   = safeText(formData.get('personalValues'), 2000)
-            const communicationStyle = safeText(formData.get('communicationStyle'), 1200)
-            const servicesOffered  = safeText(formData.get('servicesOffered'), 4000)
-            const achievements     = safeText(formData.get('achievements'), 2500)
-            const personalFaq      = safeText(formData.get('personalFaq'), 4000)
-            const customTags       = parseTagList(formData.get('tags'))
-
-            const fields = [bio, expertise, audience, personalValues, communicationStyle, servicesOffered, achievements, personalFaq]
-            if (fields.every((f) => f.length === 0)) {
-                return { error: 'Preencha ao menos um campo para salvar o perfil pessoal.', success: false }
-            }
-
-            const autoTags = [expertise, audience]
-                .flatMap((v) => v.split(/[,;\n]/g))
-                .map((v) => v.trim().toLowerCase())
-                .filter((v) => v.length >= 2)
-            const tags = Array.from(new Set([...customTags, ...autoTags])).slice(0, 24)
-
-            const content = [
-                'PERFIL PESSOAL — PROFISSIONAL / CRIADOR',
-                `Atualizado em: ${new Date().toISOString()}`,
-                '',
-                `Apresentação pessoal (bio):\n${bio || 'Não informado.'}`,
-                '',
-                `Área de especialização:\n${expertise || 'Não informado.'}`,
-                '',
-                `Público / audiência:\n${audience || 'Não informado.'}`,
-                '',
-                `Valores e missão pessoal:\n${personalValues || 'Não informado.'}`,
-                '',
-                `Estilo de comunicação e tom de voz:\n${communicationStyle || 'Não informado.'}`,
-                '',
-                `Serviços, produtos ou conteúdos que ofereço:\n${servicesOffered || 'Não informado.'}`,
-                '',
-                `Conquistas, cases e resultados:\n${achievements || 'Não informado.'}`,
-                '',
-                `Perguntas frequentes sobre mim:\n${personalFaq || 'Não informado.'}`,
-            ].join('\n')
-
-            const metadata = {
-                source: 'settings_knowledge_base',
-                profileType: 'personal',
-                tags,
-                expertise,
-                audience,
-                communicationStyle,
-                updatedAt: new Date().toISOString(),
-            }
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Pessoal', content, metadata } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
-            if (!result.ok) {
-                return { error: `Falha ao salvar perfil pessoal: ${result.error.message}`, success: false }
-            }
-
-            revalidatePath('/settings')
-            revalidatePath('/knowledge-base')
-            return { error: '', success: true }
+        const fieldValues = config.fields.map(f => safeText(formData.get(f.key), f.len))
+        if (fieldValues.every(v => v.length === 0)) {
+            return { error: config.errorMessage, success: false }
         }
 
-        // ── Perfil Empresarial ─────────────────────────────────────────────
-        const companySummary = safeText(formData.get('companySummary'), 5000)
-        const niche = safeText(formData.get('niche'), 800)
-        const targetAudience = safeText(formData.get('targetAudience'), 1200)
-        const culture = safeText(formData.get('culture'), 2000)
-        const brandVoice = safeText(formData.get('brandVoice'), 1200)
-        const productsAndServices = safeText(formData.get('productsAndServices'), 4000)
-        const differentiators = safeText(formData.get('differentiators'), 2500)
-        const objectionsAndFaq = safeText(formData.get('objectionsAndFaq'), 4000)
-        const customTags = parseTagList(formData.get('tags'))
-        const autoTags = [niche, targetAudience]
+        const autoTagValues = config.fields.reduce<string[]>((acc, f, i) => {
+            if (f.tag) acc.push(fieldValues[i])
+            return acc
+        }, [])
+
+        const autoTags = autoTagValues
             .flatMap((value) => value.split(/[,;\n]/g))
             .map((value) => value.trim().toLowerCase())
             .filter((value) => value.length >= 2)
+
+        const customTags = parseTagList(formData.get('tags'))
         const tags = Array.from(new Set([...customTags, ...autoTags])).slice(0, 24)
 
-        const fields = [companySummary, niche, targetAudience, culture, brandVoice, productsAndServices, differentiators, objectionsAndFaq]
-        if (fields.every((field) => field.length === 0)) {
-            return { error: 'Preencha ao menos um campo para salvar na base de conhecimento.', success: false }
-        }
+        const contentBody = config.fields
+            .map((field, i) => `${field.label}:\n${fieldValues[i] || 'Não informado.'}`)
+            .join('\n\n')
 
-        const content = [
-            'PERFIL ESTRATEGICO DA EMPRESA',
-            `Atualizado em: ${new Date().toISOString()}`,
-            '',
-            `Resumo da empresa:\n${companySummary || 'Não informado.'}`,
-            '',
-            `Nicho de atuação:\n${niche || 'Não informado.'}`,
-            '',
-            `Público-alvo:\n${targetAudience || 'Não informado.'}`,
-            '',
-            `Cultura e valores:\n${culture || 'Não informado.'}`,
-            '',
-            `Tom de voz e posicionamento:\n${brandVoice || 'Não informado.'}`,
-            '',
-            `Produtos e serviços:\n${productsAndServices || 'Não informado.'}`,
-            '',
-            `Diferenciais competitivos:\n${differentiators || 'Não informado.'}`,
-            '',
-            `Objeções comuns e respostas:\n${objectionsAndFaq || 'Não informado.'}`,
-        ].join('\n')
+        const content = [config.header, `Atualizado em: ${new Date().toISOString()}`, '', contentBody].join('\n')
 
         const metadata = {
             source: 'settings_knowledge_base',
-            profileType: 'organization_strategy',
+            profileType: config.metadataType,
             tags,
-            niche,
-            targetAudience,
-            brandVoice,
             updatedAt: new Date().toISOString(),
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await useCases.addKnowledgeBase().execute(orgId, { title: 'Perfil Estratégico da Empresa', content, metadata } as any) // TODO: Remover 'as any' após atualizar o tipo de entrada do use case para incluir 'metadata'.
+        const result = await useCases.addKnowledgeBase().execute(orgId, { title: config.title, content, metadata })
         if (!result.ok) {
-            return { error: `Falha ao salvar perfil da empresa: ${result.error.message}`, success: false }
+            return { error: `Falha ao salvar perfil: ${result.error.message}`, success: false }
         }
 
         revalidatePath('/settings')
@@ -326,31 +255,12 @@ export async function updateKnowledgeBaseEntry(
         if (!entryId) return { error: 'Entrada inválida.', success: false }
         if (!title || !content) return { error: 'Título e conteúdo são obrigatórios.', success: false }
 
-        const metadata = {
-            source: 'settings_knowledge_base',
+        // A lógica foi movida para o use case `updateKnowledgeBaseEntry`
+        await useCases.updateKnowledgeBaseEntry().execute(orgId, entryId, {
+            title,
+            content,
             tags,
-            updatedAt: new Date().toISOString(),
-        }
-
-        // Delega a lógica para o use case, que deve cuidar da atualização e reindexação no RAG.
-        // Assumindo que o use case `updateKnowledgeBaseEntry` existe na camada de aplicação.
-        // TODO: Mover esta lógica para um use case `updateKnowledgeBaseEntry` que também
-        //       se encarregue de re-indexar o conteúdo no serviço de RAG.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-        const { error } = await admin
-            .from('knowledge_base_entries')
-            .update({
-                title,
-                content,
-                metadata_json: metadata,
-            })
-            .eq('id', entryId)
-            .eq('organization_id', orgId)
-
-        if (error) {
-            return { error: `Falha ao atualizar entrada: ${error.message}`, success: false }
-        }
+        })
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
@@ -370,21 +280,8 @@ export async function deleteKnowledgeBaseEntry(
 
         if (!entryId) return { error: 'Entrada inválida.', success: false }
 
-        // Delega a lógica para o use case, que deve cuidar da exclusão no DB e da desindexação no RAG.
-        // Assumindo que o use case `deleteKnowledgeBaseEntry` existe.
-        // TODO: Mover esta lógica para um use case `deleteKnowledgeBaseEntry` que também
-        //       se encarregue de remover a entrada do índice do RAG.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-        const { error } = await admin
-            .from('knowledge_base_entries')
-            .delete()
-            .eq('id', entryId)
-            .eq('organization_id', orgId)
-
-        if (error) {
-            return { error: `Falha ao excluir entrada: ${error.message}`, success: false }
-        }
+        // A lógica foi movida para o use case `deleteKnowledgeBaseEntry`
+        await useCases.deleteKnowledgeBaseEntry().execute(orgId, entryId)
 
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
@@ -427,70 +324,15 @@ export async function uploadKnowledgeBaseImage(
             return { error: 'Imagem muito grande. Limite de 8MB por arquivo.', success: false }
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const admin = createAdminClient() as any
-
-        const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-        const safeName = sanitizeFileName(file.name || `imagem.${extension}`)
-        const storagePath = `${orgId}/${Date.now()}-${safeName}`
-        const fileBuffer = Buffer.from(await file.arrayBuffer())
-
-        const { error: uploadError } = await admin.storage.from(KB_IMAGE_BUCKET).upload(storagePath, fileBuffer, {
-            contentType: file.type,
-            upsert: false,
+        // A lógica de upload e criação da entrada foi movida para um use case
+        await useCases.uploadKnowledgeBaseImage().execute(orgId, {
+            title,
+            description,
+            extractedText,
+            tags,
+            file,
         })
 
-        if (uploadError) {
-            // Adiciona uma mensagem mais útil se o bucket não existir, orientando a rodar a migration.
-            if (uploadError.message.includes('Bucket not found')) {
-                return {
-                    error: `Falha ao enviar imagem: Bucket '${KB_IMAGE_BUCKET}' não encontrado. Execute a migration de storage.`,
-                    success: false,
-                }
-            }
-            return { error: `Falha ao enviar imagem: ${uploadError.message}`, success: false }
-        }
-
-        const { data: publicUrlData } = admin.storage.from(KB_IMAGE_BUCKET).getPublicUrl(storagePath)
-
-        const publicUrl = publicUrlData?.publicUrl
-        if (!publicUrl) {
-            return { error: 'Falha ao gerar URL pública da imagem.', success: false }
-        }
-
-        // Combina a criação da entrada e a atualização dos metadados em uma única operação.
-        const content = [
-            `Tipo de ativo: imagem`,
-            `URL da imagem: ${publicUrl}`,
-            '',
-            `Descrição da imagem:\n${description || 'Não informada.'}`,
-            '',
-            `Texto extraído/relevante da imagem:\n${extractedText || 'Não informado.'}`,
-        ].join('\n')
-
-        const metadata = {
-            source: 'settings_knowledge_base_image_upload',
-            assetType: 'image',
-            imageUrl: publicUrl,
-            fileName: file.name,
-            mimeType: file.type,
-            sizeBytes: file.size,
-            tags,
-            updatedAt: new Date().toISOString(),
-        }
-
-        // Delega a criação da entrada para o use case, que cuidará da indexação.
-        const result = await useCases.addKnowledgeBase().execute(orgId, {
-            title,
-            content,
-            metadata,
-            landingPageId: null,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-
-        if (!result.ok) {
-            return { error: `Falha ao salvar na base de conhecimento: ${result.error.message}`, success: false }
-        }
         revalidatePath('/settings')
         revalidatePath('/knowledge-base')
         return { error: '', success: true }
@@ -587,8 +429,7 @@ export async function saveKnowledgeBaseEntry(
             content,
             metadata,
             landingPageId: null,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
+        })
 
         if (!result.ok) {
             return { error: `Falha ao salvar na base de conhecimento: ${result.error.message}`, success: false }

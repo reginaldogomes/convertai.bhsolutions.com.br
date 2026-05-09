@@ -25,6 +25,8 @@ export interface LandingPageProps {
     id: string
     organizationId: string
     productId: string | null
+    siteId: string | null
+    isHomepage: boolean
     name: string
     slug: string
     headline: string
@@ -52,6 +54,8 @@ export class LandingPage {
     get id() { return this.props.id }
     get organizationId() { return this.props.organizationId }
     get productId() { return this.props.productId }
+    get siteId() { return this.props.siteId }
+    get isHomepage() { return this.props.isHomepage }
     get name() { return this.props.name }
     get slug() { return this.props.slug }
     get headline() { return this.props.headline }
@@ -73,6 +77,8 @@ export class LandingPage {
         id: string
         organization_id: string
         product_id?: string | null
+        site_id?: string | null
+        is_homepage?: boolean | null
         name: string
         slug: string
         headline: string
@@ -91,6 +97,8 @@ export class LandingPage {
             id: row.id,
             organizationId: row.organization_id,
             productId: row.product_id ?? null,
+            siteId: row.site_id ?? null,
+            isHomepage: row.is_homepage ?? false,
             name: row.name,
             slug: row.slug,
             headline: row.headline,
