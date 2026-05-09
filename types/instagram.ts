@@ -15,6 +15,7 @@ export interface InstagramContentRow {
     published_at: string | null
     ig_post_id: string | null
     metrics: InstagramMetricsJson
+    metrics_synced_at: string | null
     created_at: string
 }
 
@@ -39,6 +40,8 @@ export interface InstagramAccountRow {
     followers_count: number
     media_count: number
     connected_at: string
+    token_refreshed_at: string | null
+    token_warning_sent_at: string | null
 }
 
 export interface InstagramAutoConfigRow {

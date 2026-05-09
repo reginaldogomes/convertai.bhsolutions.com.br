@@ -2,11 +2,15 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { publishInstagramContent, deleteInstagramContent } from '@/actions/instagram'
+import { publishInstagramContent, deleteInstagramContent, syncInstagramMetrics } from '@/actions/instagram'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
-import { Image as ImageIcon, Film, Clock, SquareStack, Send, Trash2, Heart, MessageCircle, Share2, Bookmark, Eye } from 'lucide-react'
+import {
+    Image as ImageIcon, Film, Clock, SquareStack, Send, Trash2,
+    Heart, MessageCircle, Share2, Bookmark, Eye, RefreshCw, TrendingUp,
+} from 'lucide-react'
 import { toast } from 'sonner'
+import { ScheduleButton } from './ScheduleButton'
 import type { InstagramMetrics } from '@/domain/entities/instagram-content'
 
 const TYPE_ICONS: Record<string, typeof ImageIcon> = {
@@ -29,6 +33,7 @@ interface ContentCardProps {
         statusColor: string
         metrics: InstagramMetrics
         publishedAt: string | null
+        scheduledAt: string | null
         createdAt: string
     }
 }
@@ -36,18 +41,15 @@ interface ContentCardProps {
 export function ContentCard({ content }: ContentCardProps) {
     const [isPendingPublish, startPublish] = useTransition()
     const [isPendingDelete, startDelete] = useTransition()
+    const [isPendingSync, startSync] = useTransition()
     const router = useRouter()
     const TypeIcon = TYPE_ICONS[content.type] || ImageIcon
 
     function handlePublish() {
         startPublish(async () => {
             const result = await publishInstagramContent(content.id)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Conteúdo publicado no Instagram!')
-                router.refresh()
-            }
+            if (result.error) toast.error(result.error)
+            else { toast.success('Publicado no Instagram!'); router.refresh() }
         })
     }
 
@@ -55,19 +57,26 @@ export function ContentCard({ content }: ContentCardProps) {
         if (!confirm('Excluir este conteúdo? Esta ação não pode ser desfeita.')) return
         startDelete(async () => {
             const result = await deleteInstagramContent(content.id)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Conteúdo excluído')
-                router.refresh()
-            }
+            if (result.error) toast.error(result.error)
+            else { toast.success('Conteúdo excluído'); router.refresh() }
+        })
+    }
+
+    function handleSyncMetrics() {
+        startSync(async () => {
+            const result = await syncInstagramMetrics(content.id)
+            if (result.error) toast.error(result.error)
+            else { toast.success('Métricas atualizadas'); router.refresh() }
         })
     }
 
     const hasMetrics = content.status === 'published' && (content.metrics.likes > 0 || content.metrics.reach > 0)
+    const engagementRate = content.metrics.engagement_rate
 
     return (
-        <div className={`bg-card border p-0 relative group transition-colors rounded-(--radius) overflow-hidden ${isPendingDelete ? 'opacity-50 pointer-events-none' : 'hover:border-primary/50 border-border'}`}>
+        <div className={`bg-card border rounded-(--radius) overflow-hidden transition-colors group ${
+            isPendingDelete ? 'opacity-50 pointer-events-none' : 'hover:border-primary/40 border-border'
+        }`}>
             {/* Media Preview */}
             <div className="aspect-square bg-muted relative overflow-hidden">
                 {content.mediaUrls[0] ? (
@@ -76,30 +85,25 @@ export function ContentCard({ content }: ContentCardProps) {
                         alt={content.caption.slice(0, 50)}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full">
-                        <TypeIcon className="w-12 h-12 text-muted-foreground/30" />
+                        <TypeIcon className="w-12 h-12 text-muted-foreground/20" />
                     </div>
                 )}
 
-                {/* Type Badge */}
-                <div className="absolute top-2 left-2">
+                {/* Overlays */}
+                <div className="absolute top-2 left-2 flex items-center gap-1.5">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-black/60 text-white backdrop-blur-sm rounded-(--radius)">
-                        <TypeIcon className="w-3 h-3" />
-                        {content.typeLabel}
+                        <TypeIcon className="w-3 h-3" />{content.typeLabel}
                     </span>
                 </div>
-
-                {/* Status Badge */}
                 <div className="absolute top-2 right-2">
                     <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border rounded-(--radius) ${content.statusColor}`}>
                         {content.statusLabel}
                     </span>
                 </div>
-
-                {/* Carousel indicator */}
                 {content.type === 'carousel' && content.mediaUrls.length > 1 && (
                     <div className="absolute bottom-2 right-2">
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm rounded-(--radius) font-mono-data">
@@ -107,10 +111,20 @@ export function ContentCard({ content }: ContentCardProps) {
                         </span>
                     </div>
                 )}
+
+                {/* Engagement Rate overlay for published */}
+                {engagementRate > 0 && (
+                    <div className="absolute bottom-2 left-2">
+                        <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-black/70 text-[hsl(var(--success))] backdrop-blur-sm rounded-(--radius) font-mono-data">
+                            <TrendingUp className="w-3 h-3" />{engagementRate.toFixed(1)}%
+                        </span>
+                    </div>
+                )}
             </div>
 
-            {/* Content */}
+            {/* Body */}
             <div className="p-4 space-y-3">
+                {/* Caption */}
                 <p className="text-xs text-foreground line-clamp-3 leading-relaxed">
                     {content.caption || <span className="text-muted-foreground italic">Sem legenda</span>}
                 </p>
@@ -127,73 +141,110 @@ export function ContentCard({ content }: ContentCardProps) {
                     </div>
                 )}
 
+                {/* Scheduled at */}
+                {content.status === 'scheduled' && content.scheduledAt && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--info))]">
+                        <Clock className="w-3 h-3" />
+                        {new Date(content.scheduledAt).toLocaleString('pt-BR', {
+                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                        })}
+                    </div>
+                )}
+
                 {/* Metrics */}
                 {hasMetrics && (
-                    <div className="flex items-center gap-3 pt-3 border-t border-border">
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono-data">
-                            <Heart className="w-3 h-3" /> {content.metrics.likes.toLocaleString('pt-BR')}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono-data">
-                            <MessageCircle className="w-3 h-3" /> {content.metrics.comments.toLocaleString('pt-BR')}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono-data">
-                            <Share2 className="w-3 h-3" /> {content.metrics.shares.toLocaleString('pt-BR')}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono-data">
-                            <Bookmark className="w-3 h-3" /> {content.metrics.saves.toLocaleString('pt-BR')}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono-data ml-auto">
-                            <Eye className="w-3 h-3" /> {content.metrics.reach.toLocaleString('pt-BR')}
-                        </span>
+                    <div className="pt-2 border-t border-border space-y-2">
+                        <div className="flex items-center gap-3">
+                            <MetricItem icon={Heart} value={content.metrics.likes} />
+                            <MetricItem icon={MessageCircle} value={content.metrics.comments} />
+                            <MetricItem icon={Share2} value={content.metrics.shares} />
+                            <MetricItem icon={Bookmark} value={content.metrics.saves} />
+                            <MetricItem icon={Eye} value={content.metrics.reach} className="ml-auto" />
+                        </div>
                     </div>
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 pt-3 border-t border-border">
-                    {content.status === 'draft' && (
+                <div className="flex items-center gap-2 pt-2 border-t border-border">
+                    {(content.status === 'draft' || content.status === 'failed') && (
                         <>
                             <Button
-                                type="button"
                                 onClick={handlePublish}
                                 disabled={isPendingPublish}
                                 size="sm"
-                                className="h-8 flex-1 px-4 text-xs font-bold uppercase tracking-wider"
+                                variant={content.status === 'failed' ? 'destructive' : 'default'}
+                                className="h-7 flex-1 text-xs gap-1.5"
                             >
                                 <Send className="w-3 h-3" />
-                                {isPendingPublish ? 'Publicando...' : 'Publicar'}
+                                {isPendingPublish ? 'Publicando...' : content.status === 'failed' ? 'Tentar novamente' : 'Publicar'}
                             </Button>
+                            <ScheduleButton contentId={content.id} currentScheduledAt={content.scheduledAt} />
                             <Button
-                                type="button"
                                 onClick={handleDelete}
                                 disabled={isPendingDelete}
-                                variant="destructive"
+                                variant="ghost"
                                 size="sm"
-                                className="h-8 px-3"
+                                className="h-7 px-2 text-muted-foreground hover:text-destructive"
                             >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                         </>
                     )}
-                    {content.status === 'published' && content.publishedAt && (
-                        <p className="text-[10px] text-muted-foreground font-mono-data">
-                            Publicado em {new Date(content.publishedAt).toLocaleDateString('pt-BR')}
+                    {content.status === 'scheduled' && (
+                        <>
+                            <Button
+                                onClick={handlePublish}
+                                disabled={isPendingPublish}
+                                size="sm"
+                                className="h-7 flex-1 text-xs gap-1.5"
+                            >
+                                <Send className="w-3 h-3" />
+                                Publicar agora
+                            </Button>
+                            <ScheduleButton contentId={content.id} currentScheduledAt={content.scheduledAt} />
+                            <Button
+                                onClick={handleDelete}
+                                disabled={isPendingDelete}
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                        </>
+                    )}
+                    {content.status === 'publishing' && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <RefreshCw className="w-3 h-3 animate-spin" />Publicando...
                         </p>
                     )}
-                    {content.status === 'failed' && (
-                        <Button
-                            type="button"
-                            onClick={handlePublish}
-                            disabled={isPendingPublish}
-                            variant="destructive"
-                            size="sm"
-                            className="h-8 flex-1 px-4 text-xs font-bold uppercase tracking-wider"
-                        >
-                            <Send className="w-3 h-3" />
-                            Tentar novamente
-                        </Button>
+                    {content.status === 'published' && (
+                        <div className="flex items-center justify-between w-full">
+                            <p className="text-[10px] text-muted-foreground font-mono-data">
+                                {content.publishedAt
+                                    ? new Date(content.publishedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' })
+                                    : 'Publicado'}
+                            </p>
+                            <button
+                                onClick={handleSyncMetrics}
+                                disabled={isPendingSync}
+                                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <RefreshCw className={`w-3 h-3 ${isPendingSync ? 'animate-spin' : ''}`} />
+                                {isPendingSync ? 'Sincronizando...' : 'Sync métricas'}
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
         </div>
+    )
+}
+
+function MetricItem({ icon: Icon, value, className = '' }: { icon: typeof Heart; value: number; className?: string }) {
+    return (
+        <span className={`flex items-center gap-0.5 text-[10px] text-muted-foreground font-mono-data ${className}`}>
+            <Icon className="w-3 h-3" />{value.toLocaleString('pt-BR')}
+        </span>
     )
 }

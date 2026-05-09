@@ -7,12 +7,13 @@ import type {
     CreateInstagramContentInput,
     UpdateInstagramContentInput,
 } from '@/domain/interfaces/instagram-repository'
-import type { InstagramContentRow, InstagramContentStatus, InstagramAccountRow, InstagramAutoConfigRow } from '@/types/instagram'
+import type { InstagramContentRow, InstagramContentStatus, InstagramAccountRow, InstagramAutoConfigRow, InstagramMetricsJson } from '@/types/instagram'
+
+// ─── Content Repository ───────────────────────────────────────────────────────
 
 export class SupabaseInstagramContentRepository implements IInstagramContentRepository {
     async findById(id: string): Promise<InstagramContent | null> {
-        const supabase = createAdminClient()
-        const { data } = await supabase
+        const { data } = await createAdminClient()
             .from('instagram_contents')
             .select('*')
             .eq('id', id)
@@ -21,8 +22,7 @@ export class SupabaseInstagramContentRepository implements IInstagramContentRepo
     }
 
     async findByOrgId(orgId: string): Promise<InstagramContentRow[]> {
-        const supabase = createAdminClient()
-        const { data } = await supabase
+        const { data } = await createAdminClient()
             .from('instagram_contents')
             .select('*')
             .eq('organization_id', orgId)
@@ -30,18 +30,40 @@ export class SupabaseInstagramContentRepository implements IInstagramContentRepo
         return (data ?? []) as unknown as InstagramContentRow[]
     }
 
+    /** Returns all posts in 'scheduled' status whose scheduled_at is in the past. */
+    async findScheduledDue(): Promise<InstagramContentRow[]> {
+        const { data } = await createAdminClient()
+            .from('instagram_contents')
+            .select('*')
+            .eq('status', 'scheduled')
+            .lte('scheduled_at', new Date().toISOString())
+        return (data ?? []) as unknown as InstagramContentRow[]
+    }
+
+    /** Returns published posts with an ig_post_id for metrics sync. */
+    async findPublishedForMetrics(sinceHours = 168): Promise<InstagramContentRow[]> {
+        const since = new Date(Date.now() - sinceHours * 3_600_000).toISOString()
+        const { data } = await createAdminClient()
+            .from('instagram_contents')
+            .select('*')
+            .eq('status', 'published')
+            .not('ig_post_id', 'is', null)
+            .gte('published_at', since)
+        return (data ?? []) as unknown as InstagramContentRow[]
+    }
+
     async create(input: CreateInstagramContentInput): Promise<InstagramContent | null> {
-        const supabase = createAdminClient()
-        const { data } = await supabase
+        const { data } = await createAdminClient()
             .from('instagram_contents')
             .insert({
                 organization_id: input.organizationId,
                 type: input.type,
                 caption: input.caption,
                 media_urls: input.mediaUrls,
-                thumbnail_url: input.thumbnailUrl || null,
-                hashtags: input.hashtags || [],
-                status: 'draft',
+                thumbnail_url: input.thumbnailUrl ?? null,
+                hashtags: input.hashtags ?? [],
+                scheduled_at: input.scheduledAt ?? null,
+                status: input.scheduledAt ? 'scheduled' : 'draft',
             })
             .select()
             .single()
@@ -49,53 +71,61 @@ export class SupabaseInstagramContentRepository implements IInstagramContentRepo
     }
 
     async update(id: string, orgId: string, input: UpdateInstagramContentInput): Promise<InstagramContent | null> {
-        const supabase = createAdminClient()
-        const updateData: Record<string, unknown> = {}
-        if (input.caption !== undefined) updateData.caption = input.caption
-        if (input.mediaUrls !== undefined) updateData.media_urls = input.mediaUrls
-        if (input.thumbnailUrl !== undefined) updateData.thumbnail_url = input.thumbnailUrl
-        if (input.hashtags !== undefined) updateData.hashtags = input.hashtags
-        if (input.type !== undefined) updateData.type = input.type
+        const patch: Record<string, unknown> = {}
+        if (input.caption !== undefined) patch.caption = input.caption
+        if (input.mediaUrls !== undefined) patch.media_urls = input.mediaUrls
+        if (input.thumbnailUrl !== undefined) patch.thumbnail_url = input.thumbnailUrl
+        if (input.hashtags !== undefined) patch.hashtags = input.hashtags
+        if (input.type !== undefined) patch.type = input.type
+        if (input.scheduledAt !== undefined) {
+            patch.scheduled_at = input.scheduledAt
+            patch.status = input.scheduledAt ? 'scheduled' : 'draft'
+        }
 
-        const { data } = await supabase
+        const { data } = await createAdminClient()
             .from('instagram_contents')
-            .update(updateData)
+            .update(patch)
             .eq('id', id)
             .eq('organization_id', orgId)
-            .eq('status', 'draft')
+            .in('status', ['draft', 'scheduled', 'failed'])
             .select()
             .single()
         return data ? InstagramContent.fromRow(data) : null
     }
 
     async updateStatus(id: string, orgId: string, status: InstagramContentStatus, extra?: Record<string, unknown>): Promise<boolean> {
-        const supabase = createAdminClient()
-        const updateData: Record<string, unknown> = { status }
-        if (status === 'published') updateData.published_at = new Date().toISOString()
-        if (extra) Object.assign(updateData, extra)
+        const patch: Record<string, unknown> = { status }
+        if (status === 'published') patch.published_at = new Date().toISOString()
+        if (extra) Object.assign(patch, extra)
 
-        const { error } = await supabase
+        const { error } = await createAdminClient()
             .from('instagram_contents')
-            .update(updateData)
+            .update(patch)
             .eq('id', id)
             .eq('organization_id', orgId)
+        return !error
+    }
+
+    async updateMetrics(id: string, metrics: InstagramMetricsJson): Promise<boolean> {
+        const { error } = await createAdminClient()
+            .from('instagram_contents')
+            .update({ metrics, metrics_synced_at: new Date().toISOString() })
+            .eq('id', id)
         return !error
     }
 
     async delete(id: string, orgId: string): Promise<boolean> {
-        const supabase = createAdminClient()
-        const { error } = await supabase
+        const { error } = await createAdminClient()
             .from('instagram_contents')
             .delete()
             .eq('id', id)
             .eq('organization_id', orgId)
-            .eq('status', 'draft')
+            .in('status', ['draft', 'scheduled', 'failed'])
         return !error
     }
 
     async countByOrgId(orgId: string): Promise<number> {
-        const supabase = createAdminClient()
-        const { count } = await supabase
+        const { count } = await createAdminClient()
             .from('instagram_contents')
             .select('id', { count: 'exact', head: true })
             .eq('organization_id', orgId)
@@ -103,10 +133,11 @@ export class SupabaseInstagramContentRepository implements IInstagramContentRepo
     }
 }
 
+// ─── Account Repository ───────────────────────────────────────────────────────
+
 export class SupabaseInstagramAccountRepository implements IInstagramAccountRepository {
     async findByOrgId(orgId: string): Promise<InstagramAccountRow | null> {
-        const supabase = createAdminClient()
-        const { data } = await supabase
+        const { data } = await createAdminClient()
             .from('instagram_accounts')
             .select('*')
             .eq('organization_id', orgId)
@@ -114,20 +145,37 @@ export class SupabaseInstagramAccountRepository implements IInstagramAccountRepo
         return data as InstagramAccountRow | null
     }
 
-    async upsert(orgId: string, data: Omit<InstagramAccountRow, 'id' | 'organization_id' | 'connected_at'>): Promise<boolean> {
-        const supabase = createAdminClient()
-        const { error } = await supabase
+    /** Finds accounts whose token expires within `daysThreshold` days. */
+    async findAllExpiringSoon(daysThreshold = 15): Promise<InstagramAccountRow[]> {
+        const cutoff = new Date(Date.now() + daysThreshold * 86_400_000).toISOString()
+        const { data } = await createAdminClient()
             .from('instagram_accounts')
-            .upsert({
-                organization_id: orgId,
-                ...data,
-            }, { onConflict: 'organization_id' })
+            .select('*')
+            .lte('token_expires_at', cutoff)
+        return (data ?? []) as unknown as InstagramAccountRow[]
+    }
+
+    async upsert(orgId: string, data: Omit<InstagramAccountRow, 'id' | 'organization_id' | 'connected_at'>): Promise<boolean> {
+        const { error } = await createAdminClient()
+            .from('instagram_accounts')
+            .upsert({ organization_id: orgId, ...data }, { onConflict: 'organization_id' })
+        return !error
+    }
+
+    async updateToken(orgId: string, token: string, expiresAt: string): Promise<boolean> {
+        const { error } = await createAdminClient()
+            .from('instagram_accounts')
+            .update({
+                access_token: token,
+                token_expires_at: expiresAt,
+                token_refreshed_at: new Date().toISOString(),
+            })
+            .eq('organization_id', orgId)
         return !error
     }
 
     async delete(orgId: string): Promise<boolean> {
-        const supabase = createAdminClient()
-        const { error } = await supabase
+        const { error } = await createAdminClient()
             .from('instagram_accounts')
             .delete()
             .eq('organization_id', orgId)
@@ -135,10 +183,11 @@ export class SupabaseInstagramAccountRepository implements IInstagramAccountRepo
     }
 }
 
+// ─── Auto-Config Repository ───────────────────────────────────────────────────
+
 export class SupabaseInstagramAutoConfigRepository implements IInstagramAutoConfigRepository {
     async findByOrgId(orgId: string): Promise<InstagramAutoConfigRow | null> {
-        const supabase = createAdminClient()
-        const { data } = await supabase
+        const { data } = await createAdminClient()
             .from('instagram_auto_configs')
             .select('*')
             .eq('organization_id', orgId)
@@ -147,22 +196,16 @@ export class SupabaseInstagramAutoConfigRepository implements IInstagramAutoConf
     }
 
     async upsert(orgId: string, data: Partial<Omit<InstagramAutoConfigRow, 'id' | 'organization_id' | 'created_at' | 'updated_at'>>): Promise<InstagramAutoConfigRow | null> {
-        const supabase = createAdminClient()
-        const { data: row } = await supabase
+        const { data: row } = await createAdminClient()
             .from('instagram_auto_configs')
-            .upsert({
-                organization_id: orgId,
-                ...data,
-                updated_at: new Date().toISOString(),
-            }, { onConflict: 'organization_id' })
+            .upsert({ organization_id: orgId, ...data, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' })
             .select()
             .single()
         return row as InstagramAutoConfigRow | null
     }
 
     async toggleActive(orgId: string, active: boolean): Promise<boolean> {
-        const supabase = createAdminClient()
-        const { error } = await supabase
+        const { error } = await createAdminClient()
             .from('instagram_auto_configs')
             .update({ active, updated_at: new Date().toISOString() })
             .eq('organization_id', orgId)
