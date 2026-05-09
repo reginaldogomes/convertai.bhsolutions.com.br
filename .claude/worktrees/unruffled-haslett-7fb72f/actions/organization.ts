@@ -549,7 +549,7 @@ export async function updateOrgBrand(
         }
 
         revalidatePath('/settings')
-        revalidateTag('org-brand')
+        revalidateTag('org-brand', 'default')
         return { error: '', success: true }
     } catch (err) {
         return { error: getErrorMessage(err), success: false }
