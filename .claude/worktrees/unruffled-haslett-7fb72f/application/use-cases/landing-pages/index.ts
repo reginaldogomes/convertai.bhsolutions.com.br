@@ -204,6 +204,7 @@ export class AddKnowledgeBaseUseCase {
         landingPageId: string | null
         title: string
         content: string
+        metadata?: Record<string, unknown>
     }): Promise<Result<KnowledgeBase>> {
         if (!input.title || !input.content) {
             return failure(new ValidationError('Título e conteúdo são obrigatórios'))
@@ -214,6 +215,7 @@ export class AddKnowledgeBaseUseCase {
             landingPageId: input.landingPageId,
             title: input.title,
             content: input.content,
+            metadata: input.metadata,
         })
 
         if (!entry) return failure(new ValidationError('Erro ao criar entrada'))
