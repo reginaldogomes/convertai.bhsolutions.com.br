@@ -1,11 +1,7 @@
-/**
- * Cron: Refresh Instagram long-lived tokens approaching expiry.
- *
- * Run every 30 days (e.g. Vercel Cron: `0 4 */30 * *`).
- * Secured with CRON_SECRET to prevent unauthorized calls.
- *
- * Refresh window: tokens expiring within 15 days are refreshed.
- */
+// Cron: Refresh Instagram long-lived tokens approaching expiry.
+// Schedule: 1st of each month at 04:00  →  "0 4 1 * *"  (vercel.json)
+// Secured with CRON_SECRET to prevent unauthorized calls.
+// Refresh window: tokens expiring within 15 days are refreshed.
 
 import { NextResponse } from 'next/server'
 import { useCases } from '@/application/services/container'

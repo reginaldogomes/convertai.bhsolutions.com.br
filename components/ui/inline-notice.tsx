@@ -15,8 +15,8 @@ interface InlineNoticeProps {
 
 const variantClasses: Record<NoticeVariant, string> = {
   success: "border-[hsl(var(--success))]/20 bg-[hsl(var(--success-subtle))] text-[hsl(var(--success))]",
-  warning: "border-amber-200 bg-amber-50 text-amber-700",
-  info: "border-border bg-muted/50 text-foreground-secondary",
+  warning: "border-[hsl(var(--warning))]/25 bg-[hsl(var(--warning-subtle))] text-[hsl(var(--warning))]",
+  info: "border-[hsl(var(--info))]/25 bg-[hsl(var(--info-subtle))] text-[hsl(var(--info))]",
   destructive: "border-destructive/20 bg-destructive/10 text-destructive",
 }
 

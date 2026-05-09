@@ -1,10 +1,7 @@
-/**
- * Cron: Sync Instagram metrics for recently published posts.
- *
- * Run every 6 hours (e.g. Vercel Cron: `0 */6 * * *`).
- * Syncs likes, comments, shares, saves, reach and impressions
- * for posts published in the last 7 days.
- */
+// Cron: Sync Instagram metrics for recently published posts.
+// Schedule: every 6 hours  →  "0 * /6 * * *"  (vercel.json)
+// Syncs likes, comments, shares, saves, reach and impressions
+// for posts published in the last 7 days.
 
 import { NextResponse } from 'next/server'
 import { useCases } from '@/application/services/container'

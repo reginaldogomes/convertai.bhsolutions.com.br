@@ -1,10 +1,7 @@
-/**
- * Cron: Publish scheduled Instagram posts.
- *
- * Run every 5–15 minutes (e.g. Vercel Cron: `*/15 * * * *`).
- * Finds all posts with status='scheduled' AND scheduled_at <= now()
- * and publishes them via the Meta Graph API.
- */
+// Cron: Publish scheduled Instagram posts.
+// Schedule: every 15 minutes  →  "* /15 * * * *"  (vercel.json)
+// Finds all posts with status='scheduled' AND scheduled_at <= now()
+// and publishes them via the Meta Graph API.
 
 import { NextResponse } from 'next/server'
 import { useCases } from '@/application/services/container'
