@@ -56,7 +56,7 @@ export function TokenStatusBanner({ tokenExpiresAt }: Props) {
     return (
         <div className="flex items-center gap-3 px-4 py-3 rounded-(--radius) border border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.08)] text-[hsl(var(--warning))] text-sm">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <p className="flex-1">
+            <p suppressHydrationWarning className="flex-1">
                 Seu token do Instagram expira em <strong>{daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}</strong>.
                 Renove agora para evitar interrupção nas publicações.
             </p>
@@ -84,7 +84,7 @@ export function TokenOkBadge({ tokenExpiresAt }: Props) {
     const daysLeft = getDaysUntilExpiry(tokenExpiresAt)
     if (daysLeft <= 15) return null
     return (
-        <span className="flex items-center gap-1 text-[10px] text-[hsl(var(--success))] font-medium">
+        <span suppressHydrationWarning className="flex items-center gap-1 text-[10px] text-[hsl(var(--success))] font-medium">
             <CheckCircle2 className="w-3 h-3" />
             Token válido · {daysLeft}d
         </span>

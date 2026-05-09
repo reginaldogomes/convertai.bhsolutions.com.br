@@ -50,27 +50,29 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
     const [seoGenerationWarning, setSeoGenerationWarning] = useState('')
     const [seoGenerationRequestId, setSeoGenerationRequestId] = useState('')
 
-    // Logo state
+    // Logo state — uses useTransition directly to avoid a nested <form>
     const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(page.logoUrl)
     const [logoError, setLogoError] = useState('')
+    const [isUploadingLogo, startUploadingLogo] = useTransition()
     const [isRemovingLogo, startRemovingLogo] = useTransition()
     const logoFileRef = useRef<HTMLInputElement>(null)
 
-    const boundLogoUpload = useCallback(
-        (state: { error: string; success: boolean; logoUrl?: string }, formData: FormData) =>
-            uploadBrandLogo(page.id, state, formData),
-        [page.id],
-    )
-    const [logoState, logoAction, isUploadingLogo] = useActionState(boundLogoUpload, { error: '', success: false })
-
-    useEffect(() => {
-        if (logoState.success && logoState.logoUrl) {
-            setCurrentLogoUrl(logoState.logoUrl)
-            setLogoError('')
-            if (logoFileRef.current) logoFileRef.current.value = ''
-        }
-        if (logoState.error) setLogoError(logoState.error)
-    }, [logoState])
+    const handleLogoUpload = useCallback(() => {
+        const file = logoFileRef.current?.files?.[0]
+        if (!file) { setLogoError('Selecione um arquivo para enviar.'); return }
+        setLogoError('')
+        const formData = new FormData()
+        formData.append('logoFile', file)
+        startUploadingLogo(async () => {
+            const result = await uploadBrandLogo(page.id, { error: '', success: false }, formData)
+            if (result.success && result.logoUrl) {
+                setCurrentLogoUrl(result.logoUrl)
+                if (logoFileRef.current) logoFileRef.current.value = ''
+            } else {
+                setLogoError(result.error || 'Erro ao enviar logo.')
+            }
+        })
+    }, [page.id])
 
     const handleRemoveLogo = useCallback(() => {
         startRemovingLogo(async () => {
@@ -243,7 +245,8 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                     </div>
                 )}
 
-                <form action={logoAction} className="flex items-center gap-3">
+                {/* Não usar <form> aqui — já estamos dentro do <form> principal */}
+                <div className="flex items-center gap-3">
                     <Input
                         ref={logoFileRef}
                         id="logoFile"
@@ -253,23 +256,24 @@ export function LandingPageEditor({ page }: LandingPageEditorProps) {
                         className="flex-1 text-sm"
                     />
                     <Button
-                        type="submit"
+                        type="button"
                         variant="outline"
                         size="sm"
+                        onClick={handleLogoUpload}
                         disabled={isUploadingLogo}
                         className="gap-2 shrink-0"
                     >
                         <Upload className="w-4 h-4" />
                         {isUploadingLogo ? 'Enviando...' : 'Enviar'}
                     </Button>
-                </form>
+                </div>
 
                 <p className="text-xs text-muted-foreground">JPG, PNG, WEBP ou SVG. Máximo 2MB.</p>
 
                 {logoError && (
                     <p className="text-xs text-destructive">{logoError}</p>
                 )}
-                {logoState.success && !logoError && (
+                {!logoError && currentLogoUrl && currentLogoUrl !== page.logoUrl && (
                     <p className="text-xs text-[hsl(var(--success))]">Logo atualizado com sucesso.</p>
                 )}
             </div>
