@@ -91,7 +91,7 @@ export async function adminChangePlan(prevState: unknown, formData: FormData) {
         const result = await useCases.changePlan().execute(orgId, { planId, notes: notes ?? undefined })
         if (!result.ok) return { error: result.error.message, success: false }
 
-        revalidateTag('plans')
+        revalidateTag('plans', 'default')
         revalidatePath('/admin/plans')
         return { success: true, error: '' }
     } catch (error) {
@@ -214,7 +214,7 @@ export async function upsertPlan(prevState: unknown, formData: FormData) {
 
         if (!result.ok) return { error: result.error.message, success: false }
 
-        revalidateTag('plans')
+        revalidateTag('plans', 'default')
         revalidatePath('/admin/plans')
         return { success: true, error: '', planId: result.value.id }
     } catch (error) {

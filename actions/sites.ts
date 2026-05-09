@@ -352,8 +352,8 @@ export async function createSite(prevState: ActionState, formData: FormData): Pr
         revalidatePath('/sites')
         revalidatePath(`/s/${siteSlug}`)
         revalidatePath(`/p/${site.id}`)
-        revalidateTag('landing-pages')
-        revalidateTag('sites')
+        revalidateTag('landing-pages', 'default')
+        revalidateTag('sites', 'default')
     } catch (error) {
         return { error: getErrorMessage(error) }
     }
@@ -427,7 +427,7 @@ export async function publishSite(prevState: ActionState, formData: FormData): P
 
         revalidatePath('/sites')
         revalidatePath(`/s/${site.slug}`)
-        revalidateTag('sites')
+        revalidateTag('sites', 'default')
         return { success: true, error: '' }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }

@@ -36,7 +36,7 @@ export async function createOrganization(
         await userRepo.addMembership(userId, org.id, 'owner')
         await userRepo.switchActiveOrg(userId, org.id)
 
-        revalidateTag('auth-context')
+        revalidateTag('auth-context', 'default')
         revalidatePath('/', 'layout')
     } catch (err) {
         return { error: getErrorMessage(err), success: false }
@@ -50,7 +50,7 @@ export async function switchOrganization(orgId: string) {
     try {
         const { userId } = await getAuthContext()
         await userRepo.switchActiveOrg(userId, orgId)
-        revalidateTag('auth-context')
+        revalidateTag('auth-context', 'default')
         revalidatePath('/', 'layout')
         return { error: '' }
     } catch (err) {
