@@ -148,19 +148,20 @@ export default async function SitePublicPage({ params }: PageProps) {
     const hpCfg = (homepage.config_json as Record<string, any>) ?? {}
     const sections = sanitizeSections(hpCfg.sections ?? cfg.sections ?? [])
 
-    const siteConfig = {
-        theme: (cfg.theme ?? site.theme ?? 'dark') as 'light' | 'dark',
-        primaryColor: site.primary_color ?? cfg.primaryColor ?? '#6366f1',
+    // Merge site-level config with homepage design system (page-level takes precedence)
+    const mergedConfig = {
+        ...cfg,
+        primaryColor: cfg.primaryColor ?? site.primary_color ?? '#6366f1',
+        theme: cfg.theme ?? site.theme ?? 'light',
+        logoUrl: cfg.logoUrl ?? site.logo_url ?? null,
         designSystem: hpCfg.designSystem ?? cfg.designSystem,
-        logoUrl: site.logo_url ?? cfg.logoUrl ?? null,
-        seo: cfg.seo,
     }
 
     return (
         <SiteView
             siteSlug={site.slug}
             siteName={site.name}
-            siteConfig={siteConfig}
+            configJson={mergedConfig}
             homepage={{
                 id: homepage.id,
                 name: homepage.name,

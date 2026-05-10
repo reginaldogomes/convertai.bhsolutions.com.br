@@ -136,18 +136,20 @@ export default async function SiteSubPage({ params }: PageProps) {
     const pageCfg = (page.config_json as Record<string, any>) ?? {}
     const sections = sanitizeSections(pageCfg.sections ?? [])
 
-    const siteConfig = {
-        theme: (cfg.theme ?? site.theme ?? 'dark') as 'light' | 'dark',
-        primaryColor: site.primary_color ?? cfg.primaryColor ?? '#6366f1',
+    // Merge site-level config with page design system (page-level takes precedence)
+    const mergedConfig = {
+        ...cfg,
+        primaryColor: cfg.primaryColor ?? site.primary_color ?? '#6366f1',
+        theme: cfg.theme ?? site.theme ?? 'light',
+        logoUrl: cfg.logoUrl ?? site.logo_url ?? null,
         designSystem: pageCfg.designSystem ?? cfg.designSystem,
-        logoUrl: site.logo_url ?? cfg.logoUrl ?? null,
     }
 
     return (
         <SitePageView
             siteSlug={site.slug}
             siteName={site.name}
-            siteConfig={siteConfig}
+            configJson={mergedConfig}
             page={{
                 id: page.id,
                 name: page.name,

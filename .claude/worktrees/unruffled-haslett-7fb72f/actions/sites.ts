@@ -69,6 +69,10 @@ const UpdateSiteSchema = z.object({
         .min(3, { message: 'O nome do site deve ter pelo menos 3 caracteres.' })
         .max(100, { message: 'O nome do site não pode ter mais de 100 caracteres.' })
         .optional(),
+    description: z.string().trim().max(500).optional(),
+    primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+    logoUrl: z.string().url().optional().or(z.literal('')),
+    theme: z.enum(['light', 'dark']).optional(),
     configJson: z.string().optional(),
 })
 
@@ -389,12 +393,17 @@ export async function updateSite(prevState: ActionState, formData: FormData): Pr
             }
         }
 
-        await useCases.updateSite().execute(orgId, siteId, { 
+        await useCases.updateSite().execute(orgId, siteId, {
             name: validatedFields.data.name,
-            configJson 
+            description: validatedFields.data.description || undefined,
+            primaryColor: validatedFields.data.primaryColor || undefined,
+            logoUrl: validatedFields.data.logoUrl === '' ? null : validatedFields.data.logoUrl || undefined,
+            theme: validatedFields.data.theme,
+            configJson,
         })
         revalidatePath('/sites')
-        
+        revalidateTag('sites', 'default')
+
         return { success: true, error: '' }
     } catch (error) {
         return { error: getErrorMessage(error), success: false }
